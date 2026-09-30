@@ -57,3 +57,51 @@ python -m pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-
 ```
 
 Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.10–3.14 on Linux and Python 3.12 on Windows/macOS.
+
+## Configuration discovery and regression corpus (0.2)
+
+The original xgrep/xfail goal goes beyond ad-hoc grep: locate configuration clues using built-in vocabulary, then retain explained failures for repeatable tests and AI troubleshooting. The single artifact now provides:
+
+| API | Behavior |
+| --- | --- |
+| `inspect_text(text)` | Built-in header words, secret-like key phrases, config terms and URL schemes; source/line/column and key classification only. |
+| `scan_config(root, ...)` | Include globs, excluded directory names/relative paths, hidden .env support, byte/finding bounds and explicit errors/skips/incompleteness. |
+| `inspect_environment(mapping)` | Recognized variable names and empty/present status, with all values omitted. Caller explicitly supplies the mapping. |
+| `known_bad_cases(category=None)` | Stable, explained regressions for Git SHA, NUL, Markdown, paths, URLs, SQL and JSON. |
+| `generate_cases(seed=0, count=20, category=None)` | Seeded sampling of that corpus with unique IDs and origin IDs; does not alter global RNG state. |
+| `merge_cases(*corpora)` | Validate/deduplicate recorded inputs; reject conflicting IDs and non-finite/non-round-tripping JSON values. |
+| `corpus_to_json` / `corpus_from_json` | Stable JSON or JSONL persistence; pure serialization, no automatic file writes or execution. |
+| `cases_from_junit(text)` | Import pytest-compatible JUnit failure/error identities, omitting logs, messages and parameter labels. |
+
+```python
+import xprobe
+
+report = xprobe.scan_config(".")
+fixtures = xprobe.merge_cases(xprobe.known_bad_cases(), [{
+    "id": "my-regression-1", "category": "regression", "value": "original input",
+    "reason": "Describe the observed failure and the regression being prevented",
+}])
+encoded = xprobe.corpus_to_json(fixtures, jsonl=True)
+assert xprobe.corpus_from_json(encoded, jsonl=True) == fixtures
+```
+
+```sh
+python scripts/xprobe_cli.py --scan-config --root . --include '*.yaml'
+python scripts/xprobe_cli.py --env-report
+python scripts/xprobe_cli.py --corpus --category git --seed 7 --count 20 --format jsonl
+python -m pytest --junitxml=pytest-results.xml
+python scripts/xprobe_cli.py --junit pytest-results.xml
+```
+
+Discovery output deliberately omits **all values and surrounding lines**, including URLs, query strings and credentials. Classification is heuristic evidence, not a complete parser or a credential verdict. Source paths/key names themselves can identify projects; choose inputs before sharing. The legacy explicit `search_text` / `search_files` APIs return raw text and are unsuitable for sharing sensitive inputs without caller review.
+
+Discovery defaults exclude .git, .venv, venv, node_modules, __pycache__, build and dist. Filters replace the defaults when supplied. A bounded candidate-line scan can stop before finding enough classified keys: `truncated` and `truncation_reason=candidate_limit` explicitly mark incomplete discovery; `finding_limit` marks a finding bound. Skipped/read-error files do not prove absence of configuration. This is line-based UTF-8 heuristic discovery, without a hostile-filesystem sandbox or multiline config parsing.
+
+Corpus inputs are **not** universal rejection expectations. `run_cases` still requires the caller's explicit expected value or exception. JUnit identifies failed tests but normally cannot reconstruct their original inputs: record the input explicitly in a separate case. Corpus persistence can contain sensitive user-supplied input; unlike discovery, corpus serialization is faithful. Generated cases sample existing regression classes; they do not implement a fuzzing engine. JUnit parsing is byte/case bounded, rejects DTD/entity declarations and does not evaluate code.
+
+For cross-repository use, `cases_from_junit` accepts explicit `repository`,
+`commit_sha` (full SHA from canonical metadata) and `report_id`. These scope case
+IDs so matching test names from different repositories/jobs do not collide.
+Missing SHA stays null. See [cross-repository collection](docs/cross-repository-tests.md).
+Both new repositories' CI now preserve JUnit reports even when tests fail;
+xprobe also emits the shared importer's compact failure JSON.
