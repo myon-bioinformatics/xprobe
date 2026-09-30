@@ -28,6 +28,9 @@ def main(argv=None):
     parser.add_argument("--include", action="append")
     parser.add_argument("--exclude-dir", action="append")
     parser.add_argument("--category")
+    parser.add_argument("--repository", help="Explicit owner/name for JUnit provenance")
+    parser.add_argument("--commit-sha", help="Full SHA from canonical repository metadata")
+    parser.add_argument("--report-id", default="junit", help="Unique job/report identity")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--count", type=int)
     parser.add_argument("--format", choices=("json", "jsonl", "text"), default="json")
@@ -44,7 +47,9 @@ def main(argv=None):
             if len(data) > args.max_bytes:
                 raise ValueError("JUnit exceeds byte limit")
             report = xprobe.cases_from_junit(data.decode("utf-8"),
-                                             max_bytes=args.max_bytes, max_cases=args.max_matches)
+                                             max_bytes=args.max_bytes, max_cases=args.max_matches,
+                                             repository=args.repository, commit_sha=args.commit_sha,
+                                             report_id=args.report_id)
             print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
             return 2 if report["truncated"] else 0
         if args.corpus:

@@ -433,7 +433,8 @@ def corpus_from_json(text, *, jsonl=False):
     return merge_cases(rows)
 
 
-def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000):
+def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
+                     repository=None, commit_sha=None, report_id="junit"):
     """Import pytest-compatible JUnit failure identities, omitting logs and values.
 
     JUnit normally does not contain reconstructable target inputs. The result
@@ -445,6 +446,21 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000):
         raise TypeError('JUnit text must be a string')
     _limit(max_cases, 'max_cases')
     _limit(max_bytes, 'max_bytes')
+    if repository is not None and (not isinstance(repository, str) or
+            not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository)):
+        raise ValueError("repository must be owner/name")
+    if commit_sha is not None and (not isinstance(commit_sha, str) or
+            not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", commit_sha)):
+        raise ValueError("commit_sha must be a full SHA supplied by the canonical producer")
+    if commit_sha is not None and repository is None:
+        raise ValueError("commit_sha requires repository")
+    if not isinstance(report_id, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+", report_id):
+        raise ValueError("report_id must be a non-empty portable identifier")
+    context = {"repository": repository,
+               "commit_sha": commit_sha.lower() if commit_sha is not None else None,
+               "report_id": report_id}
+    prefix = (repository + "@" + (context["commit_sha"] or "unmeasured") + "/"
+              if repository is not None else "") + report_id
     if len(text.encode('utf-8')) > max_bytes:
         raise ValueError('JUnit exceeds byte limit')
     if re.search(r'<!\s*(?:DOCTYPE|ENTITY)\b', text, re.I):
@@ -464,7 +480,8 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000):
             return {'cases': rows, 'truncated': True}
         name = testcase.get('name', '').split('[', 1)[0]
         classname = testcase.get('classname', '').split('[', 1)[0]
-        rows.append({'id': 'junit-' + str(len(rows)), 'category': 'test_failure',
+        rows.append({'id': prefix + '-' + str(len(rows)), 'category': 'test_failure',
+                     'context': dict(context),
                      'value': {'test': name, 'class': classname, 'kind': kinds[0]},
                      'reason': 'JUnit recorded a failure; attach the original input to reproduce it.'})
     return {'cases': rows, 'truncated': False}

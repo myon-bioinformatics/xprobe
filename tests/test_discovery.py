@@ -204,3 +204,32 @@ def test_junit_cli_invalid_xml_reports_no_contents(tmp_path):
                           capture_output=True, text=True, timeout=20)
     assert proc.returncode == 2 and proc.stdout == ''
     assert 'sentinel-secret' not in proc.stderr
+
+
+def test_cross_repository_junit_sources_do_not_collide():
+    xml = '<testsuite><testcase name="test_shared"><failure/></testcase></testsuite>'
+    first = xprobe.cases_from_junit(xml, repository='myon-bioinformatics/markdown',
+                                   commit_sha='A' * 40, report_id='linux-py310')['cases']
+    second = xprobe.cases_from_junit(xml, repository='myon-bioinformatics/ascii_artist',
+                                    commit_sha='b' * 40, report_id='linux-py310')['cases']
+    other_job = xprobe.cases_from_junit(xml, repository='myon-bioinformatics/markdown',
+                                       commit_sha='a' * 40, report_id='windows-py312')['cases']
+    merged = xprobe.merge_cases(first, second, other_job, first)
+    assert len(merged) == 3
+    assert first[0]['context']['commit_sha'] == 'a' * 40
+    assert {r['context']['repository'] for r in merged} == {
+        'myon-bioinformatics/markdown', 'myon-bioinformatics/ascii_artist'}
+    assert xprobe.corpus_from_json(xprobe.corpus_to_json(merged, jsonl=True), jsonl=True) == merged
+    unmeasured = xprobe.cases_from_junit(xml, repository='owner/repo')['cases'][0]
+    assert unmeasured['context']['commit_sha'] is None
+
+
+@pytest.mark.parametrize('options', [
+    {'repository': 'not-a-repository'}, {'repository': 'owner/repo\nsecret'},
+    {'commit_sha': 'a' * 40}, {'repository': 'owner/repo', 'commit_sha': 'short'},
+    {'repository': 'owner/repo', 'commit_sha': 'G' * 40},
+    {'report_id': '../escape'}, {'report_id': ''},
+])
+def test_junit_provenance_validation(options):
+    with pytest.raises(ValueError):
+        xprobe.cases_from_junit('<testsuite/>', **options)

@@ -98,3 +98,10 @@ Discovery output deliberately omits **all values and surrounding lines**, includ
 Discovery defaults exclude .git, .venv, venv, node_modules, __pycache__, build and dist. Filters replace the defaults when supplied. A bounded candidate-line scan can stop before finding enough classified keys: `truncated` and `truncation_reason=candidate_limit` explicitly mark incomplete discovery; `finding_limit` marks a finding bound. Skipped/read-error files do not prove absence of configuration. This is line-based UTF-8 heuristic discovery, without a hostile-filesystem sandbox or multiline config parsing.
 
 Corpus inputs are **not** universal rejection expectations. `run_cases` still requires the caller's explicit expected value or exception. JUnit identifies failed tests but normally cannot reconstruct their original inputs: record the input explicitly in a separate case. Corpus persistence can contain sensitive user-supplied input; unlike discovery, corpus serialization is faithful. Generated cases sample existing regression classes; they do not implement a fuzzing engine. JUnit parsing is byte/case bounded, rejects DTD/entity declarations and does not evaluate code.
+
+For cross-repository use, `cases_from_junit` accepts explicit `repository`,
+`commit_sha` (full SHA from canonical metadata) and `report_id`. These scope case
+IDs so matching test names from different repositories/jobs do not collide.
+Missing SHA stays null. See [cross-repository collection](docs/cross-repository-tests.md).
+Both new repositories' CI now preserve JUnit reports even when tests fail;
+xprobe also emits the shared importer's compact failure JSON.
