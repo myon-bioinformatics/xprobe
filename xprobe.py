@@ -4,13 +4,20 @@ Importing this module performs no I/O. Probes execute only caller-supplied
 callables, and are not a sandbox or a timeout mechanism.
 """
 
+import fnmatch
+import json
 import os
+import random
 import re
 import stat
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-__version__ = "0.1.0"
-__all__ = ["search_text", "search_files", "boundary_cases", "run_cases"]
+__version__ = "0.2.0"
+__all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
+           "inspect_text", "inspect_environment", "scan_config",
+           "known_bad_cases", "generate_cases", "corpus_to_json",
+           "corpus_from_json", "merge_cases", "cases_from_junit"]
 
 
 def _limit(value, name):
@@ -54,7 +61,8 @@ def search_text(text, pattern, *, regex=False, ignore_case=False,
 
 def search_files(root, pattern, *, regex=False, ignore_case=False,
                  include_hidden=False, max_bytes=1_000_000,
-                 max_matches=1000, encoding="utf-8"):
+                 max_matches=1000, encoding="utf-8", include=("*",),
+                 exclude_dirs=()):
     """Search a file or directory, returning matches, skipped files and errors.
 
     Sorted traversal; symlinks and special files are never deliberately read.
@@ -65,6 +73,7 @@ def search_files(root, pattern, *, regex=False, ignore_case=False,
     """
     _limit(max_bytes, "max_bytes")
     _limit(max_matches, "max_matches")
+    include, exclude_dirs = _globs(include), _globs(exclude_dirs)
     compiled = _pattern(pattern, regex, ignore_case)
     # Validate codec even when no files are encountered.
     "".encode(encoding)
@@ -88,13 +97,19 @@ def search_files(root, pattern, *, regex=False, ignore_case=False,
                                               onerror=walk_error):
             dirs[:] = sorted(d for d in dirs if
                              (include_hidden or not d.startswith(".")) and
-                             not (Path(directory) / d).is_symlink())
+                             not (Path(directory) / d).is_symlink() and
+                             not any(fnmatch.fnmatchcase(d, g) or
+                                     fnmatch.fnmatchcase((Path(directory) / d).relative_to(root).as_posix(), g)
+                                     for g in exclude_dirs))
             for filename in sorted(files):
                 if include_hidden or not filename.startswith("."):
                     yield Path(directory) / filename
 
     for path in candidates():
         name = label(path)
+        if not any(fnmatch.fnmatchcase(name, g) or fnmatch.fnmatchcase(path.name, g)
+                   for g in include):
+            continue
         try:
             mode_now = path.lstat().st_mode
             if not stat.S_ISREG(mode_now):
@@ -186,3 +201,270 @@ def run_cases(function, cases):
                 result["passed"] = bool(value == case["expected"])
         results.append(result)
     return {"passed": all(r["passed"] for r in results), "results": results}
+
+
+# Discovery reports deliberately contain key names and locations, never input
+# values or surrounding lines. Generic search above remains a raw grep API.
+_HEADER_WORDS = frozenset(('authorization', 'proxy-authorization', 'cookie',
+                          'set-cookie', 'content-type', 'x-api-key'))
+_KEY_PHRASES = ('secret', 'token', 'password', 'passwd', 'credential', 'api_key',
+                'apikey', 'private_key', 'access_key', 'connection_string')
+_CONFIG_WORDS = ('host', 'port', 'url', 'endpoint', 'path', 'proxy', 'docker',
+                 'goma', 'compiler', 'database', 'debug', 'timeout', 'python',
+                 'node', 'flutter', 'dart')
+_SCHEMES = ('http', 'https', 'postgres', 'postgresql', 'mysql', 'redis', 'amqp',
+            'amqps', 'mongodb', 'sqlite', 'file', 'ftp', 's3')
+_ASSIGNMENT = re.compile(r'''(?<![\w-])["']?([A-Za-z_][\w.-]*)["']?\s*[:=]\s*([^\r\n,}]*)''')
+_URL = re.compile(r'\b(' + '|'.join(_SCHEMES) + r')://[^\s<>"\']*', re.I)
+_DEFAULT_INCLUDE = ('*.py', '*.toml', '*.ini', '*.cfg', '*.conf', '*.json',
+                    '*.yaml', '*.yml', '*.env', '.env*', 'Dockerfile*', '*.sh',
+                    '*.ps1', '*.txt', '*.md')
+_DEFAULT_EXCLUDE = ('.git', '.venv', 'venv', 'node_modules', '__pycache__',
+                    'build', 'dist')
+
+
+def _globs(values):
+    if isinstance(values, str):
+        raise TypeError('patterns must be a sequence, not a string')
+    values = tuple(values)
+    if any(not isinstance(v, str) or not v for v in values):
+        raise ValueError('patterns must be non-empty strings')
+    return values
+
+
+def _key_category(key):
+    lowered = key.lower().replace('-', '_')
+    if key.lower() in _HEADER_WORDS:
+        return 'header'
+    if any(word in lowered for word in _KEY_PHRASES):
+        return 'secret_like'
+    if any(word in lowered for word in _CONFIG_WORDS) or key.isupper():
+        return 'configuration'
+    return None
+
+
+def inspect_text(text, *, source='<text>', max_findings=1000):
+    """Discover dictionary-based config/header/URL evidence without values.
+
+    Heuristic line scanner, not a parser or a complete secret detector. Raw
+    values, snippets, credential userinfo and query strings are never returned.
+    'secret_like' means a matching key name, not proof of a credential.
+    """
+    if not isinstance(text, str) or not isinstance(source, str):
+        raise TypeError('text and source must be strings')
+    _limit(max_findings, 'max_findings')
+    rows = []
+    for number, line in enumerate(text.splitlines(), 1):
+        evidence = []
+        for match in _ASSIGNMENT.finditer(line):
+            key = match.group(1)
+            category = _key_category(key)
+            if category:
+                evidence.append({'column': match.start(1) + 1, 'category': category,
+                                 'key': key, 'value': '<redacted>'})
+        for match in _URL.finditer(line):
+            evidence.append({'column': match.start() + 1, 'category': 'url',
+                             'key': match.group(1).lower() + '://',
+                             'value': '<redacted>'})
+        for item in sorted(evidence, key=lambda v: (v['column'], v['category'])):
+            if len(rows) == max_findings:
+                return {'findings': rows, 'truncated': True}
+            rows.append({'source': source, 'line': number, **item})
+    return {'findings': rows, 'truncated': False}
+
+
+def inspect_environment(environ):
+    """Inspect an explicitly supplied mapping; return only recognized names.
+
+    Never reads os.environ itself and never returns environment values. Values
+    are used only to report empty/present status. No raw environment dump.
+    """
+    rows = []
+    for key in sorted(environ):
+        if not isinstance(key, str) or not isinstance(environ[key], str):
+            raise TypeError('environment names and values must be strings')
+        category = _key_category(key)
+        if category:
+            rows.append({'key': key, 'category': category,
+                         'present': bool(environ[key]), 'value': '<redacted>'})
+    return rows
+
+
+def scan_config(root, *, include=_DEFAULT_INCLUDE, exclude_dirs=_DEFAULT_EXCLUDE,
+                include_hidden=True, max_bytes=1_000_000, max_findings=1000):
+    """Search config evidence with glob filters and bounded, redacted results.
+
+    Hidden configuration files such as .env are included, but .git and generated
+    trees are excluded. Sorted traversal, UTF-8 decoding, no symlink following;
+    skips/errors/truncation stay distinct from absence of evidence.
+    """
+    _limit(max_findings, 'max_findings')
+    # One match per relevant line. The generic search cap bounds the lines kept
+    # in memory; inspecting each line can produce multiple redacted findings.
+    selector = r'(?i)^.*(?:[A-Za-z_][\w.-]*["\x27]?\s*[:=]|\b(?:' + '|'.join(_SCHEMES) + r')://)'
+    raw = search_files(root, selector, regex=True, include_hidden=include_hidden,
+                       max_bytes=max_bytes, max_matches=max_findings + 1,
+                       include=include, exclude_dirs=exclude_dirs)
+    rows, seen = [], set()
+    for match in raw['matches']:
+        location = (match['path'], match['line'])
+        if location in seen:
+            continue
+        seen.add(location)
+        discovered = inspect_text(match['text'], source=match['path'],
+                                  max_findings=max_findings + 1)['findings']
+        for item in discovered:
+            item['line'] = match['line']
+            if len(rows) == max_findings:
+                return {'findings': rows, 'skipped': raw['skipped'],
+                        'errors': raw['errors'], 'truncated': True,
+                        'truncation_reason': 'finding_limit'}
+            rows.append(item)
+    return {'findings': rows, 'skipped': raw['skipped'], 'errors': raw['errors'],
+            'truncated': raw['truncated'],
+            'truncation_reason': 'candidate_limit' if raw['truncated'] else None}
+
+
+# Portable, explained regression inputs, not a claim that every consumer must
+# reject every value. Actual regressions can be appended with merge_cases().
+_BAD_CASES = (
+    ('invalid_sha', 'git', 'not-a-sha', 'Non-hex Git identity; validate full SHA before use.'),
+    ('short_sha', 'git', 'abc1234', 'Abbreviation is not a full immutable identity.'),
+    ('nul_placeholder', 'text', '\x00PH0\x00', 'Raw NUL can forge placeholder tokens.'),
+    ('nul_fenced_code', 'markdown', '```\n\x00PH0\x00\n```', 'Fenced code can bypass inline sanitization.'),
+    ('crlf', 'text', 'a\r\nb\r\n', 'Check line splitting and round-trip behavior.'),
+    ('path_parent', 'path', '../outside', 'Parent traversal crosses a relative root.'),
+    ('windows_device', 'path', 'CON.txt', 'Windows device names are not portable output paths.'),
+    ('colon_relative', 'url', 'notes:chapter', 'A colon does not alone prove a safe URL scheme.'),
+    ('javascript_url', 'url', 'javascript:alert(1)', 'Executable schemes require explicit handling.'),
+    ('metadata_prefix', 'text', 'metadata:', 'Ambiguous syntax needs a regression fixture.'),
+    ('data_comma', 'url', 'data:,text', 'An empty media type is valid data-URL syntax.'),
+    ('escaped_sql_name', 'sql', '"a""b"', 'Quoted identifiers may contain escaped delimiters.'),
+    ('null_not_measured', 'json', None, 'Null means not measured; do not conflate with empty or zero.'),
+)
+
+
+def known_bad_cases(category=None):
+    """Fresh JSON-compatible inputs with explanation and stable IDs."""
+    categories = {row[1] for row in _BAD_CASES}
+    if category is not None and category not in categories:
+        raise ValueError('unknown corpus category')
+    return [{'id': ident, 'category': kind, 'value': value, 'reason': reason}
+            for ident, kind, value, reason in _BAD_CASES
+            if category is None or kind == category]
+
+
+def generate_cases(*, seed=0, count=20, category=None):
+    """Deterministic seeded samples of the explained corpus, with unique IDs.
+
+    Sampling augments reproducible regression runs; it is not automatic fuzzing
+    or target execution. No global random state is changed.
+    """
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError('seed must be an integer')
+    if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 10000:
+        raise ValueError('count must be an integer between 0 and 10000')
+    pool = known_bad_cases(category)
+    rng = random.Random(seed)
+    result = []
+    for index in range(count):
+        case = dict(rng.choice(pool))
+        case['origin_id'] = case['id']
+        case['id'] = 'generated-' + str(index) + '-' + case['id']
+        result.append(case)
+    return result
+
+
+def merge_cases(*corpora):
+    """Validate and merge JSON-compatible cases; dedupe equal IDs, reject conflicts.
+
+    Required fields: id/category/value/reason. Pure function; persistence is the
+    caller's choice. Never execute a case's values as code or infer expectations.
+    """
+    result = {}
+    for corpus in corpora:
+        for case in corpus:
+            if not isinstance(case, dict) or not {'id', 'category', 'value', 'reason'} <= case.keys():
+                raise ValueError('case needs id, category, value and reason')
+            if any(not isinstance(case[k], str) or not case[k] for k in ('id', 'category', 'reason')):
+                raise ValueError('id, category and reason must be non-empty strings')
+            if any(not isinstance(k, str) for k in case):
+                raise ValueError('case keys must be strings')
+            try:
+                encoded = json.dumps(case, ensure_ascii=True, allow_nan=False, sort_keys=True)
+                fresh = json.loads(encoded)
+            except (ValueError, TypeError) as error:
+                raise ValueError('case must contain finite JSON values') from error
+            if fresh != case:
+                raise ValueError('case values must round-trip through JSON without changes')
+            ident = case['id']
+            if ident in result and result[ident] != fresh:
+                raise ValueError('conflicting case id: ' + ident)
+            result[ident] = fresh
+    return [result[ident] for ident in sorted(result)]
+
+
+def corpus_to_json(cases, *, jsonl=False):
+    """Validate and serialize a stable corpus as JSON or one object per line."""
+    rows = merge_cases(cases)
+    if jsonl:
+        return ''.join(json.dumps(row, ensure_ascii=True, sort_keys=True,
+                                  allow_nan=False) + '\n' for row in rows)
+    return json.dumps(rows, ensure_ascii=True, sort_keys=True, indent=2,
+                      allow_nan=False) + '\n'
+
+
+def corpus_from_json(text, *, jsonl=False):
+    """Load and validate a recorded corpus without executing anything."""
+    def invalid_constant(value):
+        raise ValueError('non-finite JSON constant: ' + value)
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON key: ' + key)
+            result[key] = value
+        return result
+    options = {'parse_constant': invalid_constant, 'object_pairs_hook': unique_object}
+    rows = ([json.loads(line, **options) for line in text.splitlines() if line.strip()]
+            if jsonl else json.loads(text, **options))
+    if not isinstance(rows, list):
+        raise ValueError('corpus must be an array or JSONL objects')
+    return merge_cases(rows)
+
+
+def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000):
+    """Import pytest-compatible JUnit failure identities, omitting logs and values.
+
+    JUnit normally does not contain reconstructable target inputs. The result
+    records failed test identities; attach an explicit input via merge_cases
+    rather than inventing one. Parameter labels, messages, traceback and system
+    output are omitted. DTD/entity declarations are rejected before XML parsing.
+    """
+    if not isinstance(text, str):
+        raise TypeError('JUnit text must be a string')
+    _limit(max_cases, 'max_cases')
+    _limit(max_bytes, 'max_bytes')
+    if len(text.encode('utf-8')) > max_bytes:
+        raise ValueError('JUnit exceeds byte limit')
+    if re.search(r'<!\s*(?:DOCTYPE|ENTITY)\b', text, re.I):
+        raise ValueError('DTD and entity declarations are unsupported')
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise ValueError("invalid JUnit XML") from error
+    if root.tag not in ('testsuite', 'testsuites'):
+        raise ValueError('expected testsuite or testsuites')
+    rows = []
+    for testcase in root.iter('testcase'):
+        kinds = [child.tag for child in testcase if child.tag in ('failure', 'error')]
+        if not kinds:
+            continue
+        if len(rows) == max_cases:
+            return {'cases': rows, 'truncated': True}
+        name = testcase.get('name', '').split('[', 1)[0]
+        classname = testcase.get('classname', '').split('[', 1)[0]
+        rows.append({'id': 'junit-' + str(len(rows)), 'category': 'test_failure',
+                     'value': {'test': name, 'class': classname, 'kind': kinds[0]},
+                     'reason': 'JUnit recorded a failure; attach the original input to reproduce it.'})
+    return {'cases': rows, 'truncated': False}
