@@ -1,5 +1,9 @@
 # xprobe
 
+For native pytest outcomes (including xfail/xpass and execution phases), see
+[pytest observations and exploration](docs/pytest-observations.md). The opt-in
+test adapter emits JSONL readable by the existing corpus and search helpers.
+
 Single-file, standard-library Python toolkit for text search, boundary-case probing, and failure-oriented test support. Importable, CLI-ready, and easy to vendor.
 
 ## Design
