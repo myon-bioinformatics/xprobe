@@ -105,3 +105,10 @@ def test_adapter_is_opt_in(tmp_path):
     result = subprocess.run([sys.executable, '-m', 'pytest', '-p', 'scripts.xprobe_pytest', '-q'],
                             cwd=tmp_path, env=env, capture_output=True, timeout=30)
     assert result.returncode == 0 and not list(tmp_path.glob('*.jsonl'))
+
+
+def test_abrupt_exit_leaves_partial_evidence_without_finish(tmp_path):
+    result, rows = execute(tmp_path, 'import os\ndef test_exit(): os._exit(17)\n')
+    assert result.returncode == 17 and rows
+    assert rows[0]['value']['event'] == 'start'
+    assert not any(row['value']['event'] == 'finish' for row in rows)
