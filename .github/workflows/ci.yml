@@ -34,9 +34,9 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r tests/requirements.txt
       - name: Compile artifact and CLI
-        run: python -m py_compile xprobe.py scripts/xprobe_cli.py
+        run: python -m py_compile xprobe.py scripts/xprobe_cli.py scripts/xprobe_pytest.py
       - name: Test with branch coverage
-        run: python -m pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
+        run: python -m pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
       - name: Collect failure identities with the shared importer
         if: always() && hashFiles('reports/junit.xml') != ''
         run: python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json
