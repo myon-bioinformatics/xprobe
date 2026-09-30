@@ -233,3 +233,22 @@ def test_cross_repository_junit_sources_do_not_collide():
 def test_junit_provenance_validation(options):
     with pytest.raises(ValueError):
         xprobe.cases_from_junit('<testsuite/>', **options)
+
+
+def test_real_failed_pytest_run_imports_without_replaying_or_leaking(tmp_path):
+    target = tmp_path / 'test_recorded.py'
+    target.write_text("def test_regression():\n    assert False, 'sentinel-secret'\n", encoding='utf-8')
+    config = tmp_path / 'pytest.ini'
+    config.write_text('[pytest]\n', encoding='utf-8')
+    report = tmp_path / 'junit.xml'
+    proc = subprocess.run([sys.executable, '-m', 'pytest', '-c', str(config), str(target),
+                           '--junitxml=' + str(report)], cwd=tmp_path,
+                          capture_output=True, text=True, timeout=30)
+    assert proc.returncode == 1
+    xml = report.read_text(encoding='utf-8')
+    assert 'sentinel-secret' in xml
+    result = xprobe.cases_from_junit(xml, repository='owner/repo',
+                                    report_id='linux-py312-run1')
+    assert not result['truncated'] and len(result['cases']) == 1
+    assert result['cases'][0]['value']['test'] == 'test_regression'
+    assert 'sentinel-secret' not in xprobe.corpus_to_json(result['cases'])
