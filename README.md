@@ -8,51 +8,7 @@ Single-file, standard-library Python toolkit for text search, boundary-case prob
 
 ## Design
 
-The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. It provides functions, `__all__`, and `__version__`; import performs no I/O. Direct execution provides a read-only overview. The advanced CLI remains in `scripts/xprobe_cli.py`.
-
-## Start without options (0.3)
-
-```sh
-python xprobe.py
-python -S /path/to/xprobe.py
-```
-
-This is a daily-use standalone tool, not a test-environment bootstrapper.
-The current working directory is the scope, not the directory containing the
-script. The default summarizes configuration categories (no values/key names)
-and literal source clues with file/line locations and practical next checks.
-TODO/FIXME, unimplemented code, shell execution, dynamic eval/exec and bare
-except are review clues, not defects: comments/strings can also match.
-It never launches pytest, builds, Git, a browser, network requests or repairs.
-Copying this one file elsewhere retains the direct entry point.
-
-The overview is shallow: immediate text/configuration files at the root,
-`.github/workflows`, `src`, `lib`, `tool`, and `scripts`. It is not
-a complete recursive inventory. No reports, environment variables or project
-code execution are needed. Python alone is sufficient; no pip install.
-Per-location entries are bounded at 200, per-file reads at 1 MB; symlinks are
-skipped (filesystem races are not isolated). Limits are configurable with
-`--root`, `--max-entries` and `--max-bytes`. Names of report/error files can
-identify projects; review before sharing.
-
-For broader literal search, use `python xprobe.py --search TEXT --root PATH`.
-This explicit mode returns raw matching lines, like grep; review sensitive
-contents before sharing. It does not execute any discovered command.
-
-Optional `python xprobe.py --evidence` also reads immediate XML/JSONL files in
-`reports` and `test-results`. These files are neither required nor generated
-automatically. Default operation never reads them, including malformed reports.
-JUnit contributes failure identities, not completion proof. Native pytest
-counts describe phases, not final test totals. Missing finish, dropped events,
-mixed run identities, malformed reports and limits are visible; none imply
-success. Completed evidence can still contain failed tests. Exit 0 means the
-overview was observed, not tests passed; exit 2 means invalid/incomplete
-observation. Optional report absence is not a setup problem. No report is
-different from a report with zero failures.
-
-Suggested checks are rules based on observed outcomes, not inferred causes,
-command-frequency telemetry, reconstructed inputs or a security verdict.
-Existing search APIs/CLI remain available unchanged.
+The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
 
 Python target: 3.10–3.14. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
 
@@ -153,3 +109,28 @@ IDs so matching test names from different repositories/jobs do not collide.
 Missing SHA stays null. See [cross-repository collection](docs/cross-repository-tests.md).
 Both new repositories' CI now preserve JUnit reports even when tests fail;
 xprobe also emits the shared importer's compact failure JSON.
+
+## Direct standalone use (0.3)
+
+```sh
+python xprobe.py
+python xprobe.py --search TODO --root .
+python xprobe.py --corpus
+```
+
+Python alone is sufficient, including `python -S /path/to/xprobe.py`.
+No pip, virtual environment, pytest or JUnit setup is required. The current
+working directory is the default scope.
+
+The main is only an entry/formatting layer: default calls existing
+`scan_config(".")`, --search calls `search_files`, and --corpus calls
+`known_bad_cases` + `corpus_to_json`. No main-specific analysis engine,
+automatic repair, test run or report interpretation has been added.
+Existing API scope, exclusions, limits and safety caveats apply.
+
+Default discovery shows existing redacted key/location evidence and explicit
+errors/skips/truncation. No findings is a normal result, not proof of safety.
+--search deliberately prints raw matching lines; review before sharing.
+Exit 0 means observation completed, 1 means explicit search found no matches,
+and 2 means invalid or partial observation. Output goes to stdout only.
+JUnit/native pytest remain existing optional helpers, not the main purpose.

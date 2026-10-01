@@ -17,7 +17,7 @@ __version__ = "0.3.0"
 __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "inspect_text", "inspect_environment", "scan_config",
            "known_bad_cases", "generate_cases", "corpus_to_json",
-           "corpus_from_json", "merge_cases", "cases_from_junit", "overview", "main"]
+           "corpus_from_json", "merge_cases", "cases_from_junit", "main"]
 
 
 def _limit(value, name):
@@ -487,191 +487,35 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
     return {'cases': rows, 'truncated': False}
 
 
-def _pytest_summary(text):
-    rows = corpus_from_json(text, jsonl=True)
-    if not rows or len(rows) > 10002:
-        raise ValueError("invalid observation count")
-    values = [row["value"] for row in rows]
-    if not all(isinstance(value, dict) for value in values):
-        raise ValueError("expected pytest observation objects")
-    context = rows[0].get("context")
-    if not isinstance(context, dict) or not context.get("report_id"):
-        raise ValueError("missing run identity")
-    if any(row.get("context") != context for row in rows):
-        raise ValueError("mixed run identities")
-    if values[0].get("event") != "start" or values[0].get("schema") != "xprobe.pytest.v1":
-        raise ValueError("unsupported evidence schema")
-    outcomes = {}
-    finished = values[-1].get("event") == "finish"
-    observations = values[1:-1] if finished else values[1:]
-    for value in observations:
-        outcome = value.get("outcome")
-        if (value.get("event") != "report" or
-                outcome not in ("passed", "failed", "error", "skipped", "xfail",
-                                "xpass", "xpass_strict") or
-                value.get("phase") not in ("setup", "call", "teardown", "collection")):
-            raise ValueError("invalid phase observation")
-        outcomes[outcome] = outcomes.get(outcome, 0) + 1
-    complete, exitstatus = False, None
-    if finished:
-        finish = values[-1]
-        exitstatus = finish.get("exitstatus")
-        if (type(exitstatus) is not int or not 0 <= exitstatus <= 5 or
-                type(finish.get("complete")) is not bool or
-                type(finish.get("dropped")) is not int or finish["dropped"] < 0 or
-                finish.get("records_before_finish") != len(rows) - 1 or
-                (finish["dropped"] == 0 and finish.get("phase_outcomes") != outcomes)):
-            raise ValueError("invalid finish receipt")
-        complete = finish["complete"] and finish["dropped"] == 0
-    return {"kind": "pytest_jsonl", "complete": complete, "exitstatus": exitstatus,
-            "phase_outcomes": outcomes}
-
-
-_DAILY_SIGNALS = {
-    "todo": "TODO", "fixme": "FIXME", "unimplemented": "NotImplementedError",
-    "shell_execution": "shell=True", "dynamic_eval": "eval(",
-    "dynamic_exec": "exec(", "suppressed_error": "except:",
-}
-
-
-def overview(root=".", *, max_bytes=1_000_000, max_entries=200, evidence=False):
-    """Bounded shallow overview; no execution, environment dump or raw log output.
-
-    Inspect immediate text/config files in common source locations.
-    Reports are opt-in. Paths can identify a project. This is not an
-    exhaustive scan, vulnerability verdict, or automatic reproducer.
-    """
-    _limit(max_bytes, "max_bytes")
-    _limit(max_entries, "max_entries")
-    if max_bytes > 10_000_000 or max_entries > 1000:
-        raise ValueError("overview limits exceed supported bounds")
-    root = Path(root)
-    if not stat.S_ISDIR(root.lstat().st_mode):
-        raise ValueError("root must be a directory, not a symlink")
-    result = {"schema": "xprobe.overview.v1", "scope": "shallow_known_locations",
-              "configuration_categories": {}, "source_signals": [], "evidence": [], "errors": [],
-              "skipped": [], "truncated": False, "next_checks": []}
-    locations = ("", ".github/workflows", "src", "lib", "tool", "scripts")
-    if evidence:
-        locations += ("reports", "test-results")
-    for relative in locations:
-        directory = root / relative
-        try:
-            if relative == ".github/workflows" and (root / ".github").is_symlink():
-                result["skipped"].append({"path": ".github", "reason": "symlink"})
-                continue
-            if not stat.S_ISDIR(directory.lstat().st_mode):
-                result["skipped"].append({"path": relative or ".", "reason": "not_directory"})
-                continue
-            entries = []
-            with os.scandir(directory) as iterator:
-                for entry in iterator:
-                    if len(entries) == max_entries:
-                        result["truncated"] = True
-                        break
-                    entries.append(entry)
-        except FileNotFoundError:
-            if relative:
-                continue
-            raise
-        except OSError as error:
-            result["errors"].append({"path": relative, "reason": type(error).__name__})
-            continue
-        for entry in sorted(entries, key=lambda item: item.name):
-            path = Path(relative) / entry.name
-            is_report = relative in ("reports", "test-results")
-            if not any(fnmatch.fnmatch(entry.name, glob) for glob in
-                       (("*.xml", "*.jsonl") if is_report else
-                        _DEFAULT_INCLUDE + ("*.js", "*.ts", "*.dart", "*.sh", "*.md"))):
-                continue
-            try:
-                if not entry.is_file(follow_symlinks=False):
-                    result["skipped"].append({"path": str(path), "reason": "not_regular"})
-                    continue
-                with (root / path).open("rb") as stream:
-                    data = stream.read(max_bytes + 1)
-                if len(data) > max_bytes:
-                    result["skipped"].append({"path": str(path), "reason": "byte_limit"})
-                    result["truncated"] = True
-                    continue
-                text = data.decode("utf-8")
-                if is_report:
-                    if entry.name.endswith(".xml"):
-                        imported = cases_from_junit(text, max_bytes=max_bytes)
-                        summary = {"kind": "junit", "failure_identities": len(imported["cases"]),
-                                   "truncated": imported["truncated"]}
-                        # JUnit alone does not prove a run reached completion.
-                        result["truncated"] |= imported["truncated"]
-                    else:
-                        summary = _pytest_summary(text)
-                    result["evidence"].append({"path": str(path), **summary})
-                else:
-                    for label, needle in _DAILY_SIGNALS.items():
-                        matches = search_text(text, needle, max_matches=100)
-                        for match in matches:
-                            if len(result["source_signals"]) == max_entries:
-                                result["truncated"] = True
-                                break
-                            result["source_signals"].append({
-                                "path": str(path), "line": match["line"], "signal": label})
-                        if len(search_text(text, needle, max_matches=101)) > 100:
-                            result["truncated"] = True
-                    findings = inspect_text(text)
-                    result["truncated"] |= findings["truncated"]
-                    for row in findings["findings"]:
-                        counts = result["configuration_categories"]
-                        counts[row["category"]] = counts.get(row["category"], 0) + 1
-            except (OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
-                result["errors"].append({"path": str(path), "reason": type(error).__name__})
-    if result["configuration_categories"]:
-        result["next_checks"].append("Configuration clues observed; use inspect_text/scan_config to locate keys without exposing values.")
-    if result["source_signals"]:
-        result["next_checks"].append("Review listed source locations; literal clues may occur in comments/strings and are not confirmed defects.")
-    if not result["configuration_categories"] and not result["source_signals"]:
-        result["next_checks"].append("No clues in the shallow scope; use --search TEXT --root PATH for an explicit broader literal search.")
-    if evidence and not result["evidence"]:
-        result["next_checks"].append("No optional test evidence observed; this does not prevent ordinary source/configuration inspection.")
-    if any(row.get("failure_identities") or any(
-            row.get("phase_outcomes", {}).get(key, 0) for key in ("failed", "error", "xpass_strict"))
-           for row in result["evidence"]):
-        result["next_checks"].append("Review failed phases and preserve an explicit reproduction input; do not infer it from a test name.")
-    if any(row.get("kind") == "pytest_jsonl" and not row["complete"]
-           for row in result["evidence"]):
-        result["next_checks"].append("Incomplete pytest evidence; do not treat it as a passing run.")
-    if any(row.get("phase_outcomes", {}).get("xfail", 0) or
-           row.get("phase_outcomes", {}).get("xpass", 0) for row in result["evidence"]):
-        result["next_checks"].append("Review expected-failure assumptions; xfail is not a successful reproduction fix.")
-    return result
-
-
 def main(argv=None):
-    """No-argument direct execution gives a current-directory overview."""
+    """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
     import sys
     parser = argparse.ArgumentParser(description="Standalone read-only source/configuration inspection")
     parser.add_argument("--root", default=".")
     parser.add_argument("--max-bytes", type=int, default=1_000_000)
-    parser.add_argument("--max-entries", type=int, default=200)
-    parser.add_argument("--evidence", action="store_true",
-                        help="Also summarize optional local JUnit/native pytest reports")
-    parser.add_argument("--search", metavar="TEXT", help="Explicit literal search; prints raw matching lines")
+    parser.add_argument("--max-matches", type=int, default=1000)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
+    modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
     args = parser.parse_args(argv)
     try:
+        if args.corpus:
+            print(corpus_to_json(known_bad_cases()), end="")
+            return 0
         if args.search is not None:
             report = search_files(args.root, args.search, max_bytes=args.max_bytes,
-                                  exclude_dirs=_DEFAULT_EXCLUDE, max_matches=args.max_entries)
-            print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
-            return 2 if report["errors"] or report["truncated"] else (0 if report["matches"] else 1)
-        report = overview(args.root, max_bytes=args.max_bytes,
-                          max_entries=args.max_entries, evidence=args.evidence)
-    except (OSError, ValueError) as error:
+                                  max_matches=args.max_matches, exclude_dirs=_DEFAULT_EXCLUDE)
+        else:
+            report = scan_config(args.root, max_bytes=args.max_bytes,
+                                 max_findings=args.max_matches)
+    except (OSError, ValueError, LookupError) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
     print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
-    partial = (report["errors"] or report["truncated"] or report["skipped"] or
-               any(row.get("kind") == "pytest_jsonl" and not row["complete"]
-                   for row in report["evidence"]))
-    return 2 if partial else 0
+    if report["errors"] or report["truncated"] or report["skipped"]:
+        return 2
+    return (0 if report["matches"] else 1) if args.search is not None else 0
 
 
 if __name__ == "__main__":
