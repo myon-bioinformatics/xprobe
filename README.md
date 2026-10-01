@@ -17,26 +17,38 @@ python xprobe.py
 python -S /path/to/xprobe.py
 ```
 
+This is a daily-use standalone tool, not a test-environment bootstrapper.
 The current working directory is the scope, not the directory containing the
 script. The default summarizes configuration categories (no values/key names)
-and local JUnit/native pytest JSONL evidence, with evidence-based next checks.
+and literal source clues with file/line locations and practical next checks.
+TODO/FIXME, unimplemented code, shell execution, dynamic eval/exec and bare
+except are review clues, not defects: comments/strings can also match.
 It never launches pytest, builds, Git, a browser, network requests or repairs.
 Copying this one file elsewhere retains the direct entry point.
 
-The overview is shallow: immediate configuration files, `.github/workflows`,
-and immediate XML/JSONL files in `reports` and `test-results`. Other report
-locations, nested report trees, and archived CI artifacts are not discovered.
+The overview is shallow: immediate text/configuration files at the root,
+`.github/workflows`, `src`, `lib`, `tool`, and `scripts`. It is not
+a complete recursive inventory. No reports, environment variables or project
+code execution are needed. Python alone is sufficient; no pip install.
 Per-location entries are bounded at 200, per-file reads at 1 MB; symlinks are
 skipped (filesystem races are not isolated). Limits are configurable with
 `--root`, `--max-entries` and `--max-bytes`. Names of report/error files can
 identify projects; review before sharing.
 
+For broader literal search, use `python xprobe.py --search TEXT --root PATH`.
+This explicit mode returns raw matching lines, like grep; review sensitive
+contents before sharing. It does not execute any discovered command.
+
+Optional `python xprobe.py --evidence` also reads immediate XML/JSONL files in
+`reports` and `test-results`. These files are neither required nor generated
+automatically. Default operation never reads them, including malformed reports.
 JUnit contributes failure identities, not completion proof. Native pytest
 counts describe phases, not final test totals. Missing finish, dropped events,
 mixed run identities, malformed reports and limits are visible; none imply
 success. Completed evidence can still contain failed tests. Exit 0 means the
 overview was observed, not tests passed; exit 2 means invalid/incomplete
-observation. No report is different from a report with zero failures.
+observation. Optional report absence is not a setup problem. No report is
+different from a report with zero failures.
 
 Suggested checks are rules based on observed outcomes, not inferred causes,
 command-frequency telemetry, reconstructed inputs or a security verdict.
