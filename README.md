@@ -8,7 +8,39 @@ Single-file, standard-library Python toolkit for text search, boundary-case prob
 
 ## Design
 
-The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; it has no main/CLI and performs no I/O on import. The optional CLI lives in `scripts/xprobe_cli.py`.
+The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. It provides functions, `__all__`, and `__version__`; import performs no I/O. Direct execution provides a read-only overview. The advanced CLI remains in `scripts/xprobe_cli.py`.
+
+## Start without options (0.3)
+
+```sh
+python xprobe.py
+python -S /path/to/xprobe.py
+```
+
+The current working directory is the scope, not the directory containing the
+script. The default summarizes configuration categories (no values/key names)
+and local JUnit/native pytest JSONL evidence, with evidence-based next checks.
+It never launches pytest, builds, Git, a browser, network requests or repairs.
+Copying this one file elsewhere retains the direct entry point.
+
+The overview is shallow: immediate configuration files, `.github/workflows`,
+and immediate XML/JSONL files in `reports` and `test-results`. Other report
+locations, nested report trees, and archived CI artifacts are not discovered.
+Per-location entries are bounded at 200, per-file reads at 1 MB; symlinks are
+skipped (filesystem races are not isolated). Limits are configurable with
+`--root`, `--max-entries` and `--max-bytes`. Names of report/error files can
+identify projects; review before sharing.
+
+JUnit contributes failure identities, not completion proof. Native pytest
+counts describe phases, not final test totals. Missing finish, dropped events,
+mixed run identities, malformed reports and limits are visible; none imply
+success. Completed evidence can still contain failed tests. Exit 0 means the
+overview was observed, not tests passed; exit 2 means invalid/incomplete
+observation. No report is different from a report with zero failures.
+
+Suggested checks are rules based on observed outcomes, not inferred causes,
+command-frequency telemetry, reconstructed inputs or a security verdict.
+Existing search APIs/CLI remain available unchanged.
 
 Python target: 3.10–3.14. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
 
