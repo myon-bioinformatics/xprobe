@@ -8,7 +8,7 @@ Single-file, standard-library Python toolkit for text search, boundary-case prob
 
 ## Design
 
-The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; it has no main/CLI and performs no I/O on import. The optional CLI lives in `scripts/xprobe_cli.py`.
+The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
 
 Python target: 3.10–3.14. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
 
@@ -109,3 +109,28 @@ IDs so matching test names from different repositories/jobs do not collide.
 Missing SHA stays null. See [cross-repository collection](docs/cross-repository-tests.md).
 Both new repositories' CI now preserve JUnit reports even when tests fail;
 xprobe also emits the shared importer's compact failure JSON.
+
+## Direct standalone use (0.3)
+
+```sh
+python xprobe.py
+python xprobe.py --search TODO --root .
+python xprobe.py --corpus
+```
+
+Python alone is sufficient, including `python -S /path/to/xprobe.py`.
+No pip, virtual environment, pytest or JUnit setup is required. The current
+working directory is the default scope.
+
+The main is only an entry/formatting layer: default calls existing
+`scan_config(".")`, --search calls `search_files`, and --corpus calls
+`known_bad_cases` + `corpus_to_json`. No main-specific analysis engine,
+automatic repair, test run or report interpretation has been added.
+Existing API scope, exclusions, limits and safety caveats apply.
+
+Default discovery shows existing redacted key/location evidence and explicit
+errors/skips/truncation. No findings is a normal result, not proof of safety.
+--search deliberately prints raw matching lines; review before sharing.
+Exit 0 means observation completed, 1 means explicit search found no matches,
+and 2 means invalid or partial observation. Output goes to stdout only.
+JUnit/native pytest remain existing optional helpers, not the main purpose.
