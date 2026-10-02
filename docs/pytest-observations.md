@@ -60,7 +60,26 @@ import xprobe
 rows = xprobe.corpus_from_json(Path('reports/pytest-events.jsonl').read_text(), jsonl=True)
 failures = [row for row in rows
             if row['value'].get('outcome') in {'failed', 'error', 'xpass_strict'}]
+receipt = xprobe.pytest_receipt(Path('reports/pytest-events.jsonl').read_text(),
+                              expected_context={'repository': 'owner/repository'})
+# receipt['exitstatus'] is the producer's status, NOT a receipt-validation status.
 ```
+
+`pytest_receipt` is a stdlib-only shared validator for one complete adapter run.
+It checks start/schema/finish, contiguous unique IDs, consistent identity,
+phase/outcome normalization and finish counts; interrupted, dropped, mixed or
+malformed evidence raises `ValueError`. Optional `expected_context` pins any of
+repository/commit_sha/report_id, including explicit null for unmeasured identity.
+Pass raw JSONL text (or raw records) before `corpus_from_json`/`merge_cases`, which
+intentionally deduplicate IDs. Raw JSONL validation also rejects duplicate keys.
+A valid receipt can describe failed tests, collection errors or no tests: exit
+statuses 0–5 are retained. It is not an authenticity or coverage guarantee.
+
+Shared normal/error receipt tests live upstream. Consumers keep real-producer
+integration and domain-specific expectations, not copies of the validator suite.
+The initial consumer is [SearchSeq PR #24](https://github.com/myon-bioinformatics/search_seq_including_spaces/pull/24):
+the pinned vendor update and removal of local envelope/count/identity checks
+must ship in that same downstream PR after this upstream change passes tests.
 
 The rows omit captured output, tracebacks, marker reasons and parameter values.
 Hashed identifiers are pseudonymous, not encryption. Test/module names are still

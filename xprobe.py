@@ -17,7 +17,8 @@ __version__ = "0.3.0"
 __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "inspect_text", "inspect_environment", "scan_config",
            "known_bad_cases", "generate_cases", "corpus_to_json",
-           "corpus_from_json", "merge_cases", "cases_from_junit", "main"]
+           "corpus_from_json", "merge_cases", "cases_from_junit", "main",
+           "pytest_receipt"]
 
 
 def _limit(value, name):
@@ -431,6 +432,103 @@ def corpus_from_json(text, *, jsonl=False):
     if not isinstance(rows, list):
         raise ValueError('corpus must be an array or JSONL objects')
     return merge_cases(rows)
+
+
+def pytest_receipt(cases, *, expected_context=None):
+    """Validate one complete xprobe.pytest.v1 run without importing pytest.
+
+    A valid receipt is NOT a passing test run: exit statuses 1..5 are preserved.
+    Reject interrupted/truncated runs, duplicate/missing IDs, mixed runs and
+    inconsistent counts. No cause/input inference or authenticity guarantee.
+    Accept JSONL text or raw case records. Validate each run before merging
+    corpora (corpus_from_json/merge_cases deduplicate identical IDs).
+    expected_context pins any repository/commit_sha/report_id, including None
+    for unmeasured identity. Never infer environment SHA.
+    """
+    if isinstance(cases, str):
+        def unique_object(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError('duplicate JSON key: ' + key)
+                result[key] = value
+            return result
+        original = [json.loads(line, object_pairs_hook=unique_object)
+                    for line in cases.splitlines() if line.strip()]
+    else:
+        original = list(cases)
+    rows = merge_cases(original)
+    if len(rows) < 2 or len(rows) != len(original):
+        raise ValueError('receipt needs unique start and finish records')
+    context = rows[0].get('context')
+    keys = {'repository', 'commit_sha', 'report_id'}
+    if not isinstance(context, dict) or set(context) != keys:
+        raise ValueError('invalid pytest context')
+    repository, sha, run = (context[k] for k in ('repository', 'commit_sha', 'report_id'))
+    if repository is not None and (not isinstance(repository, str) or
+            not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository)):
+        raise ValueError('invalid pytest repository')
+    if sha is not None and (repository is None or not isinstance(sha, str) or
+            not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', sha)):
+        raise ValueError('invalid pytest commit SHA')
+    if not isinstance(run, str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', run):
+        raise ValueError('invalid pytest report ID')
+    if expected_context is not None:
+        if not isinstance(expected_context, dict) or not set(expected_context) <= keys:
+            raise ValueError('unsupported expected context')
+        if any(context[k] != v for k, v in expected_context.items()):
+            raise ValueError('pytest context does not match expected identity')
+    prefix = (repository or 'unmeasured') + '/' + run + '/'
+    for index, row in enumerate(rows):
+        if row.get('context') != context or row['id'] != prefix + str(index).zfill(6):
+            raise ValueError('mixed run or non-contiguous pytest IDs')
+        if not isinstance(row['value'], dict):
+            raise ValueError('invalid pytest record value')
+    start, finish = rows[0], rows[-1]
+    if (start['category'] != 'pytest_session' or start['value'].get('event') != 'start'
+            or start['value'].get('schema') != 'xprobe.pytest.v1'):
+        raise ValueError('missing supported pytest start')
+    if finish['category'] != 'pytest_session' or finish['value'].get('event') != 'finish':
+        raise ValueError('missing pytest finish')
+    end = finish['value']
+    if end.get('complete') is not True or type(end.get('dropped')) is not int or end['dropped'] != 0:
+        raise ValueError('incomplete pytest receipt')
+    if type(end.get('records_before_finish')) is not int or end['records_before_finish'] != len(rows) - 1:
+        raise ValueError('pytest record count mismatch')
+    if type(end.get('exitstatus')) is not int or not 0 <= end['exitstatus'] <= 5:
+        raise ValueError('invalid pytest exit status')
+    counts, phases = {}, {}
+    for row in rows[1:-1]:
+        value = row['value']
+        phase, native = value.get('phase'), value.get('native_outcome')
+        xfail, strict = value.get('wasxfail'), value.get('strict_xpass')
+        if (row['category'] != 'pytest_observation' or value.get('event') != 'report'
+                or phase not in ('setup', 'call', 'teardown', 'collection')
+                or native not in ('passed', 'failed', 'skipped')
+                or type(xfail) is not bool or type(strict) is not bool
+                or not isinstance(value.get('node'), str) or len(value['node']) > 500
+                or not isinstance(value.get('node_hash'), str)
+                or not re.fullmatch(r'[0-9a-f]{64}', value['node_hash'])):
+            raise ValueError('invalid pytest observation')
+        if strict:
+            if native != 'failed' or xfail or phase != 'call':
+                raise ValueError('invalid strict XPASS observation')
+            outcome = 'xpass_strict'
+        elif xfail:
+            outcome = {'skipped': 'xfail', 'passed': 'xpass', 'failed': 'failed'}[native]
+        else:
+            outcome = 'error' if native == 'failed' and phase != 'call' else native
+        if value.get('outcome') != outcome:
+            raise ValueError('pytest outcome mismatch')
+        counts[outcome] = counts.get(outcome, 0) + 1
+        phase_counts = phases.setdefault(phase, {})
+        phase_counts[outcome] = phase_counts.get(outcome, 0) + 1
+    declared = end.get('phase_outcomes')
+    if (not isinstance(declared, dict) or
+            any(type(n) is not int or n < 1 for n in declared.values()) or declared != counts):
+        raise ValueError('pytest outcome count mismatch')
+    return {'context': dict(context), 'exitstatus': end['exitstatus'],
+            'observations': len(rows) - 2, 'phase_outcomes': counts, 'phase_counts': phases}
 
 
 def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,

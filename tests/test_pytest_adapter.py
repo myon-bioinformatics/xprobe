@@ -54,8 +54,10 @@ def test_teardown(teardown): pass
     bad = [r for r in rows if r['value'].get('node', '').endswith('test_bad') and r['value'].get('phase') == 'call']
     assert len({r['value']['node_hash'] for r in bad}) == 2
     assert 'SECRET_' not in json.dumps(rows)
-    assert rows[-1]['value']['complete'] and rows[-1]['value']['exitstatus'] == 1
-    assert all(r['context']['commit_sha'] is None for r in rows)
+    validated = xprobe.pytest_receipt(rows, expected_context={
+        'repository': 'owner/repo', 'commit_sha': None, 'report_id': 'sample'})
+    assert validated['exitstatus'] == result.returncode
+    assert validated['phase_counts']['teardown']['error'] == 1
     text = (tmp_path / 'events.jsonl').read_text()
     assert len(xprobe.corpus_from_json(text, jsonl=True)) == len(rows)
     matches = xprobe.search_files(tmp_path, '"outcome": "xfail"', include=('*.jsonl',))
@@ -67,6 +69,7 @@ def test_collection_error_and_no_false_green(tmp_path):
     assert result.returncode == 2
     assert any(r['value'].get('phase') == 'collection' and r['value']['outcome'] == 'error' for r in rows)
     assert rows[-1]['value']['exitstatus'] == 2
+    assert xprobe.pytest_receipt(rows)['exitstatus'] == result.returncode
 
 
 def test_limit_marks_incomplete(tmp_path):
@@ -75,6 +78,8 @@ def test_limit_marks_incomplete(tmp_path):
     assert len(rows) == 4
     assert rows[-1]['value']['dropped'] == 1
     assert not rows[-1]['value']['complete']
+    with pytest.raises(ValueError, match='incomplete'):
+        xprobe.pytest_receipt(rows)
 
 
 def test_existing_evidence_is_preserved(tmp_path):
@@ -96,6 +101,7 @@ def test_canonical_sha_is_explicit_and_no_tests_is_not_pass(tmp_path):
     result, rows = execute(tmp_path, '', '--xprobe-commit-sha=' + 'A' * 40)
     assert result.returncode == 5 and rows[-1]['value']['exitstatus'] == 5
     assert all(row['context']['commit_sha'] == 'a' * 40 for row in rows)
+    assert xprobe.pytest_receipt(rows)['exitstatus'] == result.returncode
 
 
 def test_adapter_is_opt_in(tmp_path):
@@ -112,3 +118,5 @@ def test_abrupt_exit_leaves_partial_evidence_without_finish(tmp_path):
     assert result.returncode == 17 and rows
     assert rows[0]['value']['event'] == 'start'
     assert not any(row['value']['event'] == 'finish' for row in rows)
+    with pytest.raises(ValueError):
+        xprobe.pytest_receipt(rows)
