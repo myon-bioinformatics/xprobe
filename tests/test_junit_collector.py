@@ -28,6 +28,7 @@ def test_collector_does_not_hide_invalid_or_truncated_reports(tmp_path, source, 
     assert result.returncode == status
     if source is None or source == '<testsuites>':
         assert not result.stdout  # No empty success report synthesized on error.
+        assert result.stderr.strip()
     else:
         imported = json.loads(result.stdout)
         assert imported['truncated'] is bool(options)

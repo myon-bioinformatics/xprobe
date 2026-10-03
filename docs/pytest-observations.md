@@ -31,7 +31,19 @@ The child's expected nonzero result is asserted by the outer regression, so
 outer CI remains green when that regression passes. An unexpected outer failure
 still fails the test step; the always-run importer cannot green it. Missing
 ordinary JUnit now fails import instead of silently skipping it.
-These reports are Actions-only (14 days), never Pages; commit SHA stays null
+Raw outputs are copied immediately after the child exits, before JSON parsing
+or assertions; compact and receipt outputs are saved as soon as computed.
+An injected identity mismatch regression verifies that all four files survive
+an assertion failure. Both JUnit modes assert the same complete phase counts.
+The collector publishes `failures.json` only after successful import, using a
+temporary file and rename. Failed imports may leave a `.tmp` diagnostic file;
+it is not a completed report. Missing/malformed input produces stderr and no
+JSON; case-limit truncation produces JSON with `truncated: true` and exit 2.
+
+These reports are Actions-only (14 days), never Pages. Public-repository
+Actions artifacts can be downloaded by signed-in users; controlled raw evidence
+contains dummy sentinels, while ordinary JUnit can include real test messages.
+Commit SHA stays null
 without canonical metadata. Downstream repos reuse this upstream classification,
 privacy and receipt coverage and retain their own producer integration checks.
 

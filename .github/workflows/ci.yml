@@ -41,7 +41,8 @@ jobs:
         run: python -m pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
       - name: Collect failure identities with the shared importer
         if: always()
-        run: python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json
+        shell: bash
+        run: python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json.tmp && mv reports/failures.json.tmp reports/failures.json
       - name: Preserve test report (including failed tests)
         if: always()
         uses: actions/upload-artifact@v7
