@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 import pytest
 import xprobe
@@ -24,10 +25,14 @@ def execute(tmp_path, source, *options):
     return result, rows
 
 
-def test_native_outcomes_and_explore(tmp_path):
+@pytest.mark.parametrize('junit', [False, True])
+def test_native_outcomes_and_explore(tmp_path, junit):
     result, rows = execute(tmp_path, '''import pytest
+import sys
 @pytest.mark.parametrize("value", ["SECRET_ONE", "SECRET_TWO"])
 def test_bad(value):
+    print("SECRET_STDOUT")
+    print("SECRET_STDERR", file=sys.stderr)
     assert False, value
 @pytest.mark.skip(reason="SECRET_SKIP")
 def test_skip(): pass
@@ -45,7 +50,8 @@ def teardown():
     yield
     raise RuntimeError("SECRET_TEARDOWN")
 def test_teardown(teardown): pass
-''')
+def test_pass(): pass
+''', *(['--junitxml=junit.xml', '-o', 'junit_logging=all'] if junit else []))
     assert result.returncode == 1
     outcomes = {row['value'].get('outcome') for row in rows}
     assert {'failed', 'skipped', 'xfail', 'xpass', 'xpass_strict', 'error'} <= outcomes
@@ -62,24 +68,86 @@ def test_teardown(teardown): pass
     assert len(xprobe.corpus_from_json(text, jsonl=True)) == len(rows)
     matches = xprobe.search_files(tmp_path, '"outcome": "xfail"', include=('*.jsonl',))
     assert len(matches['matches']) == 1
+    if junit:
+        xml = (tmp_path / 'junit.xml').read_text(encoding='utf-8')
+        report = xprobe.cases_from_junit(xml, repository='owner/repo', report_id='sample')
+        assert not report['truncated']
+        # Fixture-local correspondence, not a universal cross-schema node key.
+        native_failures = sorted(
+            (r['value']['node'].split('::')[-1],
+             'failure' if r['value']['phase'] == 'call' else 'error')
+            for r in rows if r['value'].get('outcome') in {'failed', 'error', 'xpass_strict'})
+        compact_failures = sorted((r['value']['test'], r['value']['kind'])
+                                  for r in report['cases'])
+        assert native_failures == compact_failures == [
+            ('test_bad', 'failure'), ('test_bad', 'failure'),
+            ('test_setup', 'error'), ('test_strict', 'failure'), ('test_teardown', 'error')]
+        cases = list(ET.fromstring(xml).iter('testcase'))
+        assert {c.get('name') for c in cases if c.find('skipped') is not None} == {
+            'test_skip', 'test_xfail'}
+        assert {c.get('name') for c in cases if not any(
+            child.tag in {'failure', 'error', 'skipped'} for child in c)} == {
+            'test_pass', 'test_xpass'}
+        assert validated['phase_counts']['call']['passed'] == 2
+        assert validated['phase_counts']['call']['xpass'] == 1
+        assert all(r['context'] == validated['context'] for r in report['cases'])
+        # Prove that values, messages and both output streams exercised redaction.
+        assert all(token in xml for token in (
+            'SECRET_ONE', 'SECRET_TWO', 'SECRET_SETUP', 'SECRET_TEARDOWN',
+            'SECRET_STDOUT', 'SECRET_STDERR'))
+        compact = xprobe.corpus_to_json(report['cases'], jsonl=True)
+        assert 'SECRET_' not in compact
+        assert not any(token in compact for token in ('traceback', 'system-out', 'system-err'))
+        assert xprobe.corpus_from_json(compact, jsonl=True) == report['cases']
+        # Actions-only evidence from this controlled child, separate from outer CI.
+        destination = os.environ.get('XPROBE_FAILURE_EVIDENCE')
+        if destination:
+            directory = Path(destination)
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / 'junit.xml').write_text(xml, encoding='utf-8')
+            (directory / 'pytest-events.jsonl').write_text(text, encoding='utf-8')
+            (directory / 'failures.jsonl').write_text(compact, encoding='utf-8')
+            (directory / 'receipt.json').write_text(
+                json.dumps(validated, sort_keys=True, indent=2) + '\n', encoding='utf-8')
 
 
-def test_collection_error_and_no_false_green(tmp_path):
-    result, rows = execute(tmp_path, 'def broken(:\n')
+@pytest.mark.parametrize('junit', [False, True])
+def test_collection_error_and_no_false_green(tmp_path, junit):
+    result, rows = execute(tmp_path, 'def broken(:\n',
+                           *(['--junitxml=junit.xml'] if junit else []))
     assert result.returncode == 2
     assert any(r['value'].get('phase') == 'collection' and r['value']['outcome'] == 'error' for r in rows)
     assert rows[-1]['value']['exitstatus'] == 2
     assert xprobe.pytest_receipt(rows)['exitstatus'] == result.returncode
+    if junit:
+        report = xprobe.cases_from_junit((tmp_path / 'junit.xml').read_text())
+        assert not report['truncated']
+        assert len(report['cases']) == 1 and report['cases'][0]['value']['kind'] == 'error'
 
 
 def test_limit_marks_incomplete(tmp_path):
-    result, rows = execute(tmp_path, 'def test_ok(): pass\n', '--xprobe-max-records=2')
+    result, rows = execute(tmp_path, 'def test_ok(): pass\n', '--xprobe-max-records=2',
+                           '--junitxml=junit.xml')
     assert result.returncode == 0
     assert len(rows) == 4
     assert rows[-1]['value']['dropped'] == 1
     assert not rows[-1]['value']['complete']
     with pytest.raises(ValueError, match='incomplete'):
         xprobe.pytest_receipt(rows)
+    assert xprobe.cases_from_junit((tmp_path / 'junit.xml').read_text()) == {
+        'cases': [], 'truncated': False}  # Empty JUnit cannot certify native completeness.
+
+
+@pytest.mark.parametrize('junit', [False, True])
+def test_green_exit_status_is_unchanged(tmp_path, junit):
+    result, rows = execute(tmp_path, 'def test_ok(): pass\n',
+                           *(['--junitxml=junit.xml'] if junit else []))
+    assert result.returncode == xprobe.pytest_receipt(rows)['exitstatus'] == 0
+    assert xprobe.pytest_receipt(rows)['phase_counts'] == {
+        phase: {'passed': 1} for phase in ('setup', 'call', 'teardown')}
+    if junit:
+        assert xprobe.cases_from_junit((tmp_path / 'junit.xml').read_text()) == {
+            'cases': [], 'truncated': False}
 
 
 def test_existing_evidence_is_preserved(tmp_path):
@@ -113,10 +181,14 @@ def test_adapter_is_opt_in(tmp_path):
     assert result.returncode == 0 and not list(tmp_path.glob('*.jsonl'))
 
 
-def test_abrupt_exit_leaves_partial_evidence_without_finish(tmp_path):
-    result, rows = execute(tmp_path, 'import os\ndef test_exit(): os._exit(17)\n')
+@pytest.mark.parametrize('junit', [False, True])
+def test_abrupt_exit_leaves_partial_evidence_without_finish(tmp_path, junit):
+    result, rows = execute(tmp_path, 'import os\ndef test_exit(): os._exit(17)\n',
+                           *(['--junitxml=junit.xml'] if junit else []))
     assert result.returncode == 17 and rows
     assert rows[0]['value']['event'] == 'start'
     assert not any(row['value']['event'] == 'finish' for row in rows)
     with pytest.raises(ValueError):
         xprobe.pytest_receipt(rows)
+    if junit:
+        assert not (tmp_path / 'junit.xml').exists()
