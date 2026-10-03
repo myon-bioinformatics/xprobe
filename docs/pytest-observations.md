@@ -1,5 +1,52 @@
 # Native pytest observations and exploration
 
+## Same-run controlled failure example
+
+`tests/test_pytest_adapter.py::test_native_outcomes_and_explore` runs the same
+child fixture with and without JUnit. Both return 1; the JUnit-enabled execution
+emits native JSONL and raw XML together. Existing `pytest_receipt()` validates
+the native evidence and retains exitstatus 1. Existing `cases_from_junit()`
+imports exactly five failure/error records without parameter labels, exception
+messages, traceback or captured stdout/stderr. Sentinels present in the raw XML
+must be absent from both compact schemas. No input is reconstructed or learned.
+
+The correspondence is fixture-local: native call failure/strict XPASS maps to
+JUnit failure; setup/teardown failure maps to error. Native skip and xfail both
+become skipped, while non-strict XPASS looks passed in JUnit. A teardown error
+can coexist with a passed call. Parameter variants retain separate native node
+hashes but compact JUnit labels collapse to the same display name; do not treat
+that display as a universal join key or deduplicate the two failures.
+
+Green, collection-error and abrupt-exit subprocess regressions preserve statuses
+0, 2 and 17 with/without JUnit. Abrupt exit leaves partial native evidence and no
+XML; a passing XML cannot certify a truncated native receipt. CLI regressions
+reject missing/malformed XML and return nonzero on case-limit truncation.
+Collector exit 0 means import completed, including imports of failed tests:
+it does not replace the child or outer pytest exit status.
+
+CI sets `XPROBE_FAILURE_EVIDENCE=reports/controlled-failure` to retain the
+controlled child's raw XML, native JSONL, compact failure JSONL and validated
+receipt alongside the ordinary reports in the always-uploaded Actions artifact.
+The child's expected nonzero result is asserted by the outer regression, so
+outer CI remains green when that regression passes. An unexpected outer failure
+still fails the test step; the always-run importer cannot green it. Missing
+ordinary JUnit now fails import instead of silently skipping it.
+Raw outputs are copied immediately after the child exits, before JSON parsing
+or assertions; compact and receipt outputs are saved as soon as computed.
+An injected identity mismatch regression verifies that all four files survive
+an assertion failure. Both JUnit modes assert the same complete phase counts.
+The collector publishes `failures.json` only after successful import, using a
+temporary file and rename. Failed imports may leave a `.tmp` diagnostic file;
+it is not a completed report. Missing/malformed input produces stderr and no
+JSON; case-limit truncation produces JSON with `truncated: true` and exit 2.
+
+These reports are Actions-only (14 days), never Pages. Public-repository
+Actions artifacts can be downloaded by signed-in users; controlled raw evidence
+contains dummy sentinels, while ordinary JUnit can include real test messages.
+Commit SHA stays null
+without canonical metadata. Downstream repos reuse this upstream classification,
+privacy and receipt coverage and retain their own producer integration checks.
+
 Use pytest's native reports as the Python observation source. JUnit remains a
 cross-runner CI interchange format; it is not the reproduction model.
 
