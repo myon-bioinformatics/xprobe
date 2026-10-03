@@ -104,7 +104,8 @@ def test_pass(): pass
                                   for r in report['cases'])
         assert native_failures == compact_failures == [
             ('test_bad', 'failure'), ('test_bad', 'failure'),
-            ('test_setup', 'error'), ('test_strict', 'failure'), ('test_teardown', 'error')]
+            ('test_setup', 'error'), ('test_strict', 'failure'), ('test_teardown', 'error')], (
+                'fixture failure identity mismatch: ' + repr(compact_failures))
         cases = list(ET.fromstring(xml).iter('testcase'))
         assert {c.get('name') for c in cases if c.find('skipped') is not None} == {
             'test_skip', 'test_xfail'}
