@@ -124,8 +124,8 @@ def test_pass(): pass
 
 
 
-def test_evidence_survives_identity_assertion_failure(tmp_path, monkeypatch):
-    directory = tmp_path / 'evidence'
+def test_evidence_survives_identity_assertion_failure(tmp_path, tmp_path_factory, monkeypatch):
+    directory = tmp_path_factory.mktemp('evidence')
     monkeypatch.setenv('XPROBE_FAILURE_EVIDENCE', str(directory))
     importer = xprobe.cases_from_junit
 
@@ -135,7 +135,7 @@ def test_evidence_survives_identity_assertion_failure(tmp_path, monkeypatch):
         return report
 
     monkeypatch.setattr(xprobe, 'cases_from_junit', mismatched_identity)
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match='unexpected_identity'):
         test_native_outcomes_and_explore(tmp_path, True)
     assert {p.name for p in directory.iterdir()} == {
         'junit.xml', 'pytest-events.jsonl', 'failures.jsonl', 'receipt.json'}
