@@ -73,6 +73,8 @@ The original xgrep/xfail goal goes beyond ad-hoc grep: locate configuration clue
 | `inspect_environment(mapping)` | Recognized variable names and empty/present status, with all values omitted. Caller explicitly supplies the mapping. |
 | `known_bad_cases(category=None)` | Stable, explained regressions for Git SHA, NUL, Markdown, paths, URLs, SQL and JSON. |
 | `generate_cases(seed=0, count=20, category=None)` | Seeded sampling of that corpus with unique IDs and origin IDs; does not alter global RNG state. |
+| `case_factor_matrix()` | Built-in cases and boundaries described by schema-v1 integer bitsets, plus uncovered text/number factor pairs. |
+| `generate_factor_cases(seed=0, count=20)` | New composite text/number inputs, without replacement, with reproducible selection and counts. No expected outcomes or execution. |
 | `merge_cases(*corpora)` | Validate/deduplicate recorded inputs; reject conflicting IDs and non-finite/non-round-tripping JSON values. |
 | `corpus_to_json` / `corpus_from_json` | Stable JSON or JSONL persistence; pure serialization, no automatic file writes or execution. |
 | `cases_from_junit(text)` | Import pytest-compatible JUnit failure/error identities, omitting logs, messages and parameter labels. |
@@ -109,6 +111,23 @@ IDs so matching test names from different repositories/jobs do not collide.
 Missing SHA stays null. See [cross-repository collection](docs/cross-repository-tests.md).
 Both new repositories' CI now preserve JUnit reports even when tests fail;
 xprobe also emits the shared importer's compact failure JSON.
+
+## Factor input prototype (Issue #8)
+
+`generate_cases()` retains its original sampling contract. The independent
+`generate_factor_cases()` creates inputs from the built-in boundary product
+(currently six text × six number presets). Candidate counts follow the enumerated
+product. See [factor schema and scope](docs/factor-generation.md).
+
+```python
+report = xprobe.generate_factor_cases(seed=7, count=10)
+inputs = report['cases']  # value contains {'text': ..., 'number': ...}
+encoded = xprobe.corpus_to_json(inputs)
+```
+
+The caller maps these fields to its own API and supplies its own expectations.
+The generator never executes inputs. Counts and the source coverage matrix are
+returned even when `count=0`. Binary low-rank approximation is deferred.
 
 ## Direct standalone use (0.3)
 
