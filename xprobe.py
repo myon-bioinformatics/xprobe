@@ -18,7 +18,7 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "inspect_text", "inspect_environment", "scan_config",
            "known_bad_cases", "generate_cases", "corpus_to_json",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
-           "pytest_receipt"]
+           "pytest_receipt", "case_factor_matrix", "generate_factor_cases"]
 
 
 def _limit(value, name):
@@ -374,6 +374,103 @@ def generate_cases(*, seed=0, count=20, category=None):
         case['id'] = 'generated-' + str(index) + '-' + case['id']
         result.append(case)
     return result
+
+
+# Ordered schema v1: bit i represents factor_names[i]. Classification is
+# descriptive, not a diagnosis. Only cross-field text/number pairs are eligible.
+_TEXT_FACTORS = ('ascii', 'unicode', 'empty', 'whitespace', 'newline', 'nul', 'long')
+_NUMBER_FACTORS = ('negative', 'zero', 'positive', 'large', 'missing', 'wrong_type')
+_FACTOR_NAMES = _TEXT_FACTORS + _NUMBER_FACTORS
+
+
+def _text_factors(value):
+    names = ['ascii' if value.isascii() else 'unicode']
+    if not value:
+        names.append('empty')
+    if value.isspace():
+        names.append('whitespace')
+    if '\n' in value or '\r' in value:
+        names.append('newline')
+    if '\x00' in value:
+        names.append('nul')
+    if len(value) >= 4096:
+        names.append('long')
+    return names
+
+
+def _factor_bits(names):
+    return sum(1 << _FACTOR_NAMES.index(name) for name in names)
+
+
+def case_factor_matrix():
+    """Describe the built-in corpus and boundaries as fresh integer bitsets.
+
+    Schema v1 covers text properties and named numeric boundaries only. Missing
+    means explicit None, not an absent key. Large means the 2**63 preset; long
+    means >=4096 Python characters. No coverage claim about consumer behavior.
+    """
+    rows = []
+    for case in known_bad_cases():
+        value = case['value']
+        names = ['missing'] if value is None else _text_factors(value)
+        rows.append({'id': case['id'], 'bits': _factor_bits(names)})
+    for kind in ('text', 'number'):
+        for case in boundary_cases(kind):
+            names = (_text_factors(case['value']) if kind == 'text' else
+                     [{'none': 'missing'}.get(case['name'], case['name'])])
+            rows.append({'id': 'boundary-' + kind + '-' + case['name'],
+                         'bits': _factor_bits(names)})
+    uncovered = []
+    for left in _TEXT_FACTORS:
+        for right in _NUMBER_FACTORS:
+            bits = _factor_bits((left, right))
+            if not any(row['bits'] & bits == bits for row in rows):
+                uncovered.append({'factors': [left, right], 'bits': bits})
+    return {'schema': 'xprobe.factors.v1', 'factor_names': list(_FACTOR_NAMES),
+            'rows': rows, 'uncovered_pairs': uncovered}
+
+
+def generate_factor_cases(*, seed=0, count=20):
+    """Return bounded, reproducible composite inputs and selection evidence.
+
+    Enumerate the fixed 6x6 text/number boundary product, retaining candidates
+    that carry an uncovered cross-field factor pair. Seeded selection is without
+    replacement. value={text, number} is an input template: callers assign its
+    fields to their own API (e.g. number to an output limit). No expectations,
+    target execution, global RNG changes, I/O or low-rank approximation.
+    """
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError('seed must be an integer')
+    if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 10000:
+        raise ValueError('count must be an integer between 0 and 10000')
+    matrix = case_factor_matrix()
+    pairs = matrix['uncovered_pairs']
+    candidates = []
+    covered = 0
+    for text in boundary_cases('text'):
+        for number in boundary_cases('number'):
+            names = _text_factors(text['value']) + [
+                {'none': 'missing'}.get(number['name'], number['name'])]
+            bits = _factor_bits(names)
+            if not any(bits & pair['bits'] == pair['bits'] for pair in pairs):
+                covered += 1
+                continue
+            candidates.append({
+                'id': 'factor-v1-' + text['name'] + '-' + number['name'],
+                'category': 'factor_combination',
+                'value': {'text': text['value'], 'number': number['value']},
+                'reason': 'Uncovered text/number factor pair; caller defines behavior.',
+                'factor_bits': bits,
+                'origin_ids': ['boundary-text-' + text['name'],
+                               'boundary-number-' + number['name']]})
+    random.Random(seed).shuffle(candidates)
+    selected = candidates[:count]
+    limited = len(candidates) - len(selected)
+    return {'schema': 'xprobe.factor-generation.v1', 'seed': seed,
+            'limit': count, 'candidate_total': 36,
+            'selected_count': len(selected), 'excluded_count': covered + limited,
+            'exclusions': {'already_covered': covered, 'limit': limited},
+            'matrix': matrix, 'cases': selected}
 
 
 def merge_cases(*corpora):
