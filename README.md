@@ -115,8 +115,9 @@ xprobe also emits the shared importer's compact failure JSON.
 ## Factor input prototype (Issue #8)
 
 `generate_cases()` retains its original sampling contract. The independent
-`generate_factor_cases()` creates inputs from the fixed product of the six text
-and six number boundaries. See [factor schema and scope](docs/factor-generation.md).
+`generate_factor_cases()` creates inputs from the built-in boundary product
+(currently six text × six number presets). Candidate counts follow the enumerated
+product. See [factor schema and scope](docs/factor-generation.md).
 
 ```python
 report = xprobe.generate_factor_cases(seed=7, count=10)

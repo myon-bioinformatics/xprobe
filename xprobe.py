@@ -433,7 +433,7 @@ def case_factor_matrix():
 def generate_factor_cases(*, seed=0, count=20):
     """Return bounded, reproducible composite inputs and selection evidence.
 
-    Enumerate the fixed 6x6 text/number boundary product, retaining candidates
+    Enumerate the built-in text/number boundary product, retaining candidates
     that carry an uncovered cross-field factor pair. Seeded selection is without
     replacement. value={text, number} is an input template: callers assign its
     fields to their own API (e.g. number to an output limit). No expectations,
@@ -467,7 +467,7 @@ def generate_factor_cases(*, seed=0, count=20):
     selected = candidates[:count]
     limited = len(candidates) - len(selected)
     return {'schema': 'xprobe.factor-generation.v1', 'seed': seed,
-            'limit': count, 'candidate_total': 36,
+            'limit': count, 'candidate_total': covered + len(candidates),
             'selected_count': len(selected), 'excluded_count': covered + limited,
             'exclusions': {'already_covered': covered, 'limit': limited},
             'matrix': matrix, 'cases': selected}

@@ -9,8 +9,8 @@ It is an input generator, not a predictor of failures or a test runner.
 
 ## Schema v1
 
-`case_factor_matrix()` returns 25 source rows: 13 known corpus cases and 12
-boundaries. Each row has its stable source ID and an integer `bits`. Bit `i`
+`case_factor_matrix()` currently returns 25 source rows: 13 known corpus cases
+and 12 boundaries. Each row has its stable source ID and an integer `bits`. Bit `i`
 corresponds to `factor_names[i]`; decode with `bits & (1 << i)`. All collections
 are fresh. Classification uses input properties, not the case's stated failure.
 
@@ -42,10 +42,39 @@ are currently 42 such pairs: the source inputs are scalar, so none cross the
 two fields. This measures feature co-occurrence in these fixtures only; it says
 nothing about coverage of actual consumer behavior or the entire input space.
 
+### Consumer compatibility contract
+
+- The matrix schema identifier is `xprobe.factors.v1`. Its required fields are
+  `schema` (string), `factor_names` (ordered list of unique strings), `rows`
+  (list of `{id: string, bits: nonnegative integer}`), and `uncovered_pairs`
+  (list of `{factors: [text factor, number factor], bits: nonnegative integer}`).
+  Pair bits contain exactly the two named factors. All bitsets, including each
+  generated case's `factor_bits`, use the returned matrix's `factor_names`.
+- The 13 bit positions and meanings above are fixed for v1. Changing them,
+  adding factors, or removing/changing required field types requires a new
+  schema identifier. Consumers should check both report and matrix identifiers
+  before interpreting bits, and may ignore additional descriptive fields.
+- Row counts, candidate counts and selected counts are data, not schema
+  constants. Source presets may be added/removed; IDs must not be reused for
+  different inputs. A changed input needs a new ID. New numeric categories
+  require an explicit classification/schema change; arbitrary caller-supplied
+  presets are not a public extension API in this stage.
+- Generation records have string `id`, `category` (`factor_combination`) and
+  `reason`, a `value` object with `text` (string) and `number` (integer, null or
+  string in the current presets), integer `factor_bits`, and two string
+  `origin_ids` in text/number order. There is no inferred expectation. To call
+  `run_cases()`, consumers must explicitly map `id` to `name` and provide an
+  `expected` or `raises` value appropriate to their own target.
+- This API does not change `generate_cases()` or the existing corpus format.
+  JSON/JSONL persistence retains the extra factor metadata; `merge_cases()`
+  rejects conflicting records with the same ID. Persist the whole report to
+  retain the schema/selection evidence, since `cases` alone omits that evidence.
+
 ## Generation and evidence
 
-`generate_factor_cases(seed=0, count=20)` enumerates all 36 text/number boundary
-pairs. Each candidate is a dictionary input template such as:
+`generate_factor_cases(seed=0, count=20)` enumerates the built-in text/number
+boundary product (currently 36 pairs). Each candidate is a dictionary input
+template such as:
 
 ```python
 {'text': '日本語🙂', 'number': 2**63}
@@ -68,21 +97,28 @@ The returned report contains:
 | --- | --- |
 | schema | `xprobe.factor-generation.v1` |
 | seed / limit | Supplied integer seed and count |
-| candidate_total | Fixed pre-filter product size, currently 36 |
-| selected_count | Number of returned records, at most count and 36 |
+| candidate_total | Actual enumerated pre-filter product size, currently 36 |
+| selected_count | Number of returned records, at most count and candidate_total |
 | excluded_count | Candidates filtered out or omitted by the count limit |
 | exclusions.already_covered | Candidates with no uncovered pair |
 | exclusions.limit | Eligible candidates omitted by the limit |
 | matrix | Source matrix, ordered factor names, uncovered pairs |
 | cases | Selected composite inputs |
 
-`candidate_total == selected_count + excluded_count`. With the current presets,
+All count fields are nonnegative integers. The generator counts every enumerated
+candidate once, so `candidate_total == selected_count + excluded_count` and
+`excluded_count == exclusions.already_covered + exclusions.limit`, including
+when either boundary set is empty or all candidates are covered. With the current presets,
 seed 7/count 10 gives total 36, selected 10, excluded 26 (all limit exclusions).
 Count zero still returns the full coverage evidence. Same seed and options on
-the same schema/presets reproduce the selection, with no global RNG changes.
+the same producer revision, presets and Python version reproduce the selection,
+with no global RNG changes. Selection order across producer/Python revisions is
+not guaranteed by the schema identifier alone.
 Stable IDs identify the input, not its position or seed; merging two selections
 deduplicates identical inputs. Retain the report and producer commit alongside
-cases when preserving selection evidence across future schema revisions.
+cases when preserving selection evidence across future schema revisions; also
+record the Python version for exact seeded replay. Stored cases are the replay
+source when the original producer/runtime is unavailable.
 
 This is bounded sampling, not a minimum covering array: it does not guarantee
 that a capped selection covers every missing pair. Full selection covers all

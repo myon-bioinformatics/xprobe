@@ -12,7 +12,10 @@ import xprobe
 def test_matrix_preserves_source_identity_and_bit_order():
     matrix = xprobe.case_factor_matrix()
     names = matrix['factor_names']
-    assert len(names) == len(set(names)) == 13
+    assert matrix['schema'] == 'xprobe.factors.v1'
+    assert names == ['ascii', 'unicode', 'empty', 'whitespace', 'newline', 'nul',
+                     'long', 'negative', 'zero', 'positive', 'large', 'missing',
+                     'wrong_type']
     assert len(matrix['rows']) == 25
     assert {row['id'] for row in matrix['rows']} == {
         case['id'] for case in xprobe.known_bad_cases()
@@ -42,6 +45,7 @@ def test_matrix_preserves_source_identity_and_bit_order():
 
 def test_full_generation_is_new_cartesian_product_without_expectations():
     report = xprobe.generate_factor_cases(seed=7, count=10000)
+    assert report['schema'] == 'xprobe.factor-generation.v1'
     cases = report['cases']
     assert report['candidate_total'] == report['selected_count'] == len(cases) == 36
     assert report['excluded_count'] == 0
@@ -60,7 +64,9 @@ def test_full_generation_is_new_cartesian_product_without_expectations():
                    for case in cases)
                for pair in report['matrix']['uncovered_pairs'])
     # Generated records compose with existing persistence; order is canonicalized.
-    assert xprobe.corpus_from_json(xprobe.corpus_to_json(cases)) == xprobe.merge_cases(cases)
+    for jsonl in (False, True):
+        encoded = xprobe.corpus_to_json(cases, jsonl=jsonl)
+        assert xprobe.corpus_from_json(encoded, jsonl=jsonl) == xprobe.merge_cases(cases)
     assert json.loads(json.dumps(report)) == report
 
 
@@ -72,6 +78,49 @@ def test_caps_and_accounting(count, selected):
     assert report['excluded_count'] == 36 - selected
     assert sum(report['exclusions'].values()) == report['excluded_count']
     assert report['selected_count'] + report['excluded_count'] == report['candidate_total']
+
+
+@pytest.mark.parametrize('preset,total,mixed_eligible', [
+    ('expanded', 42, 5), ('reduced', 12, 4),
+    ('empty_text', 0, 0), ('empty_number', 0, 0),
+])
+@pytest.mark.parametrize('coverage', ['uncovered', 'mixed', 'covered'])
+@pytest.mark.parametrize('count', [0, 2, 10000])
+def test_accounting_tracks_changed_boundary_sets(
+        monkeypatch, preset, total, mixed_eligible, coverage, count):
+    boundaries = {kind: xprobe.boundary_cases(kind) for kind in ('text', 'number')}
+    if preset == 'expanded':
+        boundaries['text'].append({'name': 'unicode_newline', 'value': 'Ω\n'})
+    elif preset == 'reduced':
+        boundaries['text'] = boundaries['text'][:4]
+        boundaries['number'] = boundaries['number'][:3]
+    elif preset == 'empty_text':
+        boundaries['text'] = []
+    else:
+        boundaries['number'] = []
+    monkeypatch.setattr(xprobe, 'boundary_cases',
+                        lambda kind: [dict(case) for case in boundaries[kind]])
+    matrix = xprobe.case_factor_matrix()
+    eligible = total
+    if coverage == 'mixed':
+        matrix['uncovered_pairs'] = [pair for pair in matrix['uncovered_pairs']
+                                     if pair['factors'] == ['ascii', 'zero']]
+        eligible = mixed_eligible
+    elif coverage == 'covered':
+        matrix['uncovered_pairs'] = []
+        eligible = 0
+    monkeypatch.setattr(xprobe, 'case_factor_matrix', lambda: matrix)
+
+    report = xprobe.generate_factor_cases(seed=17, count=count)
+    selected = min(count, eligible)
+    assert report['candidate_total'] == total
+    assert report['selected_count'] == len(report['cases']) == selected
+    assert len({case['id'] for case in report['cases']}) == selected
+    assert report['exclusions'] == {'already_covered': total - eligible,
+                                     'limit': eligible - selected}
+    assert report['excluded_count'] == sum(report['exclusions'].values())
+    assert report['selected_count'] + report['excluded_count'] == total
+    assert report == xprobe.generate_factor_cases(seed=17, count=count)
 
 
 def test_seed_replay_freshness_and_rng_isolation():
