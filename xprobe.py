@@ -10,6 +10,7 @@ import os
 import random
 import re
 import stat
+import unicodedata
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -19,7 +20,7 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "known_bad_cases", "generate_cases", "corpus_to_json",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
            "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
-           "explain_outcome"]
+           "explain_outcome", "pattern_presets", "normalize_text"]
 
 
 def _limit(value, name):
@@ -27,44 +28,158 @@ def _limit(value, name):
         raise ValueError(name + " must be a positive integer")
 
 
-def _pattern(pattern, regex, ignore_case):
+# Named regexes gathered from sibling repositories (Err-o-RoadRunner triage /
+# junit_redact, gh_identity, browser-test-kit). Line-local: ^ and $ are a line.
+_PRESETS = {
+    'git-sha': (r'\b[0-9a-f]{40}\b', 'full lowercase Git commit SHA'),
+    'sha256': (r'\b[0-9a-fA-F]{64}\b', 'SHA-256 hex digest'),
+    'iso-timestamp': (r'\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?',
+                      'ISO 8601 date-time'),
+    'url': (r'''\b[A-Za-z][A-Za-z0-9+.-]*://[^\s<>"']+''', 'scheme://... URL'),
+    'python-frame': (r'^  File "(?P<file>[^"]+)", line (?P<line>\d+)(?:, in (?P<func>.*))?$',
+                     'Python traceback frame line'),
+    'python-exception': (r'^(?:E\s+|\s*)(?P<exc>(?:[A-Za-z_]\w*\.)*[A-Z]\w*(?:Error|Exception|Warning|Exit|Interrupt|Group))'
+                         r'(?::\s*(?P<msg>.*))?$',
+                         'Python exception summary line, also after pytest\'s "E   " prefix'),
+    'node-error': (r'^(?P<head>(?:[A-Za-z_]\w*(?:Error|Warning|Rejection)|Unhandled\s+rejection(?:\s+\([^)]+\))?))'
+                   r'\s*:\s*(?P<rest>.*)$', 'Node/JS error headline'),
+    'npm-error': (r'^npm ERR!\s+(?P<rest>.+)$', 'npm ERR! line'),
+    'compiler-error': (r'^(?:fatal )?error(?:\[[A-Za-z0-9]+\])?:\s+(?P<rest>.+)$',
+                       'lowercase compiler error line (gcc, rustc, dart, ...)'),
+    'credential': (r'gh[pousr]_[A-Za-z0-9]{36,}|ghs_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{22,}'
+                   r'|(?:AKIA|ASIA)[A-Z0-9]{16}|(?i:aws_secret_access_key)\s*[=:]\s*[\'"]?[A-Za-z0-9/+=]{40,}'
+                   r'|Bearer\s+[A-Za-z0-9._-]{8,}|sk-[A-Za-z0-9]{20,}',
+                   'GitHub/AWS/Bearer/sk- credential-like token'),
+    'ci-path': (r'/home/runner/work/[^/\s]+/[^/\s]+|/Users/[^/\s<"\']+|/opt/hostedtoolcache/|/tmp/pytest-of-[^/\s]+/',
+                'CI runner or user-home path'),
+    'hex-address': (r'\b0x[0-9a-fA-F]{8,}\b', 'memory address'),
+    'ansi': (r'\x1b\[[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]|\x9b[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]'
+             r'|\x1b\][^\x07\x1b\n]*(?:\x07|\x1b\\)?|\x1b[@-Z\\-_]', 'terminal escape sequence'),
+}
+_ANSI = re.compile(_PRESETS['ansi'][0])
+NORMALIZE_STEPS = ('ansi', 'nfkc', 'casefold', 'spaces', 'vs16')
+_INVISIBLE = '︎️‍'
+
+
+def pattern_presets():
+    """Return {name: {'regex', 'about'}} for the built-in named patterns."""
+    return {name: {'regex': regex, 'about': about} for name, (regex, about) in _PRESETS.items()}
+
+
+def _steps(normalize):
+    if isinstance(normalize, str):
+        normalize = [normalize]
+    steps = tuple(normalize or ())
+    unknown = [s for s in steps if s not in NORMALIZE_STEPS]
+    if unknown:
+        raise ValueError('unknown normalize step(s): ' + ', '.join(map(str, unknown)))
+    return steps
+
+
+def _combining(char):
+    return unicodedata.combining(unicodedata.normalize('NFKC', char)[:1] or 'x')
+
+
+def _normalized_line(line, steps):
+    """(normalized text, [(orig_start, orig_end)] per normalized character)."""
+    removed = set()
+    if 'ansi' in steps:
+        for match in _ANSI.finditer(line):
+            removed.update(range(match.start(), match.end()))
+    out, spans, i, n = [], [], 0, len(line)
+    while i < n:
+        if i in removed:
+            i += 1
+            continue
+        j = i + 1
+        if 'nfkc' in steps:
+            # Keep combining marks (including half-width voiced marks) with their base.
+            while j < n and j not in removed and _combining(line[j]):
+                j += 1
+        cluster = line[i:j]
+        if 'nfkc' in steps:
+            cluster = unicodedata.normalize('NFKC', cluster)
+        if 'casefold' in steps:
+            cluster = cluster.casefold()
+        for char in cluster:
+            if ('spaces' in steps and char.isspace()) or ('vs16' in steps and char in _INVISIBLE):
+                continue
+            out.append(char)
+            spans.append((i, j))
+        i = j
+    return ''.join(out), spans
+
+
+def normalize_text(text, normalize=NORMALIZE_STEPS):
+    """Apply normalize steps line by line (newlines kept), as search sees the text."""
+    steps = _steps(normalize)
+    return '\n'.join(_normalized_line(line, steps)[0] for line in text.split('\n'))
+
+
+def _pattern(pattern, regex, ignore_case, preset=None, steps=()):
+    if preset is not None:
+        if pattern is not None:
+            raise ValueError("give a pattern or a preset, not both")
+        if preset not in _PRESETS:
+            raise ValueError("unknown preset: " + str(preset))
+        pattern, regex = _PRESETS[preset][0], True
     if not isinstance(pattern, str) or not pattern:
         raise ValueError("pattern must be a non-empty string")
+    if steps and not regex:
+        pattern = normalize_text(pattern, [s for s in steps if s != 'ansi'])
+        if not pattern:
+            raise ValueError("pattern is empty after normalization")
     return re.compile(pattern if regex else re.escape(pattern),
                       re.IGNORECASE if ignore_case else 0)
 
 
-def _matches(text, compiled):
+def _matches(text, compiled, steps=()):
     for number, line in enumerate(text.splitlines(), 1):
-        for match in compiled.finditer(line):
-            yield {"line": number, "column": match.start() + 1,
-                   "end_column": match.end() + 1,
-                   "match": match.group(), "text": line}
+        if not steps:
+            for match in compiled.finditer(line):
+                yield {"line": number, "column": match.start() + 1,
+                       "end_column": match.end() + 1,
+                       "match": match.group(), "text": line}
+            continue
+        view, spans = _normalized_line(line, steps)
+        for match in compiled.finditer(view):
+            start, end = match.span()
+            if end > start:
+                left, right = spans[start][0], spans[end - 1][1]
+            else:
+                left = right = spans[start][0] if start < len(spans) else len(line)
+            yield {"line": number, "column": left + 1, "end_column": right + 1,
+                   "match": line[left:right], "normalized": match.group(), "text": line}
 
 
-def search_text(text, pattern, *, regex=False, ignore_case=False,
-                max_matches=1000):
+def search_text(text, pattern=None, *, regex=False, ignore_case=False,
+                max_matches=1000, normalize=(), preset=None):
     """Return non-overlapping, line-local matches with 1-based coordinates.
 
     end_column is exclusive. Literal search is the default. Empty patterns
-    are rejected; regex syntax errors propagate as re.error.
+    are rejected; regex syntax errors propagate as re.error. preset names a
+    built-in regex (see pattern_presets) instead of pattern. normalize steps
+    (ansi, nfkc, casefold, spaces, vs16) search a normalized view of each line
+    but report original coordinates and text; "normalized" holds the matched
+    view. Literal patterns get the same steps; regexes are written for the view.
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     _limit(max_matches, "max_matches")
-    compiled = _pattern(pattern, regex, ignore_case)
+    steps = _steps(normalize)
+    compiled = _pattern(pattern, regex, ignore_case, preset, steps)
     result = []
-    for match in _matches(text, compiled):
+    for match in _matches(text, compiled, steps):
         result.append(match)
         if len(result) == max_matches:
             break
     return result
 
 
-def search_files(root, pattern, *, regex=False, ignore_case=False,
+def search_files(root, pattern=None, *, regex=False, ignore_case=False,
                  include_hidden=False, max_bytes=1_000_000,
                  max_matches=1000, encoding="utf-8", include=("*",),
-                 exclude_dirs=()):
+                 exclude_dirs=(), normalize=(), preset=None):
     """Search a file or directory, returning matches, skipped files and errors.
 
     Sorted traversal; symlinks and special files are never deliberately read.
@@ -72,11 +187,13 @@ def search_files(root, pattern, *, regex=False, ignore_case=False,
     Read/walk errors are reported, not interpreted as no matches. No gitignore
     interpretation; hidden entries are excluded by default. Root path errors
     raise OSError. Ordinary concurrent filesystem changes are not isolated.
+    normalize and preset behave as in search_text.
     """
     _limit(max_bytes, "max_bytes")
     _limit(max_matches, "max_matches")
     include, exclude_dirs = _globs(include), _globs(exclude_dirs)
-    compiled = _pattern(pattern, regex, ignore_case)
+    steps = _steps(normalize)
+    compiled = _pattern(pattern, regex, ignore_case, preset, steps)
     # Validate codec even when no files are encountered.
     "".encode(encoding)
     root = Path(root)
@@ -133,7 +250,7 @@ def search_files(root, pattern, *, regex=False, ignore_case=False,
             except UnicodeError:
                 report["skipped"].append({"path": name, "reason": "decode_error"})
                 continue
-            for match in _matches(text, compiled):
+            for match in _matches(text, compiled, steps):
                 # Look one match ahead, so exactly max_matches is not truncated.
                 if len(report["matches"]) == max_matches:
                     report["truncated"] = True
@@ -843,6 +960,12 @@ def main(argv=None):
     parser.add_argument("--max-matches", type=int, default=1000)
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
+    modes.add_argument("--preset", metavar="NAME", help="Search with a named built-in regex (--presets lists them)")
+    modes.add_argument("--presets", action="store_true", help="List the named regexes")
+    parser.add_argument("--regex", action="store_true", help="--search TEXT is a regular expression")
+    parser.add_argument("--normalize", metavar="STEPS", default="",
+                        help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
+    parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
     modes.add_argument("--explain", metavar="FILE", help="Rank conditions explaining --target in a JSON array/JSONL file ('-' = stdin)")
     parser.add_argument("--target", metavar="FIELD=VALUE", help="Outcome for --explain; VALUE is a JSON literal")
@@ -857,8 +980,15 @@ def main(argv=None):
         if args.corpus:
             print(corpus_to_json(known_bad_cases()), end="")
             return 0
-        if args.search is not None:
-            report = search_files(args.root, args.search, max_bytes=args.max_bytes,
+        if args.presets:
+            for name, item in pattern_presets().items():
+                print(f"{name}: {item['about']}")
+            return 0
+        searching = args.search is not None or args.preset is not None
+        if searching:
+            report = search_files(args.root, args.search, regex=args.regex, preset=args.preset,
+                                  normalize=[s for s in args.normalize.split(",") if s],
+                                  max_bytes=args.max_bytes,
                                   max_matches=args.max_matches, exclude_dirs=_DEFAULT_EXCLUDE)
         else:
             report = scan_config(args.root, max_bytes=args.max_bytes,
@@ -866,10 +996,19 @@ def main(argv=None):
     except (OSError, ValueError, LookupError) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
-    print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+    if args.brief and searching:
+        for row in report["matches"]:
+            print(f"{row['path']}:{row['line']}:{row['column']}: {row['match']!r}")
+        for key in ("skipped", "errors"):
+            if report[key]:
+                print(f"{key}: " + ", ".join(f"{e['path']} ({e['reason']})" for e in report[key]))
+        if report["truncated"]:
+            print("truncated: raise --max-matches")
+    else:
+        print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
     if report["errors"] or report["truncated"] or report["skipped"]:
         return 2
-    return (0 if report["matches"] else 1) if args.search is not None else 0
+    return (0 if report["matches"] else 1) if searching else 0
 
 
 if __name__ == "__main__":

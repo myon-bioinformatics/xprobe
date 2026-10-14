@@ -182,3 +182,31 @@ python xprobe.py --explain cases.json --target-differs expected_tool_family,chos
 One line per formula, so a long record list costs a few lines of context. This
 describes the sample it is given (no validation on new records) and uses no
 low-rank factors. Exit codes: 0 = at least one formula, 1 = none, 2 = input error.
+
+## Normalized search and named patterns (0.4)
+
+Ad-hoc regex tricks that sibling repositories each re-implemented are built in.
+`normalize` searches a normalized view of every line but reports the **original**
+line/column and text (`normalized` holds the view):
+
+| step | effect | typical use |
+| --- | --- | --- |
+| `ansi` | drop terminal escape sequences | colored CI logs |
+| `nfkc` | NFKC per base + combining marks (full/half width, `ｶﾞ`→`ガ`) | Japanese text, scraped HTML |
+| `casefold` | full case folding (`ß`→`ss`) | case-insensitive across scripts |
+| `spaces` | drop whitespace inside a line | sequences or tokens split by spaces |
+| `vs16` | drop U+FE0E/U+FE0F/ZWJ | emoji identifiers |
+
+Literal patterns are normalized with the same steps; regexes are written for the view.
+`preset=` (or `--preset`) uses a named regex instead of a pattern; `pattern_presets()`
+lists them: `git-sha`, `sha256`, `iso-timestamp`, `url`, `python-frame`,
+`python-exception` (also after pytest's `E   `), `node-error`, `npm-error`,
+`compiler-error`, `credential`, `ci-path`, `hex-address`, `ansi`.
+
+```sh
+python xprobe.py --root logs --preset python-exception --normalize ansi --brief
+python xprobe.py --root data --search 'ACGT' --normalize spaces,casefold --brief
+python xprobe.py --presets
+```
+
+`--brief` prints one `path:line:column: 'match'` line per match instead of JSON.
