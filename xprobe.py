@@ -13,12 +13,13 @@ import stat
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "inspect_text", "inspect_environment", "scan_config",
            "known_bad_cases", "generate_cases", "corpus_to_json",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
-           "pytest_receipt", "case_factor_matrix", "generate_factor_cases"]
+           "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
+           "explain_outcome"]
 
 
 def _limit(value, name):
@@ -682,6 +683,145 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
     return {'cases': rows, 'truncated': False}
 
 
+def _flatten(value, prefix=''):
+    if isinstance(value, dict):
+        out = {}
+        for key, inner in value.items():
+            out.update(_flatten(inner, prefix + str(key) + '.'))
+        return out
+    if isinstance(value, list):
+        value = json.dumps(value, sort_keys=True)
+    return {prefix[:-1]: value}
+
+
+def _predicates(rows, skip, max_thresholds, max_values):
+    preds = {}
+    for name in sorted({key for row in rows for key in row} - set(skip)):
+        values = [row.get(name) for row in rows]
+        seen = [v for v in values if v is not None]
+        numbers = [v for v in seen if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if seen and len(numbers) == len(seen):
+            distinct = sorted(set(numbers))
+            mids = [(a + b) / 2 for a, b in zip(distinct, distinct[1:])]
+            if len(mids) > max_thresholds:
+                step = (len(mids) - 1) / max(max_thresholds - 1, 1)
+                mids = sorted({mids[round(i * step)] for i in range(max_thresholds)})
+            for t in mids:
+                t = round(t, 6)
+                preds[f'{name} <= {t:g}'] = sum(1 << i for i, v in enumerate(values) if v is not None and v <= t)
+                preds[f'{name} > {t:g}'] = sum(1 << i for i, v in enumerate(values) if v is not None and v > t)
+            continue
+        distinct = sorted({json.dumps(v, sort_keys=True) for v in seen})
+        if len(distinct) <= max_values:
+            for text in distinct:
+                preds[f'{name} == {text}'] = sum(
+                    1 << i for i, v in enumerate(values)
+                    if v is not None and json.dumps(v, sort_keys=True) == text)
+    return preds
+
+
+def explain_outcome(records, target, *, skip=(), id_field=None, top=5,
+                    max_thresholds=12, max_values=8, max_ids=20):
+    """Rank simple conditions on record fields that separate a yes/no outcome.
+
+    records: dicts (nested dicts flatten to dotted names). target: (field, value)
+    for equality, or a callable record -> bool (then list its fields in skip).
+    Predicates: ``field == value`` for non-numeric fields with <= max_values
+    distinct values, ``field <= t`` / ``field > t`` at midpoints of observed
+    numbers; a missing field never matches. Searched: single predicates and
+    ``[A] and [B]`` / ``[A] or [B]``, as integer bitsets. Ranked by MCC, then
+    fewer predicates, then text; formulas selecting the same rows appear once.
+    Each result lists counterexample ids (fp: predicted yes, was no; fn: missed).
+    This describes the given sample only; no validation, no low-rank factors.
+    """
+    for name, value in (('top', top), ('max_thresholds', max_thresholds),
+                        ('max_values', max_values), ('max_ids', max_ids)):
+        _limit(value, name)
+    if not isinstance(records, (list, tuple)) or not all(isinstance(r, dict) for r in records):
+        raise ValueError('records must be a list of dicts')
+    rows = [_flatten(record) for record in records]
+    skip = set(skip) | ({id_field} if id_field else set())
+    if callable(target):
+        hits = [bool(target(row)) for row in rows]
+    elif isinstance(target, tuple) and len(target) == 2 and isinstance(target[0], str):
+        field, expected = target
+        if not any(field in row for row in rows):
+            raise LookupError('no record has field ' + field)
+        hits = [row.get(field) == expected for row in rows]
+        skip.add(field)
+    else:
+        raise ValueError('target must be (field, value) or a callable')
+    n = len(rows)
+    full = (1 << n) - 1
+    want = sum(1 << i for i, hit in enumerate(hits) if hit)
+    preds = _predicates(rows, skip, max_thresholds, max_values)
+    best = {}
+
+    def offer(mask, size, expr):
+        if mask not in (0, full) and (mask not in best or (size, expr) < best[mask]):
+            best[mask] = (size, expr)
+
+    for expr, mask in preds.items():
+        offer(mask, 1, expr)
+    items = sorted(preds.items())
+    for i, (left, lmask) in enumerate(items):
+        for right, rmask in items[i + 1:]:
+            offer(lmask & rmask, 2, f'[{left}] and [{right}]')
+            offer(lmask | rmask, 2, f'[{left}] or [{right}]')
+    labels = [str(row.get(id_field, i)) if id_field else str(i) for i, row in enumerate(rows)]
+    scored = []
+    for mask, (size, expr) in best.items():
+        tp, fp = (mask & want).bit_count(), (mask & ~want).bit_count()
+        fn = (want & ~mask).bit_count()
+        tn = n - tp - fp - fn
+        denom = ((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) ** 0.5
+        score = (tp * tn - fp * fn) / denom if denom else 0.0
+        scored.append((-score, size, expr, mask, tp, fp, fn))
+    scored.sort(key=lambda item: item[:3])
+    results = []
+    for neg, size, expr, mask, tp, fp, fn in scored[:top]:
+        fp_ids = [labels[i] for i in range(n) if mask >> i & 1 and not want >> i & 1]
+        fn_ids = [labels[i] for i in range(n) if want >> i & 1 and not mask >> i & 1]
+        results.append({'expr': expr, 'predicates': size, 'mcc': round(-neg, 6),
+                        'tp': tp, 'fp': fp, 'fn': fn,
+                        'fp_ids': fp_ids[:max_ids], 'fn_ids': fn_ids[:max_ids]})
+    return {'schema': 'xprobe.explain.v1', 'rows': n, 'target_rows': want.bit_count(),
+            'predicate_count': len(preds), 'candidate_count': len(best),
+            'scope': 'in-sample description; apply to new records before trusting',
+            'results': results}
+
+
+def _explain_cli(args, parser):
+    import sys
+    if (args.target is None) == (args.target_differs is None):
+        parser.error("--explain needs exactly one of --target / --target-differs")
+    text = sys.stdin.read() if args.explain == '-' else Path(args.explain).read_text(encoding='utf-8')
+    text = text.strip()
+    try:
+        data = json.loads(text)
+        records = data if isinstance(data, list) else [data]
+    except ValueError:
+        records = [json.loads(line) for line in text.splitlines() if line.strip()]
+    if args.target is not None:
+        field, sep, literal = args.target.partition('=')
+        if not sep:
+            raise ValueError('--target must be FIELD=VALUE')
+        target, skip = (field, json.loads(literal)), args.skip
+    else:
+        left, sep, right = args.target_differs.partition(',')
+        if not sep:
+            raise ValueError('--target-differs must be A,B')
+        target = lambda row: row.get(left) != row.get(right)
+        skip = args.skip + [left, right]
+    report = explain_outcome(records, target, skip=skip, id_field=args.id_field, top=args.top)
+    print(f"rows={report['rows']} target_rows={report['target_rows']} predicates={report['predicate_count']} ({report['scope']})")
+    for rank, row in enumerate(report['results'], 1):
+        print(f"{rank}. mcc={row['mcc']:.4f} tp={row['tp']} fp={row['fp']} fn={row['fn']}  {row['expr']}")
+        if row['fp'] or row['fn']:
+            print(f"   fp: {','.join(row['fp_ids']) or '-'}  fn: {','.join(row['fn_ids']) or '-'}")
+    return 0 if report['results'] else 1
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
@@ -693,8 +833,16 @@ def main(argv=None):
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
+    modes.add_argument("--explain", metavar="FILE", help="Rank conditions explaining --target in a JSON array/JSONL file ('-' = stdin)")
+    parser.add_argument("--target", metavar="FIELD=VALUE", help="Outcome for --explain; VALUE is a JSON literal")
+    parser.add_argument("--target-differs", metavar="A,B", help="Outcome for --explain: fields A and B differ")
+    parser.add_argument("--id", dest="id_field", help="Record field naming counterexamples")
+    parser.add_argument("--skip", action="append", default=[], help="Field not used as a condition")
+    parser.add_argument("--top", type=int, default=5)
     args = parser.parse_args(argv)
     try:
+        if args.explain is not None:
+            return _explain_cli(args, parser)
         if args.corpus:
             print(corpus_to_json(known_bad_cases()), end="")
             return 0
