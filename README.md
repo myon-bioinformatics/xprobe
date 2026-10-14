@@ -161,7 +161,12 @@ separate a yes/no outcome: `field == value`, `field <= t` / `field > t` at midpo
 of observed numbers, and `[A] and [B]` / `[A] or [B]`, held as integer bitsets
 (the same representation as `case_factor_matrix`). Results are ordered by MCC,
 then fewer predicates; formulas selecting the same rows appear once, and each
-lists its counterexample ids (`fp_ids`: predicted yes but no, `fn_ids`: missed).
+lists up to `max_ids` counterexample ids (default 20; `fp_ids`: predicted yes
+but no, `fn_ids`: missed). Each result also includes `fp_ids_total` /
+`fn_ids_total`, `fp_ids_omitted` / `fn_ids_omitted`, and
+`fp_ids_truncated` / `fn_ids_truncated`. Totals count records even when IDs
+repeat. These are additive fields in `xprobe.explain.v1`; existing fields and
+ranking are unchanged. The CLI appends `(+N more)` to incomplete ID lists.
 Nested dicts flatten to dotted names; a missing field never matches.
 
 ```python

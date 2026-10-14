@@ -89,3 +89,64 @@ def test_runs_standalone_under_python_dash_S(tmp_path):
     done = subprocess.run([sys.executable, '-S', str(ROOT / 'xprobe.py'), '--explain', str(path),
                            '--target', 'hit.self=false', '--top', '1'], capture_output=True, text=True)
     assert done.returncode == 0 and 'box.height > 81' in done.stdout
+
+
+def counterexample_rows(fp, fn):
+    groups = [(True, True, 30), (True, False, fp),
+              (False, True, fn), (False, False, 30)]
+    return [{'id': f'r{i}', 'feature': feature, 'outcome': outcome}
+            for i, (feature, outcome) in enumerate(
+                (feature, outcome) for feature, outcome, count in groups
+                for _ in range(count))]
+
+
+@pytest.mark.parametrize('fp,fn,limit', [
+    (0, 0, 20), (1, 0, 20), (0, 1, 20), (20, 20, 20),
+    (21, 21, 20), (25, 23, 20), (5, 7, 2), (21, 21, 30),
+])
+def test_counterexample_id_completeness(fp, fn, limit):
+    rows = counterexample_rows(fp, fn)
+    report = xprobe.explain_outcome(rows, ('outcome', True), id_field='id',
+                                    max_ids=limit, top=10)
+    # JSON consumers receive booleans and counts, including the empty case.
+    result = json.loads(json.dumps(report))
+    assert result['schema'] == 'xprobe.explain.v1'
+    row = next(r for r in result['results'] if r['expr'] == 'feature == true')
+    for kind, count in [('fp', fp), ('fn', fn)]:
+        expected = [r['id'] for r in rows
+                    if (r['feature'] and not r['outcome'] if kind == 'fp'
+                        else r['outcome'] and not r['feature'])]
+        assert row[kind] == row[kind + '_ids_total'] == count
+        assert row[kind + '_ids'] == expected[:limit]
+        assert row[kind + '_ids_omitted'] == max(0, count - limit)
+        assert row[kind + '_ids_truncated'] is (count > limit)
+    baseline = xprobe.explain_outcome(rows, ('outcome', True), id_field='id',
+                                       max_ids=100, top=10)
+    assert [(r['expr'], r['mcc']) for r in report['results']] == [
+        (r['expr'], r['mcc']) for r in baseline['results']]
+
+
+@pytest.mark.parametrize('fp,fn', [(0, 0), (20, 20), (21, 0), (0, 21), (25, 23)])
+def test_cli_counterexample_omissions(fp, fn, tmp_path, capsys):
+    rows = counterexample_rows(fp, fn)
+    path = tmp_path / 'counterexamples.json'
+    path.write_text(json.dumps(rows), encoding='utf-8')
+    assert xprobe.main(['--explain', str(path), '--target', 'outcome=true',
+                        '--id', 'id', '--top', '1']) == 0
+    out = capsys.readouterr().out
+    assert 'feature == true' in out
+    if fp == fn == 0:
+        assert '   fp:' not in out
+    else:
+        expected = []
+        for kind, count in [('fp', fp), ('fn', fn)]:
+            ids = [r['id'] for r in rows
+                   if (r['feature'] and not r['outcome'] if kind == 'fp'
+                       else r['outcome'] and not r['feature'])]
+            shown = ','.join(ids[:20]) or '-'
+            if count > 20:
+                shown += f' (+{count - 20} more)'
+            expected.append(f'{kind}: {shown}')
+        assert '   ' + '  '.join(expected) in out
+    if fp <= 20 and fn <= 20:
+        assert '(+' not in out

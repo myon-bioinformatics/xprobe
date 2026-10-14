@@ -731,7 +731,8 @@ def explain_outcome(records, target, *, skip=(), id_field=None, top=5,
     numbers; a missing field never matches. Searched: single predicates and
     ``[A] and [B]`` / ``[A] or [B]``, as integer bitsets. Ranked by MCC, then
     fewer predicates, then text; formulas selecting the same rows appear once.
-    Each result lists counterexample ids (fp: predicted yes, was no; fn: missed).
+    Each result lists up to max_ids counterexample ids (fp: predicted yes, was
+    no; fn: missed), with *_ids_total, *_ids_omitted and *_ids_truncated.
     This describes the given sample only; no validation, no low-rank factors.
     """
     for name, value in (('top', top), ('max_thresholds', max_thresholds),
@@ -784,7 +785,12 @@ def explain_outcome(records, target, *, skip=(), id_field=None, top=5,
         fn_ids = [labels[i] for i in range(n) if want >> i & 1 and not mask >> i & 1]
         results.append({'expr': expr, 'predicates': size, 'mcc': round(-neg, 6),
                         'tp': tp, 'fp': fp, 'fn': fn,
-                        'fp_ids': fp_ids[:max_ids], 'fn_ids': fn_ids[:max_ids]})
+                        'fp_ids': fp_ids[:max_ids], 'fn_ids': fn_ids[:max_ids],
+                        'fp_ids_total': fp, 'fn_ids_total': fn,
+                        'fp_ids_omitted': max(0, fp - max_ids),
+                        'fn_ids_omitted': max(0, fn - max_ids),
+                        'fp_ids_truncated': fp > max_ids,
+                        'fn_ids_truncated': fn > max_ids})
     return {'schema': 'xprobe.explain.v1', 'rows': n, 'target_rows': want.bit_count(),
             'predicate_count': len(preds), 'candidate_count': len(best),
             'scope': 'in-sample description; apply to new records before trusting',
@@ -815,10 +821,15 @@ def _explain_cli(args, parser):
         skip = args.skip + [left, right]
     report = explain_outcome(records, target, skip=skip, id_field=args.id_field, top=args.top)
     print(f"rows={report['rows']} target_rows={report['target_rows']} predicates={report['predicate_count']} ({report['scope']})")
+    def format_ids(row, kind):
+        shown = ','.join(row[kind + '_ids']) or '-'
+        omitted = row[kind + '_ids_omitted']
+        return shown + (f" (+{omitted} more)" if omitted else '')
+
     for rank, row in enumerate(report['results'], 1):
         print(f"{rank}. mcc={row['mcc']:.4f} tp={row['tp']} fp={row['fp']} fn={row['fn']}  {row['expr']}")
         if row['fp'] or row['fn']:
-            print(f"   fp: {','.join(row['fp_ids']) or '-'}  fn: {','.join(row['fn_ids']) or '-'}")
+            print(f"   fp: {format_ids(row, 'fp')}  fn: {format_ids(row, 'fn')}")
     return 0 if report['results'] else 1
 
 
