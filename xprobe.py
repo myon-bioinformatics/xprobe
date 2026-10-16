@@ -58,7 +58,7 @@ _PRESETS = {
 }
 _ANSI = re.compile(_PRESETS['ansi'][0])
 NORMALIZE_STEPS = ('ansi', 'nfkc', 'casefold', 'spaces', 'vs16')
-_INVISIBLE = '︎️‍'
+_INVISIBLE = '\ufe0e\ufe0f\u200d'  # VS15, VS16, ZWJ (escaped: keep the source cp1252-readable)
 
 
 def pattern_presets():
