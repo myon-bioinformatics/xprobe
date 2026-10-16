@@ -814,17 +814,28 @@ process.stdin.on('data', (c) => (text += c)).on('end', () => {
     let value;
     if (kind === 'toml') {
       const toml = require('smol-toml');
-      value = toml.parse(text);
+      value = toml.parse(text, {integersAsBigInt: 'asNeeded'});
     } else {
       const yaml = require('js-yaml');
       const schema = kind === 'yaml-core' ? yaml.CORE_SCHEMA : yaml.FAILSAFE_SCHEMA;
       value = yaml.load(text, {schema});
     }
-    const tag = (k, v) => (v && typeof v === 'object' && typeof v.toISOString === 'function'
-      && !(v instanceof Array)) ? {'\u0000toml-datetime': v.toISOString(),
-        date: !!v.isDate && v.isDate(), time: !!v.isTime && v.isTime(), local: !!v.isLocal && v.isLocal()} : v;
-    const toJSON = (v) => JSON.stringify(v, function (k, x) { return tag(k, this[k]); });
-    process.stdout.write(toJSON(value === undefined ? null : value));
+    const tag = (v) => {
+      if (typeof v === 'bigint') return {'\u0000toml-int': v.toString()};
+      if (v && typeof v.toISOString === 'function') {
+        return {'\u0000toml-datetime': v.toISOString(), date: !!v.isDate && v.isDate(),
+          time: !!v.isTime && v.isTime(), local: !!v.isLocal && v.isLocal()};
+      }
+      if (Array.isArray(v)) return v.map(tag);
+      if (v && typeof v === 'object') {
+        const entries = Object.entries(v).map(([k, x]) => [k, tag(x)]);
+        // Quoted TOML keys can contain NUL: escape tables that resemble wire tags.
+        return ['\u0000toml-int', '\u0000toml-datetime', '\u0000toml-table'].some(k => Object.hasOwn(v, k))
+          ? {'\u0000toml-table': entries} : Object.fromEntries(entries);
+      }
+      return v;
+    };
+    process.stdout.write(JSON.stringify(kind === 'toml' ? tag(value) : (value === undefined ? null : value)));
   } catch (error) {
     process.stderr.write((error && error.code === 'MODULE_NOT_FOUND' ? 'missing:' : 'parse:') + String(error && error.message || error));
     process.exit(3);
@@ -833,9 +844,13 @@ process.stdin.on('data', (c) => (text += c)).on('end', () => {
 """
 
 
-def _from_node_datetime(value):
+def _from_node_toml(value):
     import datetime
     if isinstance(value, dict):
+        if "\u0000toml-int" in value:
+            return int(value["\u0000toml-int"])
+        if "\u0000toml-table" in value:
+            return {k: _from_node_toml(v) for k, v in value["\u0000toml-table"]}
         if "\u0000toml-datetime" in value:
             text = value["\u0000toml-datetime"]
             if value.get("date"):
@@ -844,9 +859,9 @@ def _from_node_datetime(value):
                 return datetime.time.fromisoformat(text.split("T")[-1].rstrip("Z"))
             stamp = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
             return stamp.replace(tzinfo=None) if value.get("local") else stamp
-        return {k: _from_node_datetime(v) for k, v in value.items()}
+        return {k: _from_node_toml(v) for k, v in value.items()}
     if isinstance(value, list):
-        return [_from_node_datetime(v) for v in value]
+        return [_from_node_toml(v) for v in value]
     return value
 
 
@@ -872,7 +887,8 @@ def _node_load(kind, text, node, timeout):
 def load_toml(text, *, node=None, timeout=30):
     """Parse TOML: ``tomllib`` on Python 3.11+, else Node + ``smol-toml``.
 
-    Dates and times come back as ``datetime`` objects either way. Raises
+    Integers are lossless, including signed 64-bit values. Dates and times
+    come back as ``datetime`` objects either way. Raises
     ValueError for invalid TOML and RuntimeError when no backend is available.
     """
     try:  # stdlib on 3.11+; imported by name so older interpreters do not see a non-stdlib import
@@ -884,7 +900,7 @@ def load_toml(text, *, node=None, timeout=30):
             return tomllib.loads(text)
         except tomllib.TOMLDecodeError as error:
             raise ValueError(f"invalid TOML: {error}") from error
-    return _from_node_datetime(_node_load("toml", text, node, timeout))
+    return _from_node_toml(_node_load("toml", text, node, timeout))
 
 
 def load_yaml(text, *, schema="failsafe", node=None, timeout=30):
@@ -990,9 +1006,11 @@ def explain_outcome(records, target, *, skip=(), id_field=None, top=5,
             offer(lmask | rmask, 2, f'[{left}] or [{right}]')
     labels = [str(row.get(id_field, i)) if id_field else str(i) for i, row in enumerate(rows)]
     scored = []
+    # int.bit_count was added in 3.10; retain the same bitset counts on 3.9.
+    bit_count = getattr(int, 'bit_count', lambda value: bin(value).count('1'))
     for mask, (size, expr) in best.items():
-        tp, fp = (mask & want).bit_count(), (mask & ~want).bit_count()
-        fn = (want & ~mask).bit_count()
+        tp, fp = bit_count(mask & want), bit_count(mask & ~want)
+        fn = bit_count(want & ~mask)
         tn = n - tp - fp - fn
         denom = ((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) ** 0.5
         score = (tp * tn - fp * fn) / denom if denom else 0.0
@@ -1010,7 +1028,7 @@ def explain_outcome(records, target, *, skip=(), id_field=None, top=5,
                         'fn_ids_omitted': max(0, fn - max_ids),
                         'fp_ids_truncated': fp > max_ids,
                         'fn_ids_truncated': fn > max_ids})
-    return {'schema': 'xprobe.explain.v1', 'rows': n, 'target_rows': want.bit_count(),
+    return {'schema': 'xprobe.explain.v1', 'rows': n, 'target_rows': bit_count(want),
             'predicate_count': len(preds), 'candidate_count': len(best),
             'scope': 'in-sample description; apply to new records before trusting',
             'results': results}

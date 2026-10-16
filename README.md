@@ -10,7 +10,7 @@ Single-file, standard-library Python toolkit for text search, boundary-case prob
 
 The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
 
-Python target: 3.10–3.14. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
+Python target: 3.9–3.15. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
 
 ## Public API
 
@@ -60,7 +60,7 @@ python -m pip install -r tests/requirements.txt
 python -m pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
-Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.10–3.14 on Linux and Python 3.12 on Windows/macOS.
+Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.9–3.15 on Linux and Python 3.12 on Windows/macOS.
 
 ## Configuration discovery and regression corpus (0.2)
 
@@ -215,6 +215,9 @@ python xprobe.py --presets
 
 `load_toml(text)` uses `tomllib` on Python 3.11+ and otherwise Node with
 `smol-toml`; dates and times come back as `datetime` objects either way.
+Signed 64-bit integers stay exact on both backends: the Node reader uses BigInt
+as needed and transfers it with an explicit type tag and decimal string for
+restoration to Python `int`, including inside arrays and tables.
 `load_yaml(text)` uses Node with `js-yaml`: `schema="failsafe"` (default) returns
 only strings, lists and dicts like PyYAML's `BaseLoader` (so `on:` stays `"on"`),
 `schema="core"` types scalars by YAML 1.2 (`yes` stays a string). The packages

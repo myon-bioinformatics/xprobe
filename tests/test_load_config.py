@@ -46,6 +46,56 @@ def test_toml_via_node_matches_tomllib_shape():
 
 
 @node_ready
+@pytest.mark.parametrize("literal", [
+    "0", "1", "-1", "9007199254740990", "9007199254740991",
+    "9007199254740992", "9007199254740993", "-9007199254740991",
+    "-9007199254740992", "-9007199254740993", "9223372036854775807",
+    "-9223372036854775808", "+9_223_372_036_854_775_807",
+    "0x7fff_ffff_ffff_ffff", "0o1000000000000000001",
+    "0b100000000000000000000000000000000000000000000000000001",
+])
+def test_toml_integer_boundaries_and_nesting(literal):
+    text = (f"scalar = {literal}\n"
+            f"nested = {{value = {literal}, items = [{literal}, {{value = {literal}}}]}}\n"
+            f"[[rows]]\nvalue = {literal}\n")
+    integer = int(literal.replace("_", ""), 0)
+    expected = {"scalar": integer,
+                "nested": {"value": integer, "items": [integer, {"value": integer}]},
+                "rows": [{"value": integer}]}
+    value = xprobe.load_toml(text, node=shutil.which("node"))
+    assert value == expected
+    assert type(value["scalar"]) is int
+    assert type(value["nested"]["items"][1]["value"]) is int
+    assert xprobe.load_toml(text) == expected  # includes automatic Node fallback on 3.9/3.10
+    if sys.version_info >= (3, 11):
+        import tomllib
+        assert value == tomllib.loads(text)
+
+
+@node_ready
+@pytest.mark.parametrize("marker", ["toml-int", "toml-datetime", "toml-table"])
+def test_toml_marker_like_keys_remain_tables(marker):
+    text = (f'"\\u0000{marker}" = "9007199254740993"\n'
+            'nested = [{"\\u0000toml-int" = "text", value = 9223372036854775807}]\n'
+            'when = 1979-05-27T07:32:00Z\n')
+    expected = {"\0" + marker: "9007199254740993",
+                "nested": [{"\0toml-int": "text", "value": 9223372036854775807}],
+                "when": datetime.datetime(1979, 5, 27, 7, 32, tzinfo=datetime.timezone.utc)}
+    value = xprobe.load_toml(text, node=shutil.which("node"))
+    assert value == expected
+    if sys.version_info >= (3, 11):
+        import tomllib
+        assert value == tomllib.loads(text)
+
+
+@node_ready
+@pytest.mark.parametrize("schema", ["failsafe", "core"])
+def test_yaml_toml_marker_like_keys_are_not_restored(schema):
+    assert xprobe.load_yaml('"\\0toml-int": "9007199254740993"\n', schema=schema) == {
+        "\0toml-int": "9007199254740993"}
+
+
+@node_ready
 def test_yaml_failsafe_matches_pyyaml_baseloader_on_real_workflows():
     yaml = pytest.importorskip("yaml")
     for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
