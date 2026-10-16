@@ -5,6 +5,7 @@ callables, and are not a sandbox or a timeout mechanism.
 """
 
 import fnmatch
+import importlib
 import json
 import os
 import random
@@ -800,6 +801,107 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
     return {'cases': rows, 'truncated': False}
 
 
+# --- structured config loading (TOML / YAML) -------------------------------
+# tomllib when the interpreter has it (3.11+); otherwise, and always for YAML,
+# Node with smol-toml / js-yaml resolved through NODE_PATH or the current
+# directory. Text goes through stdin; the script is fixed; no input is evaluated.
+_NODE_LOADER = r"""
+const kind = process.argv[1];
+let text = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => (text += c)).on('end', () => {
+  try {
+    let value;
+    if (kind === 'toml') {
+      const toml = require('smol-toml');
+      value = toml.parse(text);
+    } else {
+      const yaml = require('js-yaml');
+      const schema = kind === 'yaml-core' ? yaml.CORE_SCHEMA : yaml.FAILSAFE_SCHEMA;
+      value = yaml.load(text, {schema});
+    }
+    const tag = (k, v) => (v && typeof v === 'object' && typeof v.toISOString === 'function'
+      && !(v instanceof Array)) ? {'\u0000toml-datetime': v.toISOString(),
+        date: !!v.isDate && v.isDate(), time: !!v.isTime && v.isTime(), local: !!v.isLocal && v.isLocal()} : v;
+    const toJSON = (v) => JSON.stringify(v, function (k, x) { return tag(k, this[k]); });
+    process.stdout.write(toJSON(value === undefined ? null : value));
+  } catch (error) {
+    process.stderr.write((error && error.code === 'MODULE_NOT_FOUND' ? 'missing:' : 'parse:') + String(error && error.message || error));
+    process.exit(3);
+  }
+});
+"""
+
+
+def _from_node_datetime(value):
+    import datetime
+    if isinstance(value, dict):
+        if "\u0000toml-datetime" in value:
+            text = value["\u0000toml-datetime"]
+            if value.get("date"):
+                return datetime.date.fromisoformat(text[:10])
+            if value.get("time"):
+                return datetime.time.fromisoformat(text.split("T")[-1].rstrip("Z"))
+            stamp = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+            return stamp.replace(tzinfo=None) if value.get("local") else stamp
+        return {k: _from_node_datetime(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_from_node_datetime(v) for v in value]
+    return value
+
+
+def _node_load(kind, text, node, timeout):
+    import shutil
+    import subprocess
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    executable = node or shutil.which("node")
+    package = "smol-toml" if kind == "toml" else "js-yaml"
+    if executable is None:
+        raise RuntimeError(f"needs Node with {package} (npm i --no-save {package}); node not found")
+    done = subprocess.run([executable, "-e", _NODE_LOADER, kind], input=text, capture_output=True,
+                          text=True, encoding="utf-8", timeout=timeout)
+    if done.returncode:
+        reason = done.stderr.strip()
+        if reason.startswith("missing:"):
+            raise RuntimeError(f"needs Node with {package} (npm i --no-save {package}): {reason[8:][:200]}")
+        raise ValueError(f"invalid {kind.split('-')[0].upper()}: {reason.removeprefix('parse:')[:300]}")
+    return json.loads(done.stdout)
+
+
+def load_toml(text, *, node=None, timeout=30):
+    """Parse TOML: ``tomllib`` on Python 3.11+, else Node + ``smol-toml``.
+
+    Dates and times come back as ``datetime`` objects either way. Raises
+    ValueError for invalid TOML and RuntimeError when no backend is available.
+    """
+    try:  # stdlib on 3.11+; imported by name so older interpreters do not see a non-stdlib import
+        tomllib = importlib.import_module("tomllib")
+    except ModuleNotFoundError:
+        tomllib = None
+    if tomllib is not None and node is None:
+        try:
+            return tomllib.loads(text)
+        except tomllib.TOMLDecodeError as error:
+            raise ValueError(f"invalid TOML: {error}") from error
+    return _from_node_datetime(_node_load("toml", text, node, timeout))
+
+
+def load_yaml(text, *, schema="failsafe", node=None, timeout=30):
+    """Parse YAML with Node + ``js-yaml`` (no PyYAML needed).
+
+    ``schema="failsafe"`` returns only strings, lists and dicts, like PyYAML's
+    ``BaseLoader`` (keys such as ``on`` stay ``"on"``); ``schema="core"`` types
+    scalars by YAML 1.2 (``yes``/``no`` stay strings, unlike PyYAML's YAML 1.1
+    ``safe_load``; timestamps stay strings). Multi-document input is rejected.
+    """
+    if schema not in ("failsafe", "core"):
+        raise ValueError("schema must be 'failsafe' or 'core'")
+    if isinstance(text, str) and not text.strip():
+        return None  # an empty document, as PyYAML returns
+    return _node_load("yaml-" + schema, text, node, timeout)
+
+
 def _flatten(value, prefix=''):
     if isinstance(value, dict):
         out = {}
@@ -967,6 +1069,8 @@ def main(argv=None):
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
+    modes.add_argument("--load", nargs=2, metavar=("KIND", "FILE"),
+                       help="Print a toml|yaml|yaml-core file as JSON (tomllib, else Node smol-toml/js-yaml)")
     modes.add_argument("--explain", metavar="FILE", help="Rank conditions explaining --target in a JSON array/JSONL file ('-' = stdin)")
     parser.add_argument("--target", metavar="FIELD=VALUE", help="Outcome for --explain; VALUE is a JSON literal")
     parser.add_argument("--target-differs", metavar="A,B", help="Outcome for --explain: fields A and B differ")
@@ -977,6 +1081,14 @@ def main(argv=None):
     try:
         if args.explain is not None:
             return _explain_cli(args, parser)
+        if args.load is not None:
+            kind, path = args.load
+            if kind not in ("toml", "yaml", "yaml-core"):
+                parser.error("--load KIND must be toml, yaml or yaml-core")
+            text = Path(path).read_text(encoding="utf-8")
+            value = load_toml(text) if kind == "toml" else load_yaml(text, schema="core" if kind == "yaml-core" else "failsafe")
+            print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            return 0
         if args.corpus:
             print(corpus_to_json(known_bad_cases()), end="")
             return 0
@@ -993,7 +1105,7 @@ def main(argv=None):
         else:
             report = scan_config(args.root, max_bytes=args.max_bytes,
                                  max_findings=args.max_matches)
-    except (OSError, ValueError, LookupError) as error:
+    except (OSError, ValueError, LookupError, RuntimeError) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
     if args.brief and searching:

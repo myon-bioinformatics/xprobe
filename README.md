@@ -210,3 +210,22 @@ python xprobe.py --presets
 ```
 
 `--brief` prints one `path:line:column: 'match'` line per match instead of JSON.
+
+## Loading TOML and YAML without pip (0.4)
+
+`load_toml(text)` uses `tomllib` on Python 3.11+ and otherwise Node with
+`smol-toml`; dates and times come back as `datetime` objects either way.
+`load_yaml(text)` uses Node with `js-yaml`: `schema="failsafe"` (default) returns
+only strings, lists and dicts like PyYAML's `BaseLoader` (so `on:` stays `"on"`),
+`schema="core"` types scalars by YAML 1.2 (`yes` stays a string). The packages
+resolve through `NODE_PATH` or the current directory (`npm i --no-save js-yaml smol-toml`);
+without them a `RuntimeError` says what is missing. Text goes through stdin to a fixed
+script; nothing in the input is evaluated.
+
+```sh
+python xprobe.py --load yaml .github/workflows/ci.yml    # JSON on stdout
+python xprobe.py --load toml pyproject.toml
+```
+
+`tests/test_load_config.py` mirrors both against `tomllib` and PyYAML on this
+repository's own workflows.
