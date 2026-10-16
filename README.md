@@ -153,3 +153,32 @@ errors/skips/truncation. No findings is a normal result, not proof of safety.
 Exit 0 means observation completed, 1 means explicit search found no matches,
 and 2 means invalid or partial observation. Output goes to stdout only.
 JUnit/native pytest remain existing optional helpers, not the main purpose.
+
+## Explaining an outcome (0.4)
+
+`explain_outcome(records, target)` ranks simple conditions on record fields that
+separate a yes/no outcome: `field == value`, `field <= t` / `field > t` at midpoints
+of observed numbers, and `[A] and [B]` / `[A] or [B]`, held as integer bitsets
+(the same representation as `case_factor_matrix`). Results are ordered by MCC,
+then fewer predicates; formulas selecting the same rows appear once, and each
+lists up to `max_ids` counterexample ids (default 20; `fp_ids`: predicted yes
+but no, `fn_ids`: missed). Each result also includes `fp_ids_total` /
+`fn_ids_total`, `fp_ids_omitted` / `fn_ids_omitted`, and
+`fp_ids_truncated` / `fn_ids_truncated`. Totals count records even when IDs
+repeat. These are additive fields in `xprobe.explain.v1`; existing fields and
+ranking are unchanged. The CLI appends `(+N more)` to incomplete ID lists.
+Nested dicts flatten to dotted names; a missing field never matches.
+
+```python
+report = xprobe.explain_outcome(press_records, ('hit.self', False), id_field='label')
+report['results'][0]  # {'expr': 'box.height > 81', 'mcc': 0.8, 'tp': 4, 'fp': 0, 'fn': 1, 'fn_ids': ['r8'], ...}
+```
+
+```sh
+python xprobe.py --explain presses.jsonl --target hit.self=false --id label
+python xprobe.py --explain cases.json --target-differs expected_tool_family,chosen_family --id id
+```
+
+One line per formula, so a long record list costs a few lines of context. This
+describes the sample it is given (no validation on new records) and uses no
+low-rank factors. Exit codes: 0 = at least one formula, 1 = none, 2 = input error.
