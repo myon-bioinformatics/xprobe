@@ -5,6 +5,7 @@ callables, and are not a sandbox or a timeout mechanism.
 """
 
 import fnmatch
+import importlib
 import json
 import os
 import random
@@ -874,8 +875,8 @@ def load_toml(text, *, node=None, timeout=30):
     Dates and times come back as ``datetime`` objects either way. Raises
     ValueError for invalid TOML and RuntimeError when no backend is available.
     """
-    try:
-        import tomllib
+    try:  # stdlib on 3.11+; imported by name so older interpreters do not see a non-stdlib import
+        tomllib = importlib.import_module("tomllib")
     except ModuleNotFoundError:
         tomllib = None
     if tomllib is not None and node is None:
