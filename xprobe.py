@@ -24,7 +24,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
            "load_toml", "load_yaml", "junit_annotations", "portability_findings",
-           "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory"]
+           "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory",
+           "load_emoji_names"]
 
 
 def _limit(value, name):
@@ -1315,13 +1316,38 @@ def emoji_identity(sequence):
     return sequence.replace("\ufe0f", "")
 
 
-def emoji_name(sequence):
+def load_emoji_names(path):
+    """identity -> name from a QueRyu ``emoji_names.json`` (``queryu.emoji-names/1``) or a plain JSON object."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    names = data.get("names") if isinstance(data, dict) and data.get("schema") == "queryu.emoji-names/1" else data
+    if not isinstance(names, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in names.items()):
+        raise ValueError(f"{path}: expected queryu.emoji-names/1 or an object of emoji -> name")
+    return {emoji_identity(k): v for k, v in names.items()}
+
+
+_EMOJI_PARTS = {"\U0001F3FB": "light skin tone", "\U0001F3FC": "medium-light skin tone",
+                "\U0001F3FD": "medium skin tone", "\U0001F3FE": "medium-dark skin tone",
+                "\U0001F3FF": "dark skin tone", "\U0001F9B0": "red hair", "\U0001F9B1": "curly hair",
+                "\U0001F9B3": "white hair", "\U0001F9B2": "bald"}
+
+
+def emoji_name(sequence, names=None):
     """A readable name from stdlib data: component names joined by " + ".
 
     Flags become ``FLAG JP``, keycaps ``KEYCAP #``, subdivision flags ``FLAG gbsct``.
     unicodedata only names single code points (its version is ``unicodedata.unidata_version``),
     so a ZWJ sequence such as woman technologist reads ``WOMAN + PERSONAL COMPUTER``.
+    ``names`` (identity -> name, e.g. ``load_emoji_names("emoji_names.json")`` from QueRyu)
+    is tried first, with skin-tone/hair variants named from their base (CLDR pattern).
     """
+    if names:
+        key = emoji_identity(sequence)
+        if key in names:
+            return names[key]
+        base = "\u200d".join(p for p in "".join(c for c in key if c not in _EMOJI_PARTS).split("\u200d") if p)
+        parts = [_EMOJI_PARTS[c] for c in key if c in _EMOJI_PARTS]
+        if parts and base in names:
+            return names[base] + ": " + ", ".join(dict.fromkeys(parts))
     chars = [c for c in sequence if c not in "\ufe0f\u200d"]
     if len(chars) == 2 and all("\U0001F1E6" <= c <= "\U0001F1FF" for c in chars):
         return "FLAG " + "".join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
@@ -1332,7 +1358,7 @@ def emoji_name(sequence):
     return " + ".join(unicodedata.name(c, "U+%04X" % ord(c)) for c in chars)
 
 
-def emoji_sequences(text):
+def emoji_sequences(text, names=None):
     """Emoji sequences in ``text`` with offsets: flags, keycaps, tag flags, modifiers, ZWJ sequences.
 
     Each row has ``emoji`` (as written), ``identity`` (without U+FE0F), ``kind``
@@ -1356,7 +1382,7 @@ def emoji_sequences(text):
                 "zwj" if "\u200d" in seq else
                 "modified" if any("\U0001F3FB" <= c <= "\U0001F3FF" for c in seq) else "single")
         rows.append({"emoji": seq, "identity": emoji_identity(seq), "kind": kind,
-                     "start": match.start(), "end": match.end(), "name": emoji_name(seq)})
+                     "start": match.start(), "end": match.end(), "name": emoji_name(seq, names)})
     return rows
 
 
@@ -1388,7 +1414,7 @@ def emoji_find(query, *, limit=20):
 _EMOJI_SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", "build", "dist", ".tox"}
 
 
-def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_examples=3):
+def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_examples=3, names=None):
     """Which emoji appear where: counts per identity across one or more roots.
 
     Rows: ``identity``, ``count``, ``files``, ``forms`` (spellings with/without U+FE0F
@@ -1423,7 +1449,7 @@ def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_ex
                 continue
             scanned += 1
             for number, line in enumerate(text.splitlines(), 1):
-                for row in emoji_sequences(line):
+                for row in emoji_sequences(line, names):
                     entry = stats.setdefault(row["identity"], {"identity": row["identity"], "count": 0,
                                                               "files": set(), "forms": {}, "name": row["name"],
                                                               "kind": row["kind"], "examples": []})
@@ -1460,6 +1486,7 @@ def main(argv=None):
     modes.add_argument("--emoji", action="store_true", help="Emoji used under --root: counts, spellings, files")
     modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
     modes.add_argument("--emoji-explain", metavar="TEXT", help="Split TEXT into emoji sequences with names and code points")
+    parser.add_argument("--emoji-names", metavar="FILE", help="Names table for --emoji/--emoji-explain (QueRyu emoji_names.json)")
     modes.add_argument("--portability", action="store_true", help="Sources that break on --min-python/--max-python or a cp1252 locale")
     parser.add_argument("--min-python", metavar="X.Y", help="Default: requires-python in ROOT/pyproject.toml, else 3.10")
     parser.add_argument("--max-python", default="3.14", metavar="X.Y")
@@ -1482,13 +1509,15 @@ def main(argv=None):
             return 0
         if args.emoji_find is not None or args.emoji_explain is not None:
             rows = (emoji_find(args.emoji_find, limit=args.max_matches) if args.emoji_find is not None
-                    else emoji_sequences(args.emoji_explain))
+                    else emoji_sequences(args.emoji_explain,
+                                         load_emoji_names(args.emoji_names) if args.emoji_names else None))
             for row in rows:
                 points = " ".join(row.get("codepoints") or ["U+%04X" % ord(c) for c in row["emoji"]])
                 print(f"{row['emoji']}\t{points}\t{row['name']}")
             return 0 if rows else 1
         if args.emoji:
-            report = emoji_inventory(roots, max_bytes=args.max_bytes)
+            report = emoji_inventory(roots, max_bytes=args.max_bytes,
+                                     names=load_emoji_names(args.emoji_names) if args.emoji_names else None)
             if args.brief:
                 for row in report["emoji"][:args.max_matches]:
                     forms = "" if len(row["forms"]) == 1 else "  forms: " + " ".join(

@@ -292,7 +292,7 @@ Text-default symbols such as the copyright sign only count with U+FE0F.
 `emoji_name()` and `emoji_find()` use this interpreter's `unicodedata`, which names
 single code points only: a ZWJ sequence reads as its parts (`WOMAN + PERSONAL
 COMPUTER`), and very new emoji are unnamed on older Pythons (`unicodedata.unidata_version`
-is reported). `emoji_inventory(roots)` counts identities across roots with the
+is reported). `--emoji-names FILE` (or `names=load_emoji_names(FILE)`) takes CLDR names from QueRyu's accumulated `emoji_names.json` first, naming skin-tone/hair variants from their base (`woman technologist: medium skin tone`), so names work offline without unicode.org. `emoji_inventory(roots)` counts identities across roots with the
 spellings used (`forms`, to catch a heading written both with and without U+FE0F),
 file counts and first locations.
 

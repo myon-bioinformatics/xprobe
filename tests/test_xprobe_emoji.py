@@ -108,3 +108,28 @@ def test_inventory_counts_forms_and_cli(tmp_path, capsys):
     assert xprobe.main(["--emoji-explain", "a \U0001F1EF\U0001F1F5"]) == 0
     assert capsys.readouterr().out == "\U0001F1EF\U0001F1F5\tU+1F1EF U+1F1F5\tFLAG JP\n"
     assert xprobe.main(["--emoji-explain", "plain"]) == 1
+
+
+def test_names_table_from_queryu_is_preferred(tmp_path, capsys):
+    table = tmp_path / "emoji_names.json"
+    table.write_text(json.dumps({"schema": "queryu.emoji-names/1", "sources": [],
+                                 "names": {"\U0001F469‍\U0001F4BB": "woman technologist",
+                                           "\U0001F5FA️": "world map"}}), encoding="utf-8")
+    names = xprobe.load_emoji_names(table)
+    assert names == {"\U0001F469‍\U0001F4BB": "woman technologist", "\U0001F5FA": "world map"}
+    assert xprobe.emoji_name("\U0001F5FA️", names) == "world map"
+    assert xprobe.emoji_name("\U0001F469\U0001F3FD‍\U0001F4BB", names) == "woman technologist: medium skin tone"
+    assert xprobe.emoji_name("\U0001F3E0", names) == "HOUSE BUILDING"  # not in the table: unicodedata
+    plain = tmp_path / "plain.json"
+    plain.write_text(json.dumps({"\U0001F3E0": "house"}), encoding="utf-8")
+    assert xprobe.emoji_sequences("a \U0001F3E0", xprobe.load_emoji_names(plain))[0]["name"] == "house"
+    bad = tmp_path / "bad.json"
+    bad.write_text("[1]", encoding="utf-8")
+    with pytest.raises(ValueError):
+        xprobe.load_emoji_names(bad)
+    assert xprobe.main(["--emoji-explain", "\U0001F5FA", "--emoji-names", str(table)]) == 0
+    assert capsys.readouterr().out == "\U0001F5FA\tU+1F5FA\tworld map\n"
+    (tmp_path / "r").mkdir()
+    (tmp_path / "r" / "a.md").write_text("\U0001F5FA\n", encoding="utf-8")
+    assert xprobe.main(["--emoji", "--root", str(tmp_path / "r"), "--brief", "--emoji-names", str(table)]) == 0
+    assert "\tworld map" in capsys.readouterr().out
