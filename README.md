@@ -232,3 +232,37 @@ python xprobe.py --load toml pyproject.toml
 
 `tests/test_load_config.py` mirrors both against `tomllib` and PyYAML on this
 repository's own workflows.
+
+## CI helpers: annotations, portability, several roots (0.4)
+
+`junit_annotations(text)` turns failed JUnit testcases into GitHub workflow
+commands (`::error file=…,line=…,title=…::first message line`). Check-run
+annotations are readable through the API even when job logs and artifacts are
+not, so printing them from a step puts failing test names where an agent or a
+reviewer looks first. The file comes from the `file` attribute or the
+`classname`; at most 50 lines, then a count of the rest.
+
+```yaml
+- if: failure()
+  run: python xprobe.py --annotate-junit reports/junit.xml
+```
+
+`portability_findings(root)` reads Python sources with `ast` (nothing is
+imported) and reports imports of stdlib modules newer than the minimum
+interpreter (`tomllib` on 3.10), imports of modules removed by 3.12/3.13
+(`distutils`, `cgi`, …) and files that do not parse. Imports under
+`try/except ImportError` or `if sys.version_info …` count as guarded. The
+minimum comes from `requires-python` in `pyproject.toml`, else 3.10.
+`--windows-locale` adds hints that matter on Windows runners, where the locale
+encoding is cp1252: `read_text()`/`write_text()`/text `open()`/`subprocess`
+`text=True` without `encoding=`, and bytes cp1252 cannot decode. The hints do
+not change the exit code (1 only for import or parse findings).
+
+```sh
+python xprobe.py --portability                      # this checkout
+python xprobe.py --portability --min-python 3.10 --root ../a --root ../b
+python xprobe.py --search tomllib --root ../a --root ../b --brief
+```
+
+`--root` repeats for `--search` and `--preset` too; with more than one root,
+paths are prefixed with their root.
