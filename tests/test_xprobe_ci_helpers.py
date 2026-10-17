@@ -170,10 +170,7 @@ def test_cli_search_across_roots(tmp_path, capsys):
     (one / "a.txt").write_text("needle here\n", encoding="utf-8")
     (two / "b.txt").write_text("needle there\n", encoding="utf-8")
     assert xprobe.main(["--search", "needle", "--root", str(one), "--root", str(two) + "/"]) == 0
-    out = capsys.readouterr().out
-    payload = json.loads(out) if out.lstrip().startswith("{") else None
-    text = json.dumps(payload) if payload else out
-    assert f"{one}/a.txt" in text and f"{two}/b.txt" in text
+    paths = [m["path"] for m in json.loads(capsys.readouterr().out)["matches"]]
+    assert paths == [f"{one}/a.txt", f"{two}/b.txt"]
     assert xprobe.main(["--search", "needle", "--root", str(one)]) == 0
-    single = capsys.readouterr().out
-    assert "a.txt" in single and str(one) + "/a.txt" not in single
+    assert [m["path"] for m in json.loads(capsys.readouterr().out)["matches"]] == ["a.txt"]
