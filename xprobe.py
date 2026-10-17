@@ -4,6 +4,7 @@ Importing this module performs no I/O. Probes execute only caller-supplied
 callables, and are not a sandbox or a timeout mechanism.
 """
 
+import ast
 import fnmatch
 import importlib
 import json
@@ -21,7 +22,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "known_bad_cases", "generate_cases", "corpus_to_json",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
            "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
-           "explain_outcome", "pattern_presets", "normalize_text"]
+           "explain_outcome", "pattern_presets", "normalize_text",
+           "load_toml", "load_yaml", "junit_annotations", "portability_findings"]
 
 
 def _limit(value, name):
@@ -1070,12 +1072,209 @@ def _explain_cli(args, parser):
     return 0 if report['results'] else 1
 
 
+
+# --- CI helpers: JUnit annotations and portability -----------------------------
+def _workflow_escape(text, *, prop=False):
+    text = str(text).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    return text.replace(":", "%3A").replace(",", "%2C") if prop else text
+
+
+def junit_annotations(text, *, max_annotations=50, max_message=300, level="error"):
+    """GitHub workflow-command lines (``::error file=…,line=…,title=…::message``) per failed testcase.
+
+    CI logs and artifacts are often unreadable for an agent, while check-run
+    annotations are; printing these from a step makes failing test names and
+    first message lines visible there. Unlike cases_from_junit this keeps the
+    first line of the failure message (it is already in the job log). File and
+    line come from the ``file``/``line`` attributes when present (pytest
+    ``junit_family=xunit1``), otherwise from ``classname`` (``tests.test_x`` ->
+    ``tests/test_x.py``). DTD/entity declarations are rejected.
+    """
+    if not isinstance(text, str):
+        raise TypeError("JUnit text must be a string")
+    _limit(max_annotations, "max_annotations")
+    _limit(max_message, "max_message")
+    if level not in ("error", "warning", "notice"):
+        raise ValueError("level must be error, warning or notice")
+    if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", text, re.I):
+        raise ValueError("DTD and entity declarations are unsupported")
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as error:
+        raise ValueError("invalid JUnit XML") from error
+    lines, failed = [], 0
+    for case in root.iter("testcase"):
+        bad = next((child for child in case if child.tag in ("failure", "error")), None)
+        if bad is None:
+            continue
+        failed += 1
+        if len(lines) == max_annotations:
+            continue
+        classname, name = case.get("classname", ""), case.get("name", "")
+        path = case.get("file") or (classname.rsplit(".", 1)[0].replace(".", "/") + ".py"
+                                    if "." in classname else classname.replace(".", "/") + ".py" if classname else "")
+        message = (bad.get("message") or (bad.text or "")).strip().splitlines()
+        first = message[0][:max_message] if message else bad.tag
+        props = [f"file={_workflow_escape(path, prop=True)}"] if path else []
+        if case.get("line", "").isdigit():
+            props.append(f"line={int(case.get('line')) + 1}")
+        props.append("title=" + _workflow_escape(f"{classname}::{name}" if classname else name, prop=True))
+        lines.append(f"::{level} {','.join(props)}::{_workflow_escape(first)}")
+    if failed > len(lines):
+        lines.append(f"::{level} title=junit::{failed - len(lines)} more failing testcase(s) not annotated")
+    return lines
+
+
+# Modules a "min_python" interpreter lacks, and modules removed from newer ones (3.12 / 3.13).
+_ADDED_IN = {"tomllib": (3, 11), "wsgiref.types": (3, 11), "zoneinfo": (3, 9), "graphlib": (3, 9)}
+_REMOVED_IN = {**{m: (3, 12) for m in ("distutils", "imp", "asynchat", "asyncore", "smtpd")},
+               **{m: (3, 13) for m in ("aifc", "audioop", "cgi", "cgitb", "chunk", "crypt", "imghdr", "lib2to3",
+                                       "mailcap", "msilib", "nis", "nntplib", "ossaudiodev", "pipes", "sndhdr",
+                                       "spwd", "sunau", "telnetlib", "uu", "xdrlib")}}
+_PORTABILITY_ERRORS = ("too_new", "removed", "unparsable")
+_PORTABILITY_SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", "build", "dist", ".tox"}
+
+
+def _guarded_imports(tree):
+    """Import nodes the code guards: inside ``try`` blocks whose handlers catch ImportError
+    (or broader), or under ``if sys.version_info ...`` checks."""
+    guarded = set()
+    for node in ast.walk(tree):
+        bodies = []
+        if isinstance(node, ast.Try):
+            names = set()
+            for handler in node.handlers:
+                kinds = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
+                names |= {getattr(k, "id", getattr(k, "attr", None)) for k in kinds if k is not None}
+                if handler.type is None:
+                    names.add("ImportError")
+            if names & {"ImportError", "ModuleNotFoundError", "Exception", "BaseException"}:
+                bodies = node.body
+        elif isinstance(node, ast.If) and any(isinstance(n, ast.Attribute) and n.attr == "version_info"
+                                              for n in ast.walk(node.test)):
+            bodies = node.body + node.orelse
+        for child in bodies:
+            guarded |= {id(n) for n in ast.walk(child)}
+    return guarded
+
+
+_SUBPROCESS_TEXT = {"run", "check_output", "Popen", "call", "check_call"}
+
+
+def _locale_io(node):
+    """Why a call decodes or encodes text with the locale encoding (cp1252 on Windows), or None."""
+    if not isinstance(node, ast.Call) or any(k.arg == "encoding" for k in node.keywords):
+        return None
+    func = node.func
+    name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+    owner = getattr(func.value, "id", None) if isinstance(func, ast.Attribute) else None
+    if name == "read_text" and isinstance(func, ast.Attribute) and not node.args:
+        return "read_text() without encoding="
+    if name == "write_text" and isinstance(func, ast.Attribute) and len(node.args) < 2:
+        return "write_text() without encoding="
+    if name == "open" and (owner in (None, "io")) and len(node.args) < 4:
+        mode = node.args[1] if len(node.args) > 1 else next((k.value for k in node.keywords if k.arg == "mode"), None)
+        if mode is None or (isinstance(mode, ast.Constant) and isinstance(mode.value, str) and "b" not in mode.value):
+            return "open() in text mode without encoding="
+    if name in _SUBPROCESS_TEXT and owner in (None, "subprocess"):
+        if any(k.arg in ("text", "universal_newlines") and isinstance(k.value, ast.Constant) and k.value.value
+               for k in node.keywords):
+            return f"{name}(text=True) without encoding="
+    return None
+
+
+def portability_findings(root=".", *, min_python=None, max_python=(3, 14), locale_io=False,
+                         undecodable=False, encoding="cp1252", max_files=5000):
+    """Python sources that break on an older/newer interpreter or a non-UTF-8 Windows locale.
+
+    Reports, per file and line (static, via ast; nothing is imported or executed):
+
+    * ``too_new``: imports of stdlib modules newer than ``min_python`` (tomllib on 3.10);
+    * ``removed``: imports of modules removed by ``max_python`` (distutils, cgi, ...);
+    * ``unparsable``: files that are not UTF-8 Python;
+    * ``locale_io`` (opt-in, a lint: only non-ASCII data breaks): ``read_text()``,
+      ``write_text()``, text ``open()`` and ``subprocess`` ``text=True`` without
+      ``encoding=``, which use cp1252 on Windows runners;
+    * ``undecodable`` (opt-in): bytes ``encoding`` cannot decode, which break when
+      such a call reads the file.
+
+    Imports inside ``try``/``except ImportError`` or ``if sys.version_info`` are guarded
+    and not reported. ``min_python=None`` takes ``requires-python = ">=X.Y"`` from
+    ``root``'s pyproject.toml, else 3.10.
+    """
+    source = "argument"
+    if min_python is None:
+        min_python, source = (3, 10), "default"
+        project = Path(root) / "pyproject.toml"
+        if project.is_file():
+            found = re.search(r'(?m)^\s*requires-python\s*=\s*["\']\s*>=\s*(\d+)\.(\d+)',
+                              project.read_text(encoding="utf-8", errors="replace"))
+            if found:
+                min_python, source = (int(found.group(1)), int(found.group(2))), "pyproject.toml"
+    for name, value in (("min_python", min_python), ("max_python", max_python)):
+        if not (isinstance(value, tuple) and len(value) == 2 and all(type(v) is int for v in value)):
+            raise ValueError(name + " must be a (major, minor) tuple")
+    _limit(max_files, "max_files")
+    findings, scanned, truncated = [], 0, False
+    base = Path(root)
+    paths = [base] if base.is_file() else sorted(
+        p for p in base.rglob("*.py") if not any(part in _PORTABILITY_SKIP for part in p.relative_to(base).parts))
+    for path in paths:
+        if scanned == max_files:
+            truncated = True
+            break
+        scanned += 1
+        label = path.name if base.is_file() else path.relative_to(base).as_posix()
+        data = path.read_bytes()
+        if undecodable:
+            for number, line in enumerate(data.splitlines(), 1):
+                try:
+                    line.decode(encoding)
+                except UnicodeDecodeError as error:
+                    findings.append({"path": label, "line": number, "kind": "undecodable",
+                                     "detail": f"byte 0x{line[error.start]:02x} is not {encoding}"})
+        try:
+            tree = ast.parse(data.decode("utf-8"), filename=label)
+        except (SyntaxError, UnicodeDecodeError) as error:
+            findings.append({"path": label, "line": getattr(error, "lineno", None) or 1, "kind": "unparsable",
+                             "detail": type(error).__name__})
+            continue
+        guarded = _guarded_imports(tree)
+        for node in ast.walk(tree):
+            if locale_io and (why := _locale_io(node)):
+                findings.append({"path": label, "line": node.lineno, "kind": "locale_io", "detail": why})
+                continue
+            if isinstance(node, ast.Import):
+                modules = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                modules = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
+            else:
+                continue
+            if id(node) in guarded:
+                continue
+            top = modules[0].split(".")[0]
+            removed = _REMOVED_IN.get(top)
+            if removed and removed <= max_python:
+                findings.append({"path": label, "line": node.lineno, "kind": "removed",
+                                 "detail": f"{top} was removed in {removed[0]}.{removed[1]}"})
+            for module in modules:
+                added = _ADDED_IN.get(module)
+                if added and added > min_python:
+                    findings.append({"path": label, "line": node.lineno, "kind": "too_new",
+                                     "detail": f"{module} is stdlib from {added[0]}.{added[1]}; "
+                                               f"min_python is {min_python[0]}.{min_python[1]}"})
+    findings.sort(key=lambda f: (f["path"], f["line"]))
+    return {"schema": "xprobe.portability.v1", "min_python": list(min_python),
+            "min_python_source": source, "max_python": list(max_python),
+            "encoding": encoding, "files": scanned, "truncated": truncated, "findings": findings}
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
     import sys
     parser = argparse.ArgumentParser(description="Standalone read-only source/configuration inspection")
-    parser.add_argument("--root", default=".")
+    parser.add_argument("--root", action="append", help="Directory or file; repeat --root to search several repositories")
     parser.add_argument("--max-bytes", type=int, default=1_000_000)
     parser.add_argument("--max-matches", type=int, default=1000)
     modes = parser.add_mutually_exclusive_group()
@@ -1087,6 +1286,12 @@ def main(argv=None):
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
+    modes.add_argument("--annotate-junit", metavar="FILE", help="Print ::error workflow commands for failed JUnit testcases")
+    modes.add_argument("--portability", action="store_true", help="Sources that break on --min-python/--max-python or a cp1252 locale")
+    parser.add_argument("--min-python", metavar="X.Y", help="Default: requires-python in ROOT/pyproject.toml, else 3.10")
+    parser.add_argument("--max-python", default="3.14", metavar="X.Y")
+    parser.add_argument("--windows-locale", action="store_true",
+                        help="With --portability, also list I/O without encoding= and non-cp1252 bytes (hints; exit unaffected)")
     modes.add_argument("--load", nargs=2, metavar=("KIND", "FILE"),
                        help="Print a toml|yaml|yaml-core file as JSON (tomllib, else Node smol-toml/js-yaml)")
     modes.add_argument("--explain", metavar="FILE", help="Rank conditions explaining --target in a JSON array/JSONL file ('-' = stdin)")
@@ -1096,7 +1301,25 @@ def main(argv=None):
     parser.add_argument("--skip", action="append", default=[], help="Field not used as a condition")
     parser.add_argument("--top", type=int, default=5)
     args = parser.parse_args(argv)
+    roots = args.root or ["."]
     try:
+        if args.annotate_junit is not None:
+            for line in junit_annotations(Path(args.annotate_junit).read_text(encoding="utf-8")):
+                print(line)
+            return 0
+        if args.portability:
+            version = lambda text: tuple(int(x) for x in text.split("."))[:2]
+            reports = [portability_findings(root, min_python=version(args.min_python) if args.min_python else None,
+                                            max_python=version(args.max_python),
+                                            locale_io=args.windows_locale,
+                                            undecodable=args.windows_locale) for root in roots]
+            rows = [(root, f) for root, r in zip(roots, reports) for f in r["findings"]]
+            for root, f in rows:
+                where = f["path"] if len(roots) == 1 else f"{root.rstrip('/')}/{f['path']}"
+                print(f"{where}:{f['line']}: {f['kind']}: {f['detail']}")
+            floors = ", ".join(sorted({f"{r['min_python'][0]}.{r['min_python'][1]} ({r['min_python_source']})" for r in reports}))
+            print(f"portability: {len(rows)} finding(s) in {sum(r['files'] for r in reports)} file(s); min python {floors}")
+            return 1 if any(f["kind"] in _PORTABILITY_ERRORS for _, f in rows) else 0
         if args.explain is not None:
             return _explain_cli(args, parser)
         if args.load is not None:
@@ -1116,12 +1339,20 @@ def main(argv=None):
             return 0
         searching = args.search is not None or args.preset is not None
         if searching:
-            report = search_files(args.root, args.search, regex=args.regex, preset=args.preset,
-                                  normalize=[s for s in args.normalize.split(",") if s],
-                                  max_bytes=args.max_bytes,
-                                  max_matches=args.max_matches, exclude_dirs=_DEFAULT_EXCLUDE)
+            report = {"matches": [], "skipped": [], "errors": [], "truncated": False}
+            for root in roots:
+                part = search_files(root, args.search, regex=args.regex, preset=args.preset,
+                                    normalize=[s for s in args.normalize.split(",") if s],
+                                    max_bytes=args.max_bytes,
+                                    max_matches=args.max_matches, exclude_dirs=_DEFAULT_EXCLUDE)
+                for key in ("matches", "skipped", "errors"):
+                    for row in part[key]:
+                        if len(roots) > 1:
+                            row["path"] = f"{root.rstrip('/')}/{row['path']}"
+                        report[key].append(row)
+                report["truncated"] = report["truncated"] or part["truncated"]
         else:
-            report = scan_config(args.root, max_bytes=args.max_bytes,
+            report = scan_config(roots[0], max_bytes=args.max_bytes,
                                  max_findings=args.max_matches)
     except (OSError, ValueError, LookupError, RuntimeError) as error:
         print(type(error).__name__, file=sys.stderr)
