@@ -17,6 +17,9 @@ Create `cases.json` with independently chosen expectations:
 ```
 
 Each adapter reads one JSON value from stdin and writes one JSON value to stdout.
+The process protocol is UTF-8; child Python streams receive
+`PYTHONIOENCODING=utf-8`. The CLI writes ASCII-escaped JSON so Windows legacy
+console encodings preserve Unicode values too.
 Use the API from Python or pass explicit argv arrays to the CLI:
 
 ```sh

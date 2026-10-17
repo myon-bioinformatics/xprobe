@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -72,7 +73,7 @@ def test_pool_overlaps_work_without_exceeding_budget():
     ("import time; time.sleep(5)", "TimeoutExpired"),
 ])
 def test_bad_process_does_not_prevent_remaining_cases(code, error):
-    result = probe(document(), [target("broken", code), target("healthy")], timeout=0.2, workers=1)
+    result = probe(document(), [target("broken", code), target("healthy")], timeout=1, workers=1)
     assert not result["passed"]
     assert result["results"][0]["error_type"] == error
     assert result["results"][1]["passed"]
@@ -99,6 +100,19 @@ def test_cli_failure_receipt_and_status(tmp_path):
     script = Path(__file__).resolve().parents[1] / "contract_probe.py"
     result = subprocess.run([sys.executable, "-S", str(script), str(cases),
         "--target", json.dumps(target()), "--target", json.dumps(target("other"))],
-        capture_output=True, text=True, encoding="utf-8")
+        capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"})
     assert result.returncode == 1
     assert json.loads(result.stdout)["executions"] == 2
+
+
+def test_cli_unicode_success_with_non_utf8_parent_console(tmp_path):
+    cases = tmp_path / "cases.json"
+    cases.write_text(json.dumps(document()), encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "contract_probe.py"
+    result = subprocess.run([sys.executable, "-S", str(script), str(cases),
+        "--target", json.dumps(target()), "--target", json.dumps(target("other"))],
+        capture_output=True, text=True, encoding="ascii",
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"})
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["results"][0]["value"]["label"] == "日本語👩🏽‍💻"

@@ -66,7 +66,8 @@ def probe(document, targets, *, timeout=10, workers=2, cwd=None):
             try:
                 done = subprocess.run(target["argv"], input=payload, text=True,
                                       encoding="utf-8", capture_output=True,
-                                      timeout=timeout, cwd=cwd, shell=False)
+                                      timeout=timeout, cwd=cwd, shell=False,
+                                      env={**os.environ, "PYTHONIOENCODING": "utf-8"})
                 details.update(returncode=done.returncode, stderr=done.stderr)
                 if done.returncode:
                     raise RuntimeError("target exited unsuccessfully")
@@ -107,7 +108,7 @@ def main(argv=None):
                        timeout=args.timeout, workers=args.workers, cwd=args.cwd)
     except (OSError, ValueError, TypeError) as error:
         parser.exit(2, f"{error}\n")
-    print(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False))
+    print(json.dumps(result, ensure_ascii=True, indent=2, allow_nan=False))
     return 0 if result["passed"] else 1
 
 
