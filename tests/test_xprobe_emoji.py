@@ -61,13 +61,18 @@ def test_find_by_name_and_flag():
             xprobe.emoji_find(bad)
 
 
-def test_extended_pictographic_table_matches_node_for_every_code_point():
+def test_extended_pictographic_table_against_node_for_every_code_point():
     node = _node("""
       const re=/\\p{Extended_Pictographic}/u, out=[];
       for (let c=0;c<=0x10FFFF;c++) if ((c<0xD800||c>0xDFFF) && re.test(String.fromCodePoint(c))) out.push(c);
-      process.stdout.write(JSON.stringify(out));""", "")
+      process.stdout.write(JSON.stringify({unicode: process.versions.unicode, points: out}));""", "")
     ours = [c for c in range(0x110000) if not 0xD800 <= c <= 0xDFFF and xprobe._PICT_RE.match(chr(c))]
-    assert ours == node
+    if node["unicode"].startswith(xprobe._EXT_PICT_UNICODE):
+        assert ours == node["points"]
+    else:
+        # The property changes between versions (Unicode 17 narrowed it); the table must
+        # still contain every code point any newer Node treats as pictographic.
+        assert set(node["points"]) <= set(ours), sorted(set(node["points"]) - set(ours))[:10]
 
 
 def test_sequences_mirror_node_rgi_emoji():

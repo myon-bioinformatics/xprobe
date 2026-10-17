@@ -299,4 +299,4 @@ file counts and first locations.
 `tests/test_xprobe_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
 `\p{RGI_Emoji}` (RegExp `v` flag, Node 20+) on `tests/fixtures/emoji_corpus.txt`;
-both skip without Node.
+both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.

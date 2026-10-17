@@ -1280,6 +1280,7 @@ def portability_findings(root=".", *, min_python=None, max_python=(3, 14), local
 # sequence may start from. The property includes reserved blocks, so the table
 # stays valid as new emoji are assigned; tests compare it with Node's
 # \p{Extended_Pictographic} for every code point.
+_EXT_PICT_UNICODE = "16.0"  # Unicode 17 narrowed the property; this wider table is a superset of it
 _EXT_PICT = ("a9 ae 203c 2049 2122 2139 2194-2199 21a9-21aa 231a-231b 2328 2388 23cf 23e9-23f3 "
              "23f8-23fa 24c2 25aa-25ab 25b6 25c0 25fb-25fe 2600-2605 2607-2612 2614-2685 2690-2705 "
              "2708-2712 2714 2716 271d 2721 2728 2733-2734 2744 2747 274c 274e 2753-2755 2757 "
