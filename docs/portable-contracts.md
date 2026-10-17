@@ -68,3 +68,62 @@ The first external smoke check used Flutter's existing stdlib
 empty, ASCII and Japanese/emoji UTF-8-to-base64 contracts, six real executions.
 No Flutter, Dart SDK or browser was started. The production application has not
 been replaced by these three examples.
+
+## Deliberate language failures and two JUnit views
+
+Capture a real negative control once in an environment that already has the
+required native toolchain. Keep the input, source hashes, SDK/compiler version,
+OS/build mode and original diagnostics together. These details are necessary
+because compiler/runtime/OS errors are different layers; text alone is not a
+portable specification. Do not invent native observations when an SDK is absent.
+
+`expected_failures` is an alternative to `expected`, keyed by **every selected
+target name**. Each entry requires a nonzero return code and nonempty literal
+stderr markers. For example, an invalid JSON string can be probed with independently
+selected Python and Node parsers:
+
+```json
+{
+  "schema": "portable-io-cases/1",
+  "context": {"purpose": "deliberate-negative-control"},
+  "cases": [{
+    "name": "invalid-json",
+    "value": "{",
+    "expected_failures": {
+      "python": {"returncode": 1, "stderr_contains": ["JSONDecodeError"]},
+      "node": {"returncode": 1, "stderr_contains": ["SyntaxError"]}
+    }
+  }]
+}
+```
+
+Adapter commands still come from explicit `--target` arguments. For native
+probes, choose target-specific return codes and markers from actual observations,
+not from this Python/Node example. Target metadata may include declared SDK
+version/source hash; `context` and per-case `context` retain declared conditions.
+The receipt records the actual collector Python/platform separately; declared
+metadata does not attest the target runtime or source closure.
+
+```sh
+python -S contract_probe.py negative-cases.json --target '{"name":"python","argv":["python","python_adapter.py"]}' --target '{"name":"node","argv":["node","node_adapter.mjs"]}' --junit acceptance.xml --observed-junit observed-failures.xml > receipt.json
+```
+
+| Output | Meaning | CI use |
+| --- | --- | --- |
+| `receipt.json` | Input, context, original stdout/stderr, return code, expected condition, actual result | Preserve as the reproduction artifact |
+| `acceptance.xml` | Did each execution satisfy its expectation? | Normal required JUnit report |
+| `observed-failures.xml` | Which processes actually failed? | Intentional failure corpus artifact; keep separate from required acceptance collection |
+
+An expected process failure appears as a failure in the observation XML and a
+pass in the acceptance XML. Unexpected success, a different error, missing SDK,
+or timeout fails acceptance. Transport failures are not accepted as language
+errors. Existing `cases_from_junit` imports failure identities only; retain the
+XML `system-out` JSON and `receipt.json` to recover inputs and diagnostics.
+An observed process failure without an exception still receives `ProcessExit`,
+not a guessed language exception type.
+
+Keep one-time native collection opt-in in an existing native-capable job. Use the
+captured corpus for cheap Python/Node regression checks on ordinary changes,
+and recapture deliberately when the relevant native source/toolchain changes.
+Replaying a stored failure is historical verification, not a current native run.
+Neither new forced-red default CI jobs nor automatic SDK installation is added.
