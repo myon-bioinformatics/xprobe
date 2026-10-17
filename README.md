@@ -6,6 +6,10 @@ test adapter emits JSONL readable by the existing corpus and search helpers.
 
 Single-file, standard-library Python toolkit for text search, boundary-case probing, and failure-oriented test support. Importable, CLI-ready, and easy to vendor.
 
+For bounded, browser-free comparison of explicit Python/Node command adapters,
+see [portable I/O contracts](docs/portable-contracts.md). This optional
+`contract_probe.py` CLI reuses `run_cases`; it does not change the single-file API.
+
 ## Design
 
 The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
