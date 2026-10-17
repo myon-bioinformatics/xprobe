@@ -1,2 +1,5 @@
 # Preserve upstream bytes for lock digest verification on every OS.
 vendor/* -text
+# Historical evidence must retain the acquired bytes, including line endings.
+tests/fixtures/native_error_sweep/*.json -text
+tests/fixtures/native_error_sweep/*.xml -text
