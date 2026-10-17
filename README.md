@@ -274,3 +274,29 @@ python xprobe.py --search tomllib --root ../a --root ../b --brief
 
 `--root` repeats for `--search` and `--preset` too; with more than one root,
 paths are prefixed with their root.
+
+## Emoji: sequences, reverse lookup and inventory (0.4)
+
+```sh
+python xprobe.py --emoji-find house            # name -> emoji (stdlib unicodedata)
+python xprobe.py --emoji-find "flag jp"
+python xprobe.py --emoji-explain "TEXT"        # split into sequences: code points and names
+python xprobe.py --emoji --root ../a --root ../b --brief   # which emoji are used where
+```
+
+`emoji_sequences(text)` finds whole emoji sequences (ZWJ, skin-tone modifiers,
+flags, keycaps, subdivision tag flags) using the Extended_Pictographic table and the
+UTS #51 sequence shape, with offsets, `kind`, and an `identity` without U+FE0F (the
+same rule as browser-test-kit's `route_trail.py`, so `❤️` and `❤` are one emoji).
+Text-default symbols such as the copyright sign only count with U+FE0F.
+`emoji_name()` and `emoji_find()` use this interpreter's `unicodedata`, which names
+single code points only: a ZWJ sequence reads as its parts (`WOMAN + PERSONAL
+COMPUTER`), and very new emoji are unnamed on older Pythons (`unicodedata.unidata_version`
+is reported). `emoji_inventory(roots)` counts identities across roots with the
+spellings used (`forms`, to catch a heading written both with and without U+FE0F),
+file counts and first locations.
+
+`tests/test_xprobe_emoji.py` mirrors the table against Node's
+`\p{Extended_Pictographic}` for every code point and the sequences against
+`\p{RGI_Emoji}` (RegExp `v` flag, Node 20+) on `tests/fixtures/emoji_corpus.txt`;
+both skip without Node.

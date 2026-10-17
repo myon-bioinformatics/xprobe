@@ -23,7 +23,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
            "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
-           "load_toml", "load_yaml", "junit_annotations", "portability_findings"]
+           "load_toml", "load_yaml", "junit_annotations", "portability_findings",
+           "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory"]
 
 
 def _limit(value, name):
@@ -1273,6 +1274,170 @@ def portability_findings(root=".", *, min_python=None, max_python=(3, 14), local
             "encoding": encoding, "files": scanned, "truncated": truncated, "findings": findings}
 
 
+
+# --- emoji: sequences, inventory and reverse lookup (stdlib only) --------------
+# Extended_Pictographic (UTS #51 / emoji-data.txt), the code points an emoji
+# sequence may start from. The property includes reserved blocks, so the table
+# stays valid as new emoji are assigned; tests compare it with Node's
+# \p{Extended_Pictographic} for every code point.
+_EXT_PICT = ("a9 ae 203c 2049 2122 2139 2194-2199 21a9-21aa 231a-231b 2328 2388 23cf 23e9-23f3 "
+             "23f8-23fa 24c2 25aa-25ab 25b6 25c0 25fb-25fe 2600-2605 2607-2612 2614-2685 2690-2705 "
+             "2708-2712 2714 2716 271d 2721 2728 2733-2734 2744 2747 274c 274e 2753-2755 2757 "
+             "2763-2767 2795-2797 27a1 27b0 27bf 2934-2935 2b05-2b07 2b1b-2b1c 2b50 2b55 3030 303d "
+             "3297 3299 1f000-1f0ff 1f10d-1f10f 1f12f 1f16c-1f171 1f17e-1f17f 1f18e 1f191-1f19a "
+             "1f1ad-1f1e5 1f201-1f20f 1f21a 1f22f 1f232-1f23a 1f23c-1f23f 1f249-1f3fa 1f400-1f53d "
+             "1f546-1f64f 1f680-1f6ff 1f774-1f77f 1f7d5-1f7ff 1f80c-1f80f 1f848-1f84f 1f85a-1f85f "
+             "1f888-1f88f 1f8ae-1f8ff 1f90c-1f93a 1f93c-1f945 1f947-1faff 1fc00-1fffd")
+
+
+def _emoji_class():
+    parts = []
+    for item in _EXT_PICT.split():
+        lo, _, hi = item.partition("-")
+        parts.append("\\U%08x" % int(lo, 16) + ("-\\U%08x" % int(hi, 16) if hi else ""))
+    return "[" + "".join(parts) + "]"
+
+
+_PICT = _emoji_class()
+_EMOJI_MOD = "[\\U0001F3FB-\\U0001F3FF]"
+_EMOJI_ELEMENT = _PICT + "(?:\\uFE0F|" + _EMOJI_MOD + ")?"
+_EMOJI_RE = re.compile(
+    "[\\U0001F1E6-\\U0001F1FF]{2}"                      # flag: two regional indicators
+    "|[0-9#*]\\uFE0F?\\u20E3"                            # keycap
+    "|\\U0001F3F4[\\U000E0020-\\U000E007E]+\\U000E007F"  # tag sequence (subdivision flag)
+    "|" + _EMOJI_ELEMENT + "(?:\\u200D" + _EMOJI_ELEMENT + ")*")
+_PICT_RE = re.compile(_PICT)
+
+
+def emoji_identity(sequence):
+    """Comparison form: without U+FE0F, so a heading's "\\u2764\\ufe0f" and "\\u2764" are one emoji."""
+    return sequence.replace("\ufe0f", "")
+
+
+def emoji_name(sequence):
+    """A readable name from stdlib data: component names joined by " + ".
+
+    Flags become ``FLAG JP``, keycaps ``KEYCAP #``, subdivision flags ``FLAG gbsct``.
+    unicodedata only names single code points (its version is ``unicodedata.unidata_version``),
+    so a ZWJ sequence such as woman technologist reads ``WOMAN + PERSONAL COMPUTER``.
+    """
+    chars = [c for c in sequence if c not in "\ufe0f\u200d"]
+    if len(chars) == 2 and all("\U0001F1E6" <= c <= "\U0001F1FF" for c in chars):
+        return "FLAG " + "".join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
+    if chars and chars[-1] == "⃣":
+        return "KEYCAP " + chars[0]
+    if chars and chars[0] == "\U0001F3F4" and len(chars) > 2 and chars[-1] == "\U000E007F":
+        return "FLAG " + "".join(chr(ord(c) - 0xE0000) for c in chars[1:-1])
+    return " + ".join(unicodedata.name(c, "U+%04X" % ord(c)) for c in chars)
+
+
+def emoji_sequences(text):
+    """Emoji sequences in ``text`` with offsets: flags, keycaps, tag flags, modifiers, ZWJ sequences.
+
+    Each row has ``emoji`` (as written), ``identity`` (without U+FE0F), ``kind``
+    (single/modified/zwj/flag/keycap/tag), ``start``/``end`` (str offsets) and ``name``.
+    The grammar is UTS #51's possible-emoji shape over Extended_Pictographic, so it
+    also accepts non-RGI combinations; text-default symbols such as (c) count only
+    with U+FE0F.
+    """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    rows = []
+    for match in _EMOJI_RE.finditer(text):
+        seq = match.group()
+        if len(seq) == 1 and ord(seq) < 0x1F000 and not unicodedata.category(seq).startswith("So"):
+            continue
+        if len(seq) == 1 and ord(seq) < 0x2190 and not text[match.end():match.end() + 1] == "\ufe0f":
+            continue  # (c) (r) !! ?! TM i stay text unless followed by VS16 (handled by the grammar)
+        kind = ("flag" if "\U0001F1E6" <= seq[0] <= "\U0001F1FF" else
+                "keycap" if seq.endswith("⃣") else
+                "tag" if seq.endswith("\U000E007F") else
+                "zwj" if "\u200d" in seq else
+                "modified" if any("\U0001F3FB" <= c <= "\U0001F3FF" for c in seq) else "single")
+        rows.append({"emoji": seq, "identity": emoji_identity(seq), "kind": kind,
+                     "start": match.start(), "end": match.end(), "name": emoji_name(seq)})
+    return rows
+
+
+def emoji_find(query, *, limit=20):
+    """Single-code-point emoji whose Unicode name contains every word of ``query``.
+
+    ``emoji_find("house")`` -> HOUSE BUILDING, HOUSE WITH GARDEN, ...; ``"flag jp"``
+    returns the flag built from regional indicators. Names come from this
+    interpreter's ``unicodedata`` (versions differ across Python releases).
+    """
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("query is required")
+    _limit(limit, "limit")
+    words = query.upper().split()
+    if len(words) == 2 and words[0] == "FLAG" and re.fullmatch(r"[A-Z]{2}", words[1]):
+        flag = "".join(chr(0x1F1E6 + ord(c) - 65) for c in words[1])
+        return [{"emoji": flag, "name": emoji_name(flag), "codepoints": ["U+%04X" % ord(c) for c in flag]}]
+    rows = []
+    for item in _EXT_PICT.split():
+        lo, _, hi = item.partition("-")
+        for code in range(int(lo, 16), int(hi or lo, 16) + 1):
+            name = unicodedata.name(chr(code), "")
+            if name and all(w in name for w in words):
+                rows.append({"emoji": chr(code), "name": name, "codepoints": ["U+%04X" % code]})
+    rows.sort(key=lambda r: (len(r["name"]), r["name"]))
+    return rows[:limit]
+
+
+_EMOJI_SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", "build", "dist", ".tox"}
+
+
+def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_examples=3):
+    """Which emoji appear where: counts per identity across one or more roots.
+
+    Rows: ``identity``, ``count``, ``files``, ``forms`` (spellings with/without U+FE0F
+    and their counts; two forms of one identity is a common heading inconsistency),
+    ``name`` and the first ``max_examples`` ``path:line``. UTF-8 text files only;
+    binary or undecodable files are skipped and counted.
+    """
+    if isinstance(roots, (str, os.PathLike)):
+        roots = [roots]
+    for value, label in ((max_files, "max_files"), (max_bytes, "max_bytes"), (max_examples, "max_examples")):
+        _limit(value, label)
+    stats, scanned, skipped, truncated = {}, 0, 0, False
+    for root in roots:
+        base = Path(root)
+        paths = [base] if base.is_file() else sorted(
+            p for p in base.rglob("*") if p.is_file()
+            and not any(part in _EMOJI_SKIP for part in p.relative_to(base).parts))
+        for path in paths:
+            if scanned == max_files:
+                truncated = True
+                break
+            label = (path.name if base.is_file() else path.relative_to(base).as_posix())
+            if len(roots) > 1:
+                label = os.fspath(root).rstrip("/") + "/" + label
+            try:
+                data = path.read_bytes()[:max_bytes + 1]
+                if len(data) > max_bytes or b"\0" in data[:4096]:
+                    raise ValueError
+                text = data.decode("utf-8")
+            except (OSError, ValueError):
+                skipped += 1
+                continue
+            scanned += 1
+            for number, line in enumerate(text.splitlines(), 1):
+                for row in emoji_sequences(line):
+                    entry = stats.setdefault(row["identity"], {"identity": row["identity"], "count": 0,
+                                                              "files": set(), "forms": {}, "name": row["name"],
+                                                              "kind": row["kind"], "examples": []})
+                    entry["count"] += 1
+                    entry["files"].add(label)
+                    entry["forms"][row["emoji"]] = entry["forms"].get(row["emoji"], 0) + 1
+                    if len(entry["examples"]) < max_examples:
+                        entry["examples"].append(f"{label}:{number}")
+    rows = sorted(stats.values(), key=lambda e: (-e["count"], e["identity"]))
+    for row in rows:
+        row["files"] = len(row["files"])
+    return {"schema": "xprobe.emoji-inventory.v1", "unicodedata": unicodedata.unidata_version,
+            "files": scanned, "skipped": skipped, "truncated": truncated, "emoji": rows}
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
@@ -1291,6 +1456,9 @@ def main(argv=None):
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
     modes.add_argument("--annotate-junit", metavar="FILE", help="Print ::error workflow commands for failed JUnit testcases")
+    modes.add_argument("--emoji", action="store_true", help="Emoji used under --root: counts, spellings, files")
+    modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
+    modes.add_argument("--emoji-explain", metavar="TEXT", help="Split TEXT into emoji sequences with names and code points")
     modes.add_argument("--portability", action="store_true", help="Sources that break on --min-python/--max-python or a cp1252 locale")
     parser.add_argument("--min-python", metavar="X.Y", help="Default: requires-python in ROOT/pyproject.toml, else 3.10")
     parser.add_argument("--max-python", default="3.14", metavar="X.Y")
@@ -1310,6 +1478,25 @@ def main(argv=None):
         if args.annotate_junit is not None:
             for line in junit_annotations(Path(args.annotate_junit).read_text(encoding="utf-8")):
                 print(line)
+            return 0
+        if args.emoji_find is not None or args.emoji_explain is not None:
+            rows = (emoji_find(args.emoji_find, limit=args.max_matches) if args.emoji_find is not None
+                    else emoji_sequences(args.emoji_explain))
+            for row in rows:
+                points = " ".join(row.get("codepoints") or ["U+%04X" % ord(c) for c in row["emoji"]])
+                print(f"{row['emoji']}\t{points}\t{row['name']}")
+            return 0 if rows else 1
+        if args.emoji:
+            report = emoji_inventory(roots, max_bytes=args.max_bytes)
+            if args.brief:
+                for row in report["emoji"][:args.max_matches]:
+                    forms = "" if len(row["forms"]) == 1 else "  forms: " + " ".join(
+                        f"{form}x{count}" for form, count in row["forms"].items())
+                    print(f"{row['identity']}\t{row['count']}\t{row['files']} file(s)\t{row['name']}{forms}")
+                print(f"emoji: {len(report['emoji'])} distinct in {report['files']} file(s); "
+                      f"unicodedata {report['unicodedata']}")
+            else:
+                print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
         if args.portability:
             version = lambda text: tuple(int(x) for x in text.split("."))[:2]
