@@ -141,6 +141,7 @@ class IntegrationTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(proc.stdout, "")
 
+    @unittest.skipUnless(hasattr(sys, "stdlib_module_names"), "stdlib inventory requires Python 3.10+")
     def test_stdlib_imports(self):
         tree = ast.parse((ROOT / "xprobe.py").read_text())
         for node in ast.walk(tree):
