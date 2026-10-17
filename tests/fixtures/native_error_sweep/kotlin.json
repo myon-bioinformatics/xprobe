@@ -1,0 +1,805 @@
+{
+  "schema": "portable-io-results/1",
+  "scope": "one-shot-native-error-sweep",
+  "passed": true,
+  "results": [
+    {
+      "command": [
+        "flutter",
+        "build",
+        "apk",
+        "--debug",
+        "--no-pub",
+        "--target-platform",
+        "android-arm64"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "Running Gradle task 'assembleDebug'...                          \nLoading package information...                                                  \nLoading local repository...                                                     \n[                                       ] 3% Loading local repository...        \n[                                       ] 3% Fetch remote repository...         \n[=                                      ] 3% Fetch remote repository...         \n[=                                      ] 4% Fetch remote repository...         \n[=                                      ] 5% Fetch remote repository...         \n[==                                     ] 5% Fetch remote repository...         \n[==                                     ] 6% Fetch remote repository...         \n[==                                     ] 7% Fetch remote repository...         \n[==                                     ] 7% Computing updates...               \n[===                                    ] 8% Computing updates...               \n[===                                    ] 10% Computing updates...              \n[===                                    ] 10% Installing NDK (Side by side) 28.2\n[===                                    ] 10% Downloading android-ndk-r28c-linux\n[====                                   ] 10% Downloading android-ndk-r28c-linux\n[====                                   ] 11% Downloading android-ndk-r28c-linux\n[====                                   ] 12% Downloading android-ndk-r28c-linux\n[=====                                  ] 13% Downloading android-ndk-r28c-linux\n[=====                                  ] 14% Downloading android-ndk-r28c-linux\n[=====                                  ] 15% Downloading android-ndk-r28c-linux\n[======                                 ] 15% Downloading android-ndk-r28c-linux\n[======                                 ] 16% Downloading android-ndk-r28c-linux\n[======                                 ] 17% Downloading android-ndk-r28c-linux\n[=======                                ] 18% Downloading android-ndk-r28c-linux\n[=======                                ] 19% Downloading android-ndk-r28c-linux\n[=======                                ] 20% Downloading android-ndk-r28c-linux\n[========                               ] 20% Downloading android-ndk-r28c-linux\n[========                               ] 21% Downloading android-ndk-r28c-linux\n[========                               ] 22% Downloading android-ndk-r28c-linux\n[=========                              ] 23% Downloading android-ndk-r28c-linux\n[=========                              ] 24% Downloading android-ndk-r28c-linux\n[=========                              ] 25% Downloading android-ndk-r28c-linux\n[==========                             ] 25% Downloading android-ndk-r28c-linux\n[==========                             ] 26% Downloading android-ndk-r28c-linux\n[==========                             ] 27% Downloading android-ndk-r28c-linux\n[===========                            ] 28% Downloading android-ndk-r28c-linux\n[===========                            ] 29% Downloading android-ndk-r28c-linux\n[===========                            ] 30% Downloading android-ndk-r28c-linux\n[============                           ] 30% Downloading android-ndk-r28c-linux\n[============                           ] 31% Downloading android-ndk-r28c-linux\n[============                           ] 32% Downloading android-ndk-r28c-linux\n[============                           ] 33% Downloading android-ndk-r28c-linux\n[============                           ] 33% Unzipping...                      \n[============                           ] 33% Unzipping... android-ndk-r28c/    \n[============                           ] 33% Unzipping... android-ndk-r28c/READ\n[=============                          ] 33% Unzipping... android-ndk-r28c/READ\n[=============                          ] 33% Unzipping... android-ndk-r28c/meta\n[=============                          ] 33% Unzipping... android-ndk-r28c/shad\n[=============                          ] 33% Unzipping... android-ndk-r28c/ndk-\n[=============                          ] 33% Unzipping... android-ndk-r28c/wrap\n[=============                          ] 33% Unzipping... android-ndk-r28c/ndk-\n[=============                          ] 33% Unzipping... android-ndk-r28c/tool\n[=============                          ] 34% Unzipping... android-ndk-r28c/tool\n[=============                          ] 35% Unzipping... android-ndk-r28c/tool\n[==============                         ] 35% Unzipping... android-ndk-r28c/tool\n[==============                         ] 36% Unzipping... android-ndk-r28c/tool\n[==============                         ] 37% Unzipping... android-ndk-r28c/tool\n[===============                        ] 38% Unzipping... android-ndk-r28c/tool\n[===============                        ] 39% Unzipping... android-ndk-r28c/tool\n[===============                        ] 40% Unzipping... android-ndk-r28c/tool\n[================                       ] 40% Unzipping... android-ndk-r28c/tool\n[================                       ] 41% Unzipping... android-ndk-r28c/tool\n[================                       ] 42% Unzipping... android-ndk-r28c/tool\n[=================                      ] 43% Unzipping... android-ndk-r28c/tool\n[=================                      ] 44% Unzipping... android-ndk-r28c/tool\n[=================                      ] 45% Unzipping... android-ndk-r28c/tool\n[==================                     ] 45% Unzipping... android-ndk-r28c/tool\n[==================                     ] 46% Unzipping... android-ndk-r28c/tool\n[==================                     ] 47% Unzipping... android-ndk-r28c/tool\n[===================                    ] 48% Unzipping... android-ndk-r28c/tool\n[===================                    ] 49% Unzipping... android-ndk-r28c/tool\n[===================                    ] 50% Unzipping... android-ndk-r28c/tool\n[====================                   ] 50% Unzipping... android-ndk-r28c/tool\n[====================                   ] 51% Unzipping... android-ndk-r28c/tool\n[====================                   ] 52% Unzipping... android-ndk-r28c/tool\n[=====================                  ] 53% Unzipping... android-ndk-r28c/tool\n[=====================                  ] 54% Unzipping... android-ndk-r28c/tool\n[=====================                  ] 54% Unzipping... android-ndk-r28c/buil\n[=====================                  ] 54% Unzipping... android-ndk-r28c/sour\n[=====================                  ] 54% Unzipping... android-ndk-r28c/NOTI\n[=====================                  ] 54% Unzipping... android-ndk-r28c/ndk-\n[=====================                  ] 54% Unzipping... android-ndk-r28c/NOTI\n[=====================                  ] 54% Unzipping... android-ndk-r28c/pyth\n[=====================                  ] 54% Unzipping... android-ndk-r28c/preb\n[=====================                  ] 54% Unzipping... android-ndk-r28c/ndk-\n[=====================                  ] 54% Unzipping... android-ndk-r28c/sour\n[=====================                  ] 54% Unzipping... android-ndk-r28c/simp\n[=====================                  ] 55% Unzipping... android-ndk-r28c/simp\n[=====================                  ] 55% Unzipping... android-ndk-r28c/CHAN\n[=======================================] 100% Unzipping... android-ndk-r28c/CHA\n\nRunning Gradle task 'assembleDebug'...                            200.3s\n\u2713 Built build/app/outputs/flutter-apk/app-debug.apk\n",
+      "stdout_sha256": "a497014e02ed42330aab284a7b0aa12409365ea3010ef2e6c5d2241ae6958b97",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "healthy-flutter-build",
+      "target": "kotlin",
+      "input": null,
+      "value": 0,
+      "expected": 0,
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null,
+      "reused": true,
+      "executed_current_run": false,
+      "baseline_run_id": "39033656033",
+      "baseline_commit": "0f50acf3dd5c768bbdb9aaf7b77aef1262deda55"
+    },
+    {
+      "command": [
+        "bash",
+        "android/gradlew",
+        "-p",
+        "android",
+        ":app:testDebugUnitTest",
+        "--tests",
+        "com.example.flutter_application_1.ArrayLengthProbeTest",
+        "--rerun"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "Starting a Gradle Daemon (subsequent builds will be faster)\n> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :gradle:compileKotlin UP-TO-DATE\n> Task :gradle:compileJava NO-SOURCE\n> Task :gradle:compileGroovy NO-SOURCE\n> Task :gradle:pluginDescriptors UP-TO-DATE\n> Task :gradle:processResources UP-TO-DATE\n> Task :gradle:classes UP-TO-DATE\n> Task :gradle:jar UP-TO-DATE\n\n> Configure project :app\nWARNING: The option setting 'android.builtInKotlin=false' is deprecated.\nThe current default is 'true'.\nIt will be removed in version 10.0 of the Android Gradle plugin.\nWARNING: The option setting 'android.newDsl=false' is deprecated.\nThe current default is 'true'.\nIt will be removed in version 10.0 of the Android Gradle plugin.\nw: file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/android/app/build.gradle.kts:7:1: 'fun Project.android(configure: Action<BaseAppModuleExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.ApplicationExtension.\nThis class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.\nChecking the license for package NDK (Side by side) 28.2.13676358 in /usr/local/lib/android/sdk/licenses\nLicense for package NDK (Side by side) 28.2.13676358 accepted.\nPreparing \"Install NDK (Side by side) 28.2.13676358 v.28.2.13676358\".\n\"Install NDK (Side by side) 28.2.13676358 v.28.2.13676358\" ready.\nInstalling NDK (Side by side) 28.2.13676358 in /usr/local/lib/android/sdk/ndk/28.2.13676358\n\"Install NDK (Side by side) 28.2.13676358 v.28.2.13676358\" complete.\n\"Install NDK (Side by side) 28.2.13676358 v.28.2.13676358\" finished.\nw: \u26a0\ufe0f Deprecated 'org.jetbrains.kotlin.android' plugin usage\nThe 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.\nSolution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.\nSee https://kotl.in/gradle/agp-built-in-kotlin for more details.\n\n\n> Configure project :flutter_plugin_android_lifecycle\nw: file:///home/runner/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.35/android/build.gradle.kts:26:1: 'fun Project.android(configure: Action<LibraryExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.LibraryExtension.\nThis class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.\nw: \u26a0\ufe0f Deprecated 'org.jetbrains.kotlin.android' plugin usage\nThe 'org.jetbrains.kotlin.android' plugin in project ':flutter_plugin_android_lifecycle' is no longer required for Kotlin support since AGP 9.0.\nSolution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.\nSee https://kotl.in/gradle/agp-built-in-kotlin for more details.\n\n\n> Configure project :gal\nw: \u26a0\ufe0f Deprecated 'org.jetbrains.kotlin.android' plugin usage\nThe 'org.jetbrains.kotlin.android' plugin in project ':gal' is no longer required for Kotlin support since AGP 9.0.\nSolution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.\nSee https://kotl.in/gradle/agp-built-in-kotlin for more details.\n\n\n> Configure project :image_picker_android\nw: file:///home/runner/.pub-cache/hosted/pub.dev/image_picker_android-0.8.13+23/android/build.gradle.kts:34:1: 'fun Project.android(configure: Action<LibraryExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.LibraryExtension.\nThis class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.\nw: \u26a0\ufe0f Deprecated 'org.jetbrains.kotlin.android' plugin usage\nThe 'org.jetbrains.kotlin.android' plugin in project ':image_picker_android' is no longer required for Kotlin support since AGP 9.0.\nSolution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.\nSee https://kotl.in/gradle/agp-built-in-kotlin for more details.\n\n\n> Configure project :shared_preferences_android\nw: file:///home/runner/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.28/android/build.gradle.kts:40:1: 'fun Project.android(configure: Action<LibraryExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.LibraryExtension.\nThis class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.\nw: \u26a0\ufe0f Deprecated 'org.jetbrains.kotlin.android' plugin usage\nThe 'org.jetbrains.kotlin.android' plugin in project ':shared_preferences_android' is no longer required for Kotlin support since AGP 9.0.\nSolution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.\nSee https://kotl.in/gradle/agp-built-in-kotlin for more details.\n\n\n> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :app:cleanMergeDebugAssets UP-TO-DATE\n> Task :app:compileFlutterBuildDebug\n> Task :app:generateDebugAssets UP-TO-DATE\n> Task :app:validateCompileSdkVersion\n> Task :app:preBuild\n> Task :app:preDebugBuild\n> Task :flutter_plugin_android_lifecycle:generateDebugAssets UP-TO-DATE\n> Task :flutter_plugin_android_lifecycle:preBuild UP-TO-DATE\n> Task :flutter_plugin_android_lifecycle:preDebugBuild UP-TO-DATE\n> Task :flutter_plugin_android_lifecycle:mergeDebugAssets\n> Task :gal:generateDebugAssets UP-TO-DATE\n> Task :gal:preBuild UP-TO-DATE\n> Task :gal:preDebugBuild UP-TO-DATE\n> Task :gal:mergeDebugAssets\n> Task :image_picker_android:generateDebugAssets UP-TO-DATE\n> Task :image_picker_android:preBuild UP-TO-DATE\n> Task :image_picker_android:preDebugBuild UP-TO-DATE\n> Task :image_picker_android:mergeDebugAssets\n> Task :shared_preferences_android:generateDebugAssets UP-TO-DATE\n> Task :shared_preferences_android:preBuild UP-TO-DATE\n> Task :shared_preferences_android:preDebugBuild UP-TO-DATE\n> Task :shared_preferences_android:mergeDebugAssets\n> Task :app:mergeDebugAssets\n> Task :app:copyFlutterAssetsDebug\n> Task :app:generateDebugResources\n> Task :app:packageDebugResources\n> Task :flutter_plugin_android_lifecycle:processDebugNavigationResources\n> Task :gal:processDebugNavigationResources\n> Task :image_picker_android:processDebugNavigationResources\n> Task :shared_preferences_android:processDebugNavigationResources\n> Task :app:processDebugNavigationResources\n> Task :flutter_plugin_android_lifecycle:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :flutter_plugin_android_lifecycle:generateDebugResources\n> Task :flutter_plugin_android_lifecycle:packageDebugResources\n> Task :gal:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :flutter_plugin_android_lifecycle:javaPreCompileDebug\n> Task :gal:generateDebugResources\n> Task :gal:packageDebugResources\n> Task :gal:javaPreCompileDebug\n> Task :image_picker_android:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :flutter_plugin_android_lifecycle:parseDebugLocalResources\n> Task :gal:parseDebugLocalResources\n> Task :image_picker_android:generateDebugResources\n> Task :app:parseDebugLocalResources\n> Task :image_picker_android:packageDebugResources\n> Task :flutter_plugin_android_lifecycle:generateDebugRFile\n> Task :gal:generateDebugRFile\n> Task :app:generateDebugRFile\n> Task :flutter_plugin_android_lifecycle:compileDebugKotlin NO-SOURCE\n> Task :image_picker_android:parseDebugLocalResources\n> Task :flutter_plugin_android_lifecycle:compileDebugJavaWithJavac\n> Task :gal:compileDebugKotlin NO-SOURCE\n> Task :flutter_plugin_android_lifecycle:bundleLibCompileToJarDebug\n> Task :gal:compileDebugJavaWithJavac\n> Task :gal:bundleLibCompileToJarDebug\n> Task :image_picker_android:generateDebugRFile\n> Task :image_picker_android:javaPreCompileDebug\n> Task :shared_preferences_android:checkKotlinGradlePluginConfigurationErrors SKIPPED\n> Task :shared_preferences_android:generateDebugResources\n> Task :shared_preferences_android:packageDebugResources\n> Task :shared_preferences_android:javaPreCompileDebug\n> Task :app:javaPreCompileDebug\n> Task :shared_preferences_android:parseDebugLocalResources\n> Task :flutter_plugin_android_lifecycle:writeDebugAarMetadata\n> Task :shared_preferences_android:generateDebugRFile\n> Task :gal:writeDebugAarMetadata\n> Task :image_picker_android:writeDebugAarMetadata\n> Task :shared_preferences_android:writeDebugAarMetadata\n> Task :app:mapDebugSourceSetPaths\n> Task :app:checkDebugAarMetadata\n> Task :app:compileDebugNavigationResources\n> Task :app:createDebugCompatibleScreenManifests\n> Task :app:extractDeepLinksDebug\n> Task :flutter_plugin_android_lifecycle:extractDeepLinksDebug\n\n> Task :flutter_plugin_android_lifecycle:processDebugManifest\npackage=\"io.flutter.plugins.flutter_plugin_android_lifecycle\" found in source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.35/android/src/main/AndroidManifest.xml.\nSetting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.\nRecommendation: remove package=\"io.flutter.plugins.flutter_plugin_android_lifecycle\" from the source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.35/android/src/main/AndroidManifest.xml.\n\n> Task :gal:extractDeepLinksDebug\n\n> Task :gal:processDebugManifest\npackage=\"studio.midoridesign.gal\" found in source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/gal-2.3.3/android/src/main/AndroidManifest.xml.\nSetting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.\nRecommendation: remove package=\"studio.midoridesign.gal\" from the source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/gal-2.3.3/android/src/main/AndroidManifest.xml.\n\n> Task :image_picker_android:extractDeepLinksDebug\n\n> Task :image_picker_android:processDebugManifest\npackage=\"io.flutter.plugins.imagepicker\" found in source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/image_picker_android-0.8.13+23/android/src/main/AndroidManifest.xml.\nSetting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.\nRecommendation: remove package=\"io.flutter.plugins.imagepicker\" from the source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/image_picker_android-0.8.13+23/android/src/main/AndroidManifest.xml.\n\n> Task :shared_preferences_android:extractDeepLinksDebug\n\n> Task :shared_preferences_android:processDebugManifest\npackage=\"io.flutter.plugins.sharedpreferences\" found in source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.28/android/src/main/AndroidManifest.xml.\nSetting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.\nRecommendation: remove package=\"io.flutter.plugins.sharedpreferences\" from the source AndroidManifest.xml: /home/runner/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.28/android/src/main/AndroidManifest.xml.\n\n> Task :app:mergeDebugResources\n> Task :app:processDebugMainManifest\n> Task :app:outputDebugAppLinkSettings\n> Task :app:processDebugManifest\n> Task :flutter_plugin_android_lifecycle:mapDebugSourceSetPaths\n> Task :app:processDebugManifestForPackage\n> Task :gal:mapDebugSourceSetPaths\n> Task :flutter_plugin_android_lifecycle:compileDebugLibraryResources\n> Task :gal:compileDebugLibraryResources\n> Task :image_picker_android:mapDebugSourceSetPaths\n> Task :image_picker_android:compileDebugLibraryResources\n> Task :shared_preferences_android:mapDebugSourceSetPaths\n> Task :app:preDebugUnitTestBuild\n> Task :shared_preferences_android:compileDebugLibraryResources\n> Task :app:javaPreCompileDebugUnitTest\n> Task :flutter_plugin_android_lifecycle:bundleLibRuntimeToJarDebug\n> Task :flutter_plugin_android_lifecycle:processDebugJavaRes NO-SOURCE\n> Task :gal:bundleLibRuntimeToJarDebug\n> Task :gal:processDebugJavaRes NO-SOURCE\n> Task :app:processDebugResources\n\n> Task :shared_preferences_android:compileDebugKotlin\nw: file:///home/runner/.pub-cache/hosted/pub.dev/shared_preferences_android-2.4.28/android/src/main/kotlin/io/flutter/plugins/sharedpreferences/SharedPreferencesPlugin.kt:450:52 Unnecessary non-null assertion (!!) on a non-null receiver of type 'String'.\n\n> Task :image_picker_android:compileDebugKotlin\n> Task :image_picker_android:compileDebugJavaWithJavac\n> Task :image_picker_android:bundleLibCompileToJarDebug\n> Task :shared_preferences_android:compileDebugJavaWithJavac NO-SOURCE\n> Task :shared_preferences_android:bundleLibCompileToJarDebug\n> Task :image_picker_android:bundleLibRuntimeToJarDebug\n> Task :image_picker_android:processDebugJavaRes\n> Task :shared_preferences_android:bundleLibRuntimeToJarDebug\n> Task :shared_preferences_android:processDebugJavaRes\n> Task :app:compileDebugKotlin\n> Task :app:compileDebugJavaWithJavac\n> Task :app:bundleDebugClassesToRuntimeJar\n> Task :app:bundleDebugClassesToCompileJar\n> Task :app:processDebugJavaRes\n> Task :app:compileDebugUnitTestKotlin\n> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE\n> Task :app:processDebugUnitTestJavaRes\n\n> Task :app:testDebugUnitTest\n\nArrayLengthProbeTest > divide_zero FAILED\n    java.lang.ArithmeticException at ArrayLengthProbeTest.kt:23\n\nArrayLengthProbeTest > bounds FAILED\n    java.lang.ArrayIndexOutOfBoundsException at ArrayLengthProbeTest.kt:17\n\nArrayLengthProbeTest > invalid_integer FAILED\n    java.lang.NumberFormatException at ArrayLengthProbeTest.kt:20\n\nArrayLengthProbeTest > negative FAILED\n    java.lang.NegativeArraySizeException at ArrayLengthProbeTest.kt:10\n\nArrayLengthProbeTest > null_assert FAILED\n    java.lang.NullPointerException at ArrayLengthProbeTest.kt:18\n\nArrayLengthProbeTest > bad_cast FAILED\n    java.lang.ClassCastException at ArrayLengthProbeTest.kt:19\n\n> Task :app:testDebugUnitTest FAILED\n\n[Incubating] Problems report is available at: file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/build/reports/problems/problems-report.html\n\nDeprecated Gradle features were used in this build, making it incompatible with Gradle 10.\n\nYou can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.\n\nFor more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.\n98 actionable tasks: 93 executed, 5 up-to-date\n",
+      "stdout_sha256": "b6055784826f64d19720ee2c06c5d3c729f77578b8f273642008ad3017ace77b",
+      "stderr": "\n9 tests completed, 6 failed, 1 skipped\n\nFAILURE: Build failed with an exception.\n\n* What went wrong:\nExecution failed for task ':app:testDebugUnitTest'.\n> There were failing tests. See the report at: file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/build/app/reports/tests/testDebugUnitTest/index.html\n\n* Try:\n> Run with --scan to get full insights from a Build Scan (powered by Develocity).\n\nBUILD FAILED in 3m 5s\n",
+      "stderr_sha256": "6f3e72d4d86dc0e18ac35f99f45872b3f3573ece7b1c11c054f1b3b01daa33d4",
+      "name": "array-length-native-suite",
+      "target": "kotlin",
+      "input": {
+        "empty": {
+          "operation": "array_length",
+          "count": 0
+        },
+        "three": {
+          "operation": "array_length",
+          "count": 3
+        },
+        "negative": {
+          "operation": "array_length",
+          "count": -1
+        },
+        "bounds": {
+          "operation": "bounds",
+          "index": 5
+        },
+        "null_assert": {
+          "operation": "null_assert",
+          "value": null
+        },
+        "bad_cast": {
+          "operation": "bad_cast",
+          "value": "text"
+        },
+        "invalid_integer": {
+          "operation": "invalid_integer",
+          "value": "not-an-integer"
+        },
+        "invalid_json": {
+          "operation": "invalid_json",
+          "value": "{"
+        },
+        "divide_zero": {
+          "operation": "divide_zero",
+          "value": 0
+        }
+      },
+      "value": {
+        "divide_zero": {
+          "error": "division_by_zero"
+        },
+        "bounds": {
+          "error": "out_of_bounds"
+        },
+        "invalid_integer": {
+          "error": "invalid_integer"
+        },
+        "empty": {
+          "length": 0
+        },
+        "three": {
+          "length": 3
+        },
+        "invalid_json": {
+          "unobserved": "No JSON parser in the existing JVM test dependencies"
+        },
+        "negative": {
+          "error": "invalid_array_length"
+        },
+        "null_assert": {
+          "error": "null_value"
+        },
+        "bad_cast": {
+          "error": "invalid_cast"
+        }
+      },
+      "expected": {
+        "empty": {
+          "length": 0
+        },
+        "three": {
+          "length": 3
+        },
+        "negative": {
+          "error": "invalid_array_length"
+        },
+        "bounds": {
+          "error": "out_of_bounds"
+        },
+        "null_assert": {
+          "error": "null_value"
+        },
+        "bad_cast": {
+          "error": "invalid_cast"
+        },
+        "invalid_integer": {
+          "error": "invalid_integer"
+        },
+        "invalid_json": {
+          "unobserved": "No JSON parser in the existing JVM test dependencies"
+        },
+        "divide_zero": {
+          "error": "division_by_zero"
+        }
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\": 0}\n",
+      "stdout_sha256": "9dad16228b54246222b9e7b1cf19a687dafea7bc9e3f0c2ff63dff20f4a34983",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "empty",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": 0
+      },
+      "value": {
+        "length": 0
+      },
+      "expected": {
+        "length": 0
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\": 3}\n",
+      "stdout_sha256": "e940b7ecfc4af8110163ab1ad5e885d7f679c4719c342b692b476060a78aeb1c",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "three",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": 3
+      },
+      "value": {
+        "length": 3
+      },
+      "expected": {
+        "length": 3
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 10, in <module>\n    raise ValueError(\"negative array length\")\nValueError: negative array length\n",
+      "stderr_sha256": "24e6f2555bc0d63fd78ed51943929c9c83eecb3f8d46f6c0f92357b8f92fa8e1",
+      "name": "negative",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": -1
+      },
+      "value": {
+        "error": "invalid_array_length"
+      },
+      "expected": {
+        "error": "invalid_array_length"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 13, in <module>\n    result = {\"value\": [1][request[\"index\"]]}\n                       ~~~^^^^^^^^^^^^^^^^^^\nIndexError: list index out of range\n",
+      "stderr_sha256": "76e52c6b2a842595990f121c771c71c89846b4bf75c03829bc5ddf4f00843617",
+      "name": "bounds",
+      "target": "python",
+      "input": {
+        "operation": "bounds",
+        "index": 5
+      },
+      "value": {
+        "error": "out_of_bounds"
+      },
+      "expected": {
+        "error": "out_of_bounds"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 15, in <module>\n    result = {\"value\": request[\"value\"].to_string()}\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'to_string'\n",
+      "stderr_sha256": "97b9045deffcd2e0630b450c34737fbf9017833dcf7add833785f9492ca5129c",
+      "name": "null_assert",
+      "target": "python",
+      "input": {
+        "operation": "null_assert",
+        "value": null
+      },
+      "value": {
+        "error": "null_value"
+      },
+      "expected": {
+        "error": "null_value"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 19, in <module>\n    raise TypeError(\"integer cast requires an integer\")\nTypeError: integer cast requires an integer\n",
+      "stderr_sha256": "a0cb853a052303658ad4ff0521b47f3da5f605b799005b5bbceaabfc531e5a7f",
+      "name": "bad_cast",
+      "target": "python",
+      "input": {
+        "operation": "bad_cast",
+        "value": "text"
+      },
+      "value": {
+        "error": "invalid_cast"
+      },
+      "expected": {
+        "error": "invalid_cast"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 22, in <module>\n    result = {\"value\": int(request[\"value\"])}\n                       ^^^^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'not-an-integer'\n",
+      "stderr_sha256": "ea6c78c59845b6eb11bd130456c91d96dcb87974d5242b07de74a6d5881d8962",
+      "name": "invalid_integer",
+      "target": "python",
+      "input": {
+        "operation": "invalid_integer",
+        "value": "not-an-integer"
+      },
+      "value": {
+        "error": "invalid_integer"
+      },
+      "expected": {
+        "error": "invalid_integer"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 24, in <module>\n    result = {\"value\": json.loads(request[\"value\"])}\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/decoder.py\", line 338, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/decoder.py\", line 354, in raw_decode\n    obj, end = self.scan_once(s, idx)\n               ^^^^^^^^^^^^^^^^^^^^^^\njson.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n",
+      "stderr_sha256": "b2bc1b1cb3f10a0bef46b04c0c35409fdc2ce79ad2bb18e7dd331943c86991e3",
+      "name": "invalid_json",
+      "target": "python",
+      "input": {
+        "operation": "invalid_json",
+        "value": "{"
+      },
+      "value": {
+        "error": "invalid_json"
+      },
+      "expected": {
+        "error": "invalid_json"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 26, in <module>\n    result = {\"value\": 1 // request[\"value\"]}\n                       ~~^^~~~~~~~~~~~~~~~~~\nZeroDivisionError: integer division or modulo by zero\n",
+      "stderr_sha256": "f3aedaaa813022bd41b9f52e390fbf0f9a4fdcd18c6c51532cc9209c3cd11141",
+      "name": "divide_zero",
+      "target": "python",
+      "input": {
+        "operation": "divide_zero",
+        "value": 0
+      },
+      "value": {
+        "error": "division_by_zero"
+      },
+      "expected": {
+        "error": "division_by_zero"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":0}\n",
+      "stdout_sha256": "3cae968df19788810383a4a2dd79b3a233aeea1af2e715aa0d75952a75dd6412",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "empty",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": 0
+      },
+      "value": {
+        "length": 0
+      },
+      "expected": {
+        "length": 0
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":3}\n",
+      "stdout_sha256": "e18c5610a4b996d47e0d71049ee63ab8b01749fd65dbf39a5acad1171c8ab4d9",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "three",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": 3
+      },
+      "value": {
+        "length": 3
+      },
+      "expected": {
+        "length": 3
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:5\n  case 'array_length': result = { length: new Array(request.count).fill(0).length }; break;\n                                          ^\n\nRangeError: Invalid array length\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:5:43\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "ce55bd3904b8bf92994c3e2ea5014b993f80ba09c4fe473271e6f78b5031f110",
+      "name": "negative",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": -1
+      },
+      "value": {
+        "error": "invalid_array_length"
+      },
+      "expected": {
+        "error": "invalid_array_length"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:6\n  case 'bounds': result = { value: new DataView(new ArrayBuffer(1)).getInt8(request.index) }; break;\n                                                                    ^\n\nRangeError: Offset is outside the bounds of the DataView\n    at DataView.prototype.getInt8 (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:6:69\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "c3ec67adb8bc0bda41efa1379acb78b5448c4e540cf2264f69a847485ddc45f1",
+      "name": "bounds",
+      "target": "node",
+      "input": {
+        "operation": "bounds",
+        "index": 5
+      },
+      "value": {
+        "error": "out_of_bounds"
+      },
+      "expected": {
+        "error": "out_of_bounds"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:7\n  case 'null_assert': result = { value: request.value.toString() }; break;\n                                                      ^\n\nTypeError: Cannot read properties of null (reading 'toString')\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:7:55\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "5a99f4aae83f21ca78cb4ab4aa35b38dcaa7545d53a1f083f94a9728f00b8e45",
+      "name": "null_assert",
+      "target": "node",
+      "input": {
+        "operation": "null_assert",
+        "value": null
+      },
+      "value": {
+        "error": "null_value"
+      },
+      "expected": {
+        "error": "null_value"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:9\n    if (!Number.isInteger(request.value)) throw new TypeError('integer cast requires an integer');\n                                                ^\n\nTypeError: integer cast requires an integer\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:9:49\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "6f6b3b0cc68e7f7848941c5150e45b69a0b291a57f54b4f602c06b3fc02c5896",
+      "name": "bad_cast",
+      "target": "node",
+      "input": {
+        "operation": "bad_cast",
+        "value": "text"
+      },
+      "value": {
+        "error": "invalid_cast"
+      },
+      "expected": {
+        "error": "invalid_cast"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:11\n  case 'invalid_integer': result = { value: String(BigInt(request.value)) }; break;\n                                                   ^\n\nSyntaxError: Cannot convert not-an-integer to a BigInt\n    at BigInt (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:11:52\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "b4ba9be0929a8be8e535a48873d38e4399d94bd633e0d50edb693a79c7d10da6",
+      "name": "invalid_integer",
+      "target": "node",
+      "input": {
+        "operation": "invalid_integer",
+        "value": "not-an-integer"
+      },
+      "value": {
+        "error": "invalid_integer"
+      },
+      "expected": {
+        "error": "invalid_integer"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "<anonymous_script>:1\n{\n\nSyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:12:47\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "5323f4b6b3df06b25dcd8d582e35ddb86699bcbca95cc85e1819dac50837e85c",
+      "name": "invalid_json",
+      "target": "node",
+      "input": {
+        "operation": "invalid_json",
+        "value": "{"
+      },
+      "value": {
+        "error": "invalid_json"
+      },
+      "expected": {
+        "error": "invalid_json"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:13\n  case 'divide_zero': result = { value: String(1n / BigInt(request.value)) }; break;\n                                                  ^\n\nRangeError: Division by zero\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:13:51\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "221bb448c362ae79c3d4968a9ac8805e61e0b616cccd4e8df73172f6f34570d4",
+      "name": "divide_zero",
+      "target": "node",
+      "input": {
+        "operation": "divide_zero",
+        "value": 0
+      },
+      "value": {
+        "error": "division_by_zero"
+      },
+      "expected": {
+        "error": "division_by_zero"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    }
+  ],
+  "context": {
+    "language": "kotlin",
+    "scope": "one-shot-native-error-sweep",
+    "native_app_runtime_verified": false,
+    "run_id": "39034483324",
+    "attempt": "1",
+    "metadata": {
+      "0": {
+        "command": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "85491b2632520d9455f2dcecf963309851c239e7\n",
+        "stdout_sha256": "6bcb03154fc68ddb05fb4b68202f8cbbd6d7403ef71f281f907dd3f71f2d0998",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "1": {
+        "command": [
+          "flutter",
+          "--version",
+          "--machine"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "{\n  \"frameworkVersion\": \"3.47.0\",\n  \"channel\": \"stable\",\n  \"repositoryUrl\": \"https://github.com/flutter/flutter.git\",\n  \"frameworkRevision\": \"4cf24164269a5ebf0c16a028a00727d0e77bbb05\",\n  \"frameworkCommitDate\": \"2026-08-11 11:53:49 -0700\",\n  \"engineRevision\": \"5f77625673248ee5846fbcaf5d3e1a3878386fd7\",\n  \"engineCommitDate\": \"2026-08-11 16:38:36.000Z\",\n  \"engineContentHash\": \"59d54a2b2896a6bbf356c94b7fac7b9e235bdacd\",\n  \"engineBuildDate\": \"2026-08-11 10:18:15.653\",\n  \"dartSdkVersion\": \"3.13.0\",\n  \"devToolsVersion\": \"2.60.0\",\n  \"flutterVersion\": \"3.47.0\",\n  \"flutterRoot\": \"/opt/hostedtoolcache/flutter/stable-3.47.0-x64/flutter\"\n}\n",
+        "stdout_sha256": "fb2e10be88a558719fd4446d409dc28376d0c06c8257431b3328cf273f45d80a",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "2": {
+        "command": [
+          "flutter",
+          "doctor",
+          "-v"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "[\u2713] Flutter (Channel stable, 3.47.0, on Ubuntu 24.04.5 LTS 6.17.0-1022-azure, locale C.UTF-8) [44ms]\n    \u2022 Flutter version 3.47.0 on channel stable at /opt/hostedtoolcache/flutter/stable-3.47.0-x64/flutter\n    \u2022 Upstream repository https://github.com/flutter/flutter.git\n    \u2022 Framework revision 4cf2416426 (10 weeks ago), 2026-08-11 11:53:49 -0700\n    \u2022 Engine revision 5f77625673\n    \u2022 Dart version 3.13.0\n    \u2022 DevTools version 2.60.0\n    \u2022 Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-record-use, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration\n\n[!] Android toolchain - develop for Android devices (Android SDK version 37.0.0) [7.5s]\n    \u2022 Android SDK at /usr/local/lib/android/sdk\n    \u2022 Emulator version unknown\n    \u2022 Platform android-37.2-beta2, build-tools 37.0.0\n    \u2022 ANDROID_HOME = /usr/local/lib/android/sdk\n    \u2022 ANDROID_SDK_ROOT = /usr/local/lib/android/sdk\n    \u2022 Java binary at: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64/bin/java\n      This JDK is specified by the JAVA_HOME environment variable.\n      To manually set the JDK path, use: `flutter config --jdk-dir=\"path/to/jdk\"`.\n    \u2022 Java version OpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\n    ! Some Android licenses not accepted. To resolve this, run: flutter doctor --android-licenses\n\n[\u2713] Chrome - develop for the web [1,132ms]\n    \u2022 Chrome at google-chrome\n\n[\u2717] Linux toolchain - develop for Linux desktop [5.4s]\n    \u2022 Ubuntu clang version 18.1.3 (1ubuntu1)\n    \u2022 cmake version 3.31.6\n    \u2022 ninja version 1.13.2\n    \u2022 pkg-config version 1.8.1\n    \u2717 GTK 3.0 development libraries are required for Linux development.\n      They are likely available from your distribution (e.g.: apt install libgtk-3-dev)\n    ! Unable to access driver information using 'eglinfo'.\n      It is likely available from your distribution (e.g.: apt install mesa-utils)\n\n[\u2713] Connected device (2 available) [4.2s]\n    \u2022 Linux (desktop) \u2022 linux  \u2022 linux-x64      \u2022 Ubuntu 24.04.5 LTS 6.17.0-1022-azure\n    \u2022 Chrome (web)    \u2022 chrome \u2022 web-javascript \u2022 Google Chrome 155.0.8059.39\n\n[\u2713] Network resources [1,368ms]\n    \u2022 All expected network resources are available.\n\n! Doctor found issues in 2 categories.\n",
+        "stdout_sha256": "765b903f5d6e51e9047b990cc6634f62cd183b747b3bfbc48324cec816abee1b",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "3": {
+        "command": [
+          "dart",
+          "--version"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "Dart SDK version: 3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_x64\"\n",
+        "stdout_sha256": "1e235ebf8bee666a186c020ec86429343f80bdcc1fcbee5f9a107659771db655",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "4": {
+        "command": [
+          "node",
+          "--version"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "v22.23.3\n",
+        "stdout_sha256": "33e26f35db6e57ce0c486ddc815fe966867e4f649e418eaf323f75f4720eb8e9",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "5": {
+        "command": [
+          "java",
+          "-version"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)\n",
+        "stderr_sha256": "8ffd2d05de22acb2a1f82845905d499e807c7595cf7c3e7f2a2cab7e576a26de"
+      },
+      "6": {
+        "command": [
+          "bash",
+          "android/gradlew",
+          "--version",
+          "-p",
+          "android"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "Downloading https://services.gradle.org/distributions/gradle-9.3.1-all.zip\n................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................\nUnzipping /home/runner/.gradle/wrapper/dists/gradle-9.3.1-all/9ot9r568e8zfvvd4mn8rbu1j0/gradle-9.3.1-all.zip to /home/runner/.gradle/wrapper/dists/gradle-9.3.1-all/9ot9r568e8zfvvd4mn8rbu1j0\nSet executable permissions for: /home/runner/.gradle/wrapper/dists/gradle-9.3.1-all/9ot9r568e8zfvvd4mn8rbu1j0/gradle-9.3.1/bin/gradle\n\nWelcome to Gradle 9.3.1!\n\nHere are the highlights of this release:\n - Test reporting improvements\n - Error and warning improvements\n - Build authoring improvements\n\nFor more details see https://docs.gradle.org/9.3.1/release-notes.html\n\n\n------------------------------------------------------------\nGradle 9.3.1\n------------------------------------------------------------\n\nBuild time:    2026-01-29 14:15:01 UTC\nRevision:      44f4e8d3122ee6e7cbf5a248d7e20b4ca666bda3\n\nKotlin:        2.2.21\nGroovy:        4.0.29\nAnt:           Apache Ant(TM) version 1.10.15 compiled on August 25 2024\nLauncher JVM:  17.0.20.1 (Eclipse Adoptium 17.0.20.1+1)\nDaemon JVM:    /usr/lib/jvm/temurin-17-jdk-amd64 (no Daemon JVM specified, using current Java home)\nOS:            Linux 6.17.0-1022-azure amd64\n\n",
+        "stdout_sha256": "1a337db8291705b4c0b88d471e32cbb4fca090e3ace84845c640a63b0f89df88",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "source_sha256": {
+      "ArrayLengthProbeTest.kt": "1d15855034449e25b5085e1b77985456b99e7d35aa2075bf5a671d20da61ee3c",
+      "array_length.dart": "0b75f9b9c2ef719dc262348e73a8dff01f5ae1318ba2f432606b79233ab1724f",
+      "array_length.mjs": "07da4d1a24ca7db04d5e1203833e300e0915dc598dcab43f824e8b846633720e",
+      "array_length.py": "bdfc2925004a4f257d0fbc7ff1a68cef1c7595e6e6cf14d3368bf770fd9a5563",
+      "array_length.swift": "35077829e993c53abd29e68e24a7da8b9688f3c9fc430fefd021f4db78879ecc",
+      "cases.json": "a1130f5cc31ac67b5c34d6a6d5bc5abe6bdab93abba9aefb14767c7cb6a37e50"
+    },
+    "healthy_build_executed_current_run": false,
+    "unobserved": [
+      {
+        "case": "invalid_json",
+        "reason": "No JSON parser in the existing JVM test dependencies"
+      }
+    ],
+    "healthy_flutter_build_passed": true
+  },
+  "collector_environment": {
+    "python": "3.12.15 (main, Oct  1 2026, 02:35:59) [GCC 13.3.0]",
+    "platform": "linux"
+  },
+  "contract_sha256": "672fdfea48921d8630be9ffdbf579894723445de168237507a7c2e072826c6f7",
+  "targets": [
+    {
+      "language": "kotlin",
+      "healthy_build": [
+        "flutter",
+        "build",
+        "apk",
+        "--debug",
+        "--no-pub",
+        "--target-platform",
+        "android-arm64"
+      ]
+    }
+  ],
+  "native_equivalence_verified": false
+}

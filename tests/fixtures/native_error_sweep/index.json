@@ -1,0 +1,54 @@
+{
+  "schema": "native-error-corpus-index/1",
+  "repository": "myon-bioinformatics/flutter_navigation_basic",
+  "source_commit": "85491b2632520d9455f2dcecf963309851c239e7",
+  "run_id": 39034483324,
+  "run_url": "https://github.com/myon-bioinformatics/flutter_navigation_basic/actions/runs/39034483324",
+  "scope": "historical-language-primitive-observations",
+  "native_equivalence_verified": false,
+  "case_count": 9,
+  "negative_categories": 7,
+  "unobserved": [
+    {
+      "language": "kotlin",
+      "case": "invalid_json",
+      "reason": "No JSON parser in the existing JVM test dependencies"
+    }
+  ],
+  "artifacts": {
+    "dart": {
+      "id": 12101173178,
+      "zip_sha256": "f90d87650d6602d6d21563e70c6a6cec676d1a4d2fcc707dbe55eb5b64a36a84"
+    },
+    "kotlin": {
+      "id": 12101264354,
+      "zip_sha256": "9c118e6ac2ec038a27dcfc0278372a25b1ef59744f70f48e88dced0543c1372d"
+    },
+    "swift": {
+      "id": 12101806373,
+      "zip_sha256": "59c430bda4ec084f4196053f234d134e4cb3687c1506f9b7bef9843ca15a5d6f"
+    }
+  },
+  "files": {
+    "cases.json": {
+      "sha256": "a1130f5cc31ac67b5c34d6a6d5bc5abe6bdab93abba9aefb14767c7cb6a37e50",
+      "bytes": 4147
+    },
+    "dart.json": {
+      "sha256": "88ebc818249198f9720e8054e3bfc4ef6674b3c64d7d87c7d5c8ae65e910c486",
+      "bytes": 42959
+    },
+    "kotlin-original-junit.xml": {
+      "sha256": "0b2a36f8a14fc037faae8de3104a36e20dfcba95adb05083b86b403199eb3fc7",
+      "bytes": 28415
+    },
+    "kotlin.json": {
+      "sha256": "dcb730c6e851baf54d86f8acd1a94ab1df9e2bac5c839c36fe43dc87d6024d51",
+      "bytes": 71222
+    },
+    "swift.json": {
+      "sha256": "5b82a24d6f843f862763697b7399513e58c67153ef1201fbae121a1db8855ff5",
+      "bytes": 41354
+    }
+  }
+}
