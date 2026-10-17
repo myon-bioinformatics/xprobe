@@ -1,0 +1,2 @@
+# Preserve upstream bytes for lock digest verification on every OS.
+vendor/* -text
