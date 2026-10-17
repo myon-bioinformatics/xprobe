@@ -33,6 +33,9 @@ def test_junit_annotations_limits_and_levels():
                                         '</testcase></testsuite>')
     assert one_part == ["::error file=mod.py,title=mod%3A%3At::x"]
     assert xprobe.junit_annotations("<testsuite/>") == []
+    func = xprobe.junit_annotations('<testsuite><testcase classname="tests.test_m" name="t"><failure message="x"/>'
+                                    '</testcase></testsuite>')
+    assert func == ["::error file=tests/test_m.py,title=tests.test_m%3A%3At::x"]
 
 
 @pytest.mark.parametrize("text, kwargs, error", [
@@ -86,6 +89,8 @@ subprocess.run(["x"], text=True)
 subprocess.run(["x"], text=True, encoding="utf-8")
 subprocess.run(["x"], capture_output=True)
 other.run(text=True)
+Path("f").open()
+self.sub.run(text=True)
 print("\\u00e9")
 '''
 
@@ -174,3 +179,6 @@ def test_cli_search_across_roots(tmp_path, capsys):
     assert paths == [f"{one}/a.txt", f"{two}/b.txt"]
     assert xprobe.main(["--search", "needle", "--root", str(one)]) == 0
     assert [m["path"] for m in json.loads(capsys.readouterr().out)["matches"]] == ["a.txt"]
+    assert xprobe.main(["--search", "needle", "--max-matches", "1", "--root", str(one), "--root", str(two)]) == 2
+    capped = json.loads(capsys.readouterr().out)
+    assert [m["path"] for m in capped["matches"]] == [f"{one}/a.txt"] and capped["truncated"]

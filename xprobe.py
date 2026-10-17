@@ -1111,8 +1111,11 @@ def junit_annotations(text, *, max_annotations=50, max_message=300, level="error
         if len(lines) == max_annotations:
             continue
         classname, name = case.get("classname", ""), case.get("name", "")
-        path = case.get("file") or (classname.rsplit(".", 1)[0].replace(".", "/") + ".py"
-                                    if "." in classname else classname.replace(".", "/") + ".py" if classname else "")
+        module = classname
+        head, _, last = classname.rpartition(".")
+        if head and last[:1].isupper():  # pytest: "pkg.test_mod.TestClass" for methods, "pkg.test_mod" for functions
+            module = head
+        path = case.get("file") or (module.replace(".", "/") + ".py" if module else "")
         message = (bad.get("message") or (bad.text or "")).strip().splitlines()
         first = message[0][:max_message] if message else bad.tag
         props = [f"file={_workflow_escape(path, prop=True)}"] if path else []
@@ -1172,11 +1175,12 @@ def _locale_io(node):
         return "read_text() without encoding="
     if name == "write_text" and isinstance(func, ast.Attribute) and len(node.args) < 2:
         return "write_text() without encoding="
-    if name == "open" and (owner in (None, "io")) and len(node.args) < 4:
+    builtin = isinstance(func, ast.Name)
+    if name == "open" and (builtin or owner == "io") and len(node.args) < 4:
         mode = node.args[1] if len(node.args) > 1 else next((k.value for k in node.keywords if k.arg == "mode"), None)
         if mode is None or (isinstance(mode, ast.Constant) and isinstance(mode.value, str) and "b" not in mode.value):
             return "open() in text mode without encoding="
-    if name in _SUBPROCESS_TEXT and owner in (None, "subprocess"):
+    if name in _SUBPROCESS_TEXT and (builtin or owner == "subprocess"):
         if any(k.arg in ("text", "universal_newlines") and isinstance(k.value, ast.Constant) and k.value.value
                for k in node.keywords):
             return f"{name}(text=True) without encoding="
@@ -1341,10 +1345,14 @@ def main(argv=None):
         if searching:
             report = {"matches": [], "skipped": [], "errors": [], "truncated": False}
             for root in roots:
+                remaining = args.max_matches - len(report["matches"])
+                if remaining < 1:
+                    report["truncated"] = True
+                    break
                 part = search_files(root, args.search, regex=args.regex, preset=args.preset,
                                     normalize=[s for s in args.normalize.split(",") if s],
                                     max_bytes=args.max_bytes,
-                                    max_matches=args.max_matches, exclude_dirs=_DEFAULT_EXCLUDE)
+                                    max_matches=remaining, exclude_dirs=_DEFAULT_EXCLUDE)
                 for key in ("matches", "skipped", "errors"):
                     for row in part[key]:
                         if len(roots) > 1:
