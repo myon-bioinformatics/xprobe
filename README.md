@@ -10,6 +10,10 @@ For bounded, browser-free comparison of explicit Python/Node command adapters,
 see [portable I/O contracts](docs/portable-contracts.md). This optional
 `contract_probe.py` CLI reuses `run_cases`; it does not change the single-file API.
 
+The first [real native error corpus](tests/fixtures/native_error_sweep/README.md)
+archives Dart/Kotlin/Swift observations and same-environment Python/Node results
+with source/run identities, original diagnostics and explicit unobserved cases.
+
 ## Design
 
 The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.

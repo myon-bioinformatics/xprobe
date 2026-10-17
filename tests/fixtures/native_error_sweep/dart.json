@@ -1,0 +1,901 @@
+{
+  "schema": "portable-io-results/1",
+  "scope": "one-shot-native-error-sweep",
+  "passed": true,
+  "results": [
+    {
+      "command": [
+        "flutter",
+        "build",
+        "web",
+        "--debug",
+        "--no-pub"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "Compiling lib/main.dart for the Web...                          \nCompiling lib/main.dart for the Web...                             38.0s\n\u2713 Built build/web\n",
+      "stdout_sha256": "cdb2e62662754220a70c9c21265946cdb1051d8c95d91d2075df67db480d5f65",
+      "stderr": "Warning: In index.html:37: Flutter's service worker is deprecated and will be removed in a future Flutter release. See https://github.com/flutter/flutter/issues/156910 for more details.\nWarning: In index.html:46: \"FlutterLoader.loadEntrypoint\" is deprecated. Use \"FlutterLoader.load\" instead. See https://docs.flutter.dev/platform-integration/web/initialization for more details.\nWasm dry run succeeded. Consider building and testing your application with the `--wasm` flag. See docs for more info: https://docs.flutter.dev/platform-integration/web/wasm\nUse --no-wasm-dry-run to disable these warnings.\n",
+      "stderr_sha256": "d7d9edd5d0f0414c8a98171344532c43ed038abcd760f6008c3f4b9c791d6df4",
+      "name": "healthy-flutter-build",
+      "target": "dart",
+      "input": null,
+      "value": 0,
+      "expected": 0,
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null,
+      "reused": true,
+      "executed_current_run": false,
+      "baseline_run_id": "39033656033",
+      "baseline_commit": "0f50acf3dd5c768bbdb9aaf7b77aef1262deda55"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":0}\n",
+      "stdout_sha256": "3cae968df19788810383a4a2dd79b3a233aeea1af2e715aa0d75952a75dd6412",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "empty",
+      "target": "dart",
+      "input": {
+        "operation": "array_length",
+        "count": 0
+      },
+      "value": {
+        "length": 0
+      },
+      "expected": {
+        "length": 0
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":3}\n",
+      "stdout_sha256": "e18c5610a4b996d47e0d71049ee63ab8b01749fd65dbf39a5acad1171c8ab4d9",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "three",
+      "target": "dart",
+      "input": {
+        "operation": "array_length",
+        "count": 3
+      },
+      "value": {
+        "length": 3
+      },
+      "expected": {
+        "length": 3
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nRangeError (length): Invalid value: Not in inclusive range 0..576460752303423487: -1\n#0      new _List (dart:core-patch/array.dart)\n#1      new _List.filled (dart:core-patch/array.dart:103:20)\n#2      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:9:27)\n#3      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "9dfe1013504e073be07b6ec3c7eb6338c1028af6feccb9966ebcb4209adf6c12",
+      "name": "negative",
+      "target": "dart",
+      "input": {
+        "operation": "array_length",
+        "count": -1
+      },
+      "value": {
+        "error": "invalid_array_length"
+      },
+      "expected": {
+        "error": "invalid_array_length"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nRangeError (length): Invalid value: Only valid value is 0: 5\n#0      List.[] (dart:core-patch/growable_array.dart)\n#1      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:11:34)\n#2      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "388ce10b7d22d89827133f72fc5727027397325a0009b0d3f4425e7c604f376c",
+      "name": "bounds",
+      "target": "dart",
+      "input": {
+        "operation": "bounds",
+        "index": 5
+      },
+      "value": {
+        "error": "out_of_bounds"
+      },
+      "expected": {
+        "error": "out_of_bounds"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nNull check operator used on a null value\n#0      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:14:31)\n#1      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "ab692716929158298bce8fe0ac7be6117d48ef5b6770d5c9a9ef9d1e2ccf0da7",
+      "name": "null_assert",
+      "target": "dart",
+      "input": {
+        "operation": "null_assert",
+        "value": null
+      },
+      "value": {
+        "error": "null_value"
+      },
+      "expected": {
+        "error": "null_value"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\ntype 'String' is not a subtype of type 'int' in type cast\n#0      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:16:41)\n#1      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "8f8dfb6862e79a0e74c6152d92685575e47dc3a41a254f0ec8b622c7307b5c23",
+      "name": "bad_cast",
+      "target": "dart",
+      "input": {
+        "operation": "bad_cast",
+        "value": "text"
+      },
+      "value": {
+        "error": "invalid_cast"
+      },
+      "expected": {
+        "error": "invalid_cast"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nFormatException: Invalid radix-10 number (at character 1)\nnot-an-integer\n^\n\n#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)\n#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)\n#2      int._parse (dart:core-patch/integers_patch.dart:121:12)\n#3      int.parse (dart:core-patch/integers_patch.dart:81:12)\n#4      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:18:30)\n#5      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "f6654d8c25059db0cfa12fbc4f2900fd948aef397915560cff5951155bfe7430",
+      "name": "invalid_integer",
+      "target": "dart",
+      "input": {
+        "operation": "invalid_integer",
+        "value": "not-an-integer"
+      },
+      "value": {
+        "error": "invalid_integer"
+      },
+      "expected": {
+        "error": "invalid_integer"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nFormatException: Unexpected end of input (at character 2)\n{\n ^\n\n#0      _ChunkedJsonParser.fail (dart:convert-patch/convert_patch.dart:1466:5)\n#1      _ChunkedJsonParser.close (dart:convert-patch/convert_patch.dart:496:7)\n#2      _parseJson (dart:convert-patch/convert_patch.dart:36:10)\n#3      JsonDecoder.convert (dart:convert/json.dart:640:36)\n#4      JsonCodec.decode (dart:convert/json.dart:219:41)\n#5      jsonDecode (dart:convert/json.dart:160:12)\n#6      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:20:26)\n#7      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#8      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "0cc1a119f1c672e0c34a867663934638ae6651986dffa664db31bca0e04741af",
+      "name": "invalid_json",
+      "target": "dart",
+      "input": {
+        "operation": "invalid_json",
+        "value": "{"
+      },
+      "value": {
+        "error": "invalid_json"
+      },
+      "expected": {
+        "error": "invalid_json"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "dart",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart"
+      ],
+      "returncode": 255,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Unhandled exception:\nIntegerDivisionByZeroException\n#0      int.~/ (dart:core-patch/integers.dart:27:7)\n#1      main (file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.dart:22:28)\n#2      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)\n#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)\n",
+      "stderr_sha256": "d4da71410b83dda04d8ef31900cc168e106c0a259af041abfcbc0d01bb0cd1f9",
+      "name": "divide_zero",
+      "target": "dart",
+      "input": {
+        "operation": "divide_zero",
+        "value": 0
+      },
+      "value": {
+        "error": "division_by_zero"
+      },
+      "expected": {
+        "error": "division_by_zero"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\": 0}\n",
+      "stdout_sha256": "9dad16228b54246222b9e7b1cf19a687dafea7bc9e3f0c2ff63dff20f4a34983",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "empty",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": 0
+      },
+      "value": {
+        "length": 0
+      },
+      "expected": {
+        "length": 0
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\": 3}\n",
+      "stdout_sha256": "e940b7ecfc4af8110163ab1ad5e885d7f679c4719c342b692b476060a78aeb1c",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "three",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": 3
+      },
+      "value": {
+        "length": 3
+      },
+      "expected": {
+        "length": 3
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 10, in <module>\n    raise ValueError(\"negative array length\")\nValueError: negative array length\n",
+      "stderr_sha256": "24e6f2555bc0d63fd78ed51943929c9c83eecb3f8d46f6c0f92357b8f92fa8e1",
+      "name": "negative",
+      "target": "python",
+      "input": {
+        "operation": "array_length",
+        "count": -1
+      },
+      "value": {
+        "error": "invalid_array_length"
+      },
+      "expected": {
+        "error": "invalid_array_length"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 13, in <module>\n    result = {\"value\": [1][request[\"index\"]]}\n                       ~~~^^^^^^^^^^^^^^^^^^\nIndexError: list index out of range\n",
+      "stderr_sha256": "76e52c6b2a842595990f121c771c71c89846b4bf75c03829bc5ddf4f00843617",
+      "name": "bounds",
+      "target": "python",
+      "input": {
+        "operation": "bounds",
+        "index": 5
+      },
+      "value": {
+        "error": "out_of_bounds"
+      },
+      "expected": {
+        "error": "out_of_bounds"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 15, in <module>\n    result = {\"value\": request[\"value\"].to_string()}\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'NoneType' object has no attribute 'to_string'\n",
+      "stderr_sha256": "97b9045deffcd2e0630b450c34737fbf9017833dcf7add833785f9492ca5129c",
+      "name": "null_assert",
+      "target": "python",
+      "input": {
+        "operation": "null_assert",
+        "value": null
+      },
+      "value": {
+        "error": "null_value"
+      },
+      "expected": {
+        "error": "null_value"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 19, in <module>\n    raise TypeError(\"integer cast requires an integer\")\nTypeError: integer cast requires an integer\n",
+      "stderr_sha256": "a0cb853a052303658ad4ff0521b47f3da5f605b799005b5bbceaabfc531e5a7f",
+      "name": "bad_cast",
+      "target": "python",
+      "input": {
+        "operation": "bad_cast",
+        "value": "text"
+      },
+      "value": {
+        "error": "invalid_cast"
+      },
+      "expected": {
+        "error": "invalid_cast"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 22, in <module>\n    result = {\"value\": int(request[\"value\"])}\n                       ^^^^^^^^^^^^^^^^^^^^^\nValueError: invalid literal for int() with base 10: 'not-an-integer'\n",
+      "stderr_sha256": "ea6c78c59845b6eb11bd130456c91d96dcb87974d5242b07de74a6d5881d8962",
+      "name": "invalid_integer",
+      "target": "python",
+      "input": {
+        "operation": "invalid_integer",
+        "value": "not-an-integer"
+      },
+      "value": {
+        "error": "invalid_integer"
+      },
+      "expected": {
+        "error": "invalid_integer"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 24, in <module>\n    result = {\"value\": json.loads(request[\"value\"])}\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/__init__.py\", line 346, in loads\n    return _default_decoder.decode(s)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/decoder.py\", line 338, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/json/decoder.py\", line 354, in raw_decode\n    obj, end = self.scan_once(s, idx)\n               ^^^^^^^^^^^^^^^^^^^^^^\njson.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n",
+      "stderr_sha256": "b2bc1b1cb3f10a0bef46b04c0c35409fdc2ce79ad2bb18e7dd331943c86991e3",
+      "name": "invalid_json",
+      "target": "python",
+      "input": {
+        "operation": "invalid_json",
+        "value": "{"
+      },
+      "value": {
+        "error": "invalid_json"
+      },
+      "expected": {
+        "error": "invalid_json"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "/opt/hostedtoolcache/Python/3.12.15/x64/bin/python",
+        "-S",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.py\", line 26, in <module>\n    result = {\"value\": 1 // request[\"value\"]}\n                       ~~^^~~~~~~~~~~~~~~~~~\nZeroDivisionError: integer division or modulo by zero\n",
+      "stderr_sha256": "f3aedaaa813022bd41b9f52e390fbf0f9a4fdcd18c6c51532cc9209c3cd11141",
+      "name": "divide_zero",
+      "target": "python",
+      "input": {
+        "operation": "divide_zero",
+        "value": 0
+      },
+      "value": {
+        "error": "division_by_zero"
+      },
+      "expected": {
+        "error": "division_by_zero"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":0}\n",
+      "stdout_sha256": "3cae968df19788810383a4a2dd79b3a233aeea1af2e715aa0d75952a75dd6412",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "empty",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": 0
+      },
+      "value": {
+        "length": 0
+      },
+      "expected": {
+        "length": 0
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 0,
+      "error_type": null,
+      "stdout": "{\"length\":3}\n",
+      "stdout_sha256": "e18c5610a4b996d47e0d71049ee63ab8b01749fd65dbf39a5acad1171c8ab4d9",
+      "stderr": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "name": "three",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": 3
+      },
+      "value": {
+        "length": 3
+      },
+      "expected": {
+        "length": 3
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": null
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:5\n  case 'array_length': result = { length: new Array(request.count).fill(0).length }; break;\n                                          ^\n\nRangeError: Invalid array length\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:5:43\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "ce55bd3904b8bf92994c3e2ea5014b993f80ba09c4fe473271e6f78b5031f110",
+      "name": "negative",
+      "target": "node",
+      "input": {
+        "operation": "array_length",
+        "count": -1
+      },
+      "value": {
+        "error": "invalid_array_length"
+      },
+      "expected": {
+        "error": "invalid_array_length"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:6\n  case 'bounds': result = { value: new DataView(new ArrayBuffer(1)).getInt8(request.index) }; break;\n                                                                    ^\n\nRangeError: Offset is outside the bounds of the DataView\n    at DataView.prototype.getInt8 (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:6:69\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "c3ec67adb8bc0bda41efa1379acb78b5448c4e540cf2264f69a847485ddc45f1",
+      "name": "bounds",
+      "target": "node",
+      "input": {
+        "operation": "bounds",
+        "index": 5
+      },
+      "value": {
+        "error": "out_of_bounds"
+      },
+      "expected": {
+        "error": "out_of_bounds"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:7\n  case 'null_assert': result = { value: request.value.toString() }; break;\n                                                      ^\n\nTypeError: Cannot read properties of null (reading 'toString')\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:7:55\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "5a99f4aae83f21ca78cb4ab4aa35b38dcaa7545d53a1f083f94a9728f00b8e45",
+      "name": "null_assert",
+      "target": "node",
+      "input": {
+        "operation": "null_assert",
+        "value": null
+      },
+      "value": {
+        "error": "null_value"
+      },
+      "expected": {
+        "error": "null_value"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:9\n    if (!Number.isInteger(request.value)) throw new TypeError('integer cast requires an integer');\n                                                ^\n\nTypeError: integer cast requires an integer\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:9:49\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "6f6b3b0cc68e7f7848941c5150e45b69a0b291a57f54b4f602c06b3fc02c5896",
+      "name": "bad_cast",
+      "target": "node",
+      "input": {
+        "operation": "bad_cast",
+        "value": "text"
+      },
+      "value": {
+        "error": "invalid_cast"
+      },
+      "expected": {
+        "error": "invalid_cast"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:11\n  case 'invalid_integer': result = { value: String(BigInt(request.value)) }; break;\n                                                   ^\n\nSyntaxError: Cannot convert not-an-integer to a BigInt\n    at BigInt (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:11:52\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "b4ba9be0929a8be8e535a48873d38e4399d94bd633e0d50edb693a79c7d10da6",
+      "name": "invalid_integer",
+      "target": "node",
+      "input": {
+        "operation": "invalid_integer",
+        "value": "not-an-integer"
+      },
+      "value": {
+        "error": "invalid_integer"
+      },
+      "expected": {
+        "error": "invalid_integer"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "<anonymous_script>:1\n{\n\nSyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n    at JSON.parse (<anonymous>)\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:12:47\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "5323f4b6b3df06b25dcd8d582e35ddb86699bcbca95cc85e1819dac50837e85c",
+      "name": "invalid_json",
+      "target": "node",
+      "input": {
+        "operation": "invalid_json",
+        "value": "{"
+      },
+      "value": {
+        "error": "invalid_json"
+      },
+      "expected": {
+        "error": "invalid_json"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    },
+    {
+      "command": [
+        "node",
+        "/home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs"
+      ],
+      "returncode": 1,
+      "error_type": null,
+      "stdout": "",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:13\n  case 'divide_zero': result = { value: String(1n / BigInt(request.value)) }; break;\n                                                  ^\n\nRangeError: Division by zero\n    at file:///home/runner/work/flutter_navigation_basic/flutter_navigation_basic/tools/native_error_corpus/array_length.mjs:13:51\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)\n\nNode.js v22.23.3\n",
+      "stderr_sha256": "221bb448c362ae79c3d4968a9ac8805e61e0b616cccd4e8df73172f6f34570d4",
+      "name": "divide_zero",
+      "target": "node",
+      "input": {
+        "operation": "divide_zero",
+        "value": 0
+      },
+      "value": {
+        "error": "division_by_zero"
+      },
+      "expected": {
+        "error": "division_by_zero"
+      },
+      "passed": true,
+      "case_context": null,
+      "expectation_kind": "native-control",
+      "error_origin": "target_exit"
+    }
+  ],
+  "context": {
+    "language": "dart",
+    "scope": "one-shot-native-error-sweep",
+    "native_app_runtime_verified": false,
+    "run_id": "39034483324",
+    "attempt": "1",
+    "metadata": {
+      "0": {
+        "command": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "85491b2632520d9455f2dcecf963309851c239e7\n",
+        "stdout_sha256": "6bcb03154fc68ddb05fb4b68202f8cbbd6d7403ef71f281f907dd3f71f2d0998",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "1": {
+        "command": [
+          "flutter",
+          "--version",
+          "--machine"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "{\n  \"frameworkVersion\": \"3.47.0\",\n  \"channel\": \"stable\",\n  \"repositoryUrl\": \"https://github.com/flutter/flutter.git\",\n  \"frameworkRevision\": \"4cf24164269a5ebf0c16a028a00727d0e77bbb05\",\n  \"frameworkCommitDate\": \"2026-08-11 11:53:49 -0700\",\n  \"engineRevision\": \"5f77625673248ee5846fbcaf5d3e1a3878386fd7\",\n  \"engineCommitDate\": \"2026-08-11 16:38:36.000Z\",\n  \"engineContentHash\": \"59d54a2b2896a6bbf356c94b7fac7b9e235bdacd\",\n  \"engineBuildDate\": \"2026-08-11 10:18:15.653\",\n  \"dartSdkVersion\": \"3.13.0\",\n  \"devToolsVersion\": \"2.60.0\",\n  \"flutterVersion\": \"3.47.0\",\n  \"flutterRoot\": \"/opt/hostedtoolcache/flutter/stable-3.47.0-x64/flutter\"\n}\n",
+        "stdout_sha256": "fb2e10be88a558719fd4446d409dc28376d0c06c8257431b3328cf273f45d80a",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "2": {
+        "command": [
+          "flutter",
+          "doctor",
+          "-v"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "[\u2713] Flutter (Channel stable, 3.47.0, on Ubuntu 24.04.5 LTS 6.17.0-1022-azure, locale C.UTF-8) [34ms]\n    \u2022 Flutter version 3.47.0 on channel stable at /opt/hostedtoolcache/flutter/stable-3.47.0-x64/flutter\n    \u2022 Upstream repository https://github.com/flutter/flutter.git\n    \u2022 Framework revision 4cf2416426 (10 weeks ago), 2026-08-11 11:53:49 -0700\n    \u2022 Engine revision 5f77625673\n    \u2022 Dart version 3.13.0\n    \u2022 DevTools version 2.60.0\n    \u2022 Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, enable-record-use, enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration\n\n[!] Android toolchain - develop for Android devices (Android SDK version 37.0.0) [8.7s]\n    \u2022 Android SDK at /usr/local/lib/android/sdk\n    \u2022 Emulator version unknown\n    \u2022 Platform android-37.2-beta2, build-tools 37.0.0\n    \u2022 ANDROID_HOME = /usr/local/lib/android/sdk\n    \u2022 ANDROID_SDK_ROOT = /usr/local/lib/android/sdk\n    \u2022 Java binary at: /usr/lib/jvm/temurin-17-jdk-amd64/bin/java\n      This JDK is specified by the JAVA_HOME environment variable.\n      To manually set the JDK path, use: `flutter config --jdk-dir=\"path/to/jdk\"`.\n    \u2022 Java version OpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\n    ! Some Android licenses not accepted. To resolve this, run: flutter doctor --android-licenses\n\n[\u2713] Chrome - develop for the web [132ms]\n    \u2022 Chrome at google-chrome\n\n[\u2717] Linux toolchain - develop for Linux desktop [5.4s]\n    \u2022 Ubuntu clang version 18.1.3 (1ubuntu1)\n    \u2022 cmake version 3.31.6\n    \u2022 ninja version 1.13.2\n    \u2022 pkg-config version 1.8.1\n    \u2717 GTK 3.0 development libraries are required for Linux development.\n      They are likely available from your distribution (e.g.: apt install libgtk-3-dev)\n    ! Unable to access driver information using 'eglinfo'.\n      It is likely available from your distribution (e.g.: apt install mesa-utils)\n\n[\u2713] Connected device (2 available) [4.7s]\n    \u2022 Linux (desktop) \u2022 linux  \u2022 linux-x64      \u2022 Ubuntu 24.04.5 LTS 6.17.0-1022-azure\n    \u2022 Chrome (web)    \u2022 chrome \u2022 web-javascript \u2022 Google Chrome 155.0.8059.39\n\n[\u2713] Network resources [385ms]\n    \u2022 All expected network resources are available.\n\n! Doctor found issues in 2 categories.\n",
+        "stdout_sha256": "6002fcd50870706f839ae5e0d3d527a862e9d9c44d4d08dccfe871130d3468d6",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "3": {
+        "command": [
+          "dart",
+          "--version"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "Dart SDK version: 3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_x64\"\n",
+        "stdout_sha256": "1e235ebf8bee666a186c020ec86429343f80bdcc1fcbee5f9a107659771db655",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "4": {
+        "command": [
+          "node",
+          "--version"
+        ],
+        "returncode": 0,
+        "error_type": null,
+        "stdout": "v22.23.3\n",
+        "stdout_sha256": "33e26f35db6e57ce0c486ddc815fe966867e4f649e418eaf323f75f4720eb8e9",
+        "stderr": "",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "source_sha256": {
+      "ArrayLengthProbeTest.kt": "1d15855034449e25b5085e1b77985456b99e7d35aa2075bf5a671d20da61ee3c",
+      "array_length.dart": "0b75f9b9c2ef719dc262348e73a8dff01f5ae1318ba2f432606b79233ab1724f",
+      "array_length.mjs": "07da4d1a24ca7db04d5e1203833e300e0915dc598dcab43f824e8b846633720e",
+      "array_length.py": "bdfc2925004a4f257d0fbc7ff1a68cef1c7595e6e6cf14d3368bf770fd9a5563",
+      "array_length.swift": "35077829e993c53abd29e68e24a7da8b9688f3c9fc430fefd021f4db78879ecc",
+      "cases.json": "a1130f5cc31ac67b5c34d6a6d5bc5abe6bdab93abba9aefb14767c7cb6a37e50"
+    },
+    "healthy_build_executed_current_run": false,
+    "unobserved": [],
+    "healthy_flutter_build_passed": true
+  },
+  "collector_environment": {
+    "python": "3.12.15 (main, Oct  1 2026, 02:35:59) [GCC 13.3.0]",
+    "platform": "linux"
+  },
+  "contract_sha256": "672fdfea48921d8630be9ffdbf579894723445de168237507a7c2e072826c6f7",
+  "targets": [
+    {
+      "language": "dart",
+      "healthy_build": [
+        "flutter",
+        "build",
+        "web",
+        "--debug",
+        "--no-pub"
+      ]
+    }
+  ],
+  "native_equivalence_verified": false
+}
