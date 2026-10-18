@@ -141,13 +141,13 @@ def test_scan_reports_lines_columns_and_limits(tmp_path):
     one, two = tmp_path / "one", tmp_path / "two"
     (one / "sub").mkdir(parents=True)
     two.mkdir()
-    (one / "a.md").write_text("\ufefftitle\nsecond \ufeff line\nok\u200b\n", encoding="utf-8")
-    (one / "sub" / "b.py").write_text("x = 1  # \u202e evil\n" + "t" + tags("go") + "\n", encoding="utf-8")
+    (one / "a.md").write_bytes(("\ufefftitle\nsecond \ufeff line\nok\u200b\n").encode("utf-8"))
+    (one / "sub" / "b.py").write_bytes(("x = 1  # \u202e evil\n" + "t" + tags("go") + "\n").encode("utf-8"))
     (one / "bin.dat").write_bytes(b"\x00\x01\x02")
     (one / "bad.txt").write_bytes(b"\xff\xfe")
     (one / "node_modules").mkdir()
-    (one / "node_modules" / "x.js").write_text("\u202e", encoding="utf-8")
-    (two / "c.txt").write_text("\u00ad and \ue000\n", encoding="utf-8")
+    (one / "node_modules" / "x.js").write_bytes(("\u202e").encode("utf-8"))
+    (two / "c.txt").write_bytes(("\u00ad and \ue000\n").encode("utf-8"))
     report = xprobe.hidden_text_scan([one, two])
     assert report["schema"] == "xprobe.hidden-text.v1" and report["min_severity"] == "medium"
     assert report["files"] == 3 and report["skipped"] == 2 and not report["truncated"]
@@ -157,6 +157,10 @@ def test_scan_reports_lines_columns_and_limits(tmp_path):
     assert report["findings"][2]["detail"].endswith("not closed before end of line")
     assert "start" not in report["findings"][0] and "end" not in report["findings"][0]
     assert report["counts"] == {"zero_width": 2, "bidi_control": 1, "tag_text": 1}
+    (two / "crlf.txt").write_bytes("a\u202eb\r\nok\u200b\r\n".encode("utf-8"))
+    crlf = xprobe.hidden_text_scan(two / "crlf.txt")["findings"]
+    assert [(f["line"], f["column"], f["kind"]) for f in crlf] == [(1, 2, "bidi_control"), (2, 3, "zero_width")]
+    assert crlf[0]["detail"].endswith("not closed before end of line")
     low = xprobe.hidden_text_scan(two / "c.txt", min_severity="low")
     assert [(f["path"], f["kind"]) for f in low["findings"]] == [("c.txt", "soft_hyphen"), ("c.txt", "private_use")]
     capped = xprobe.hidden_text_scan(one, max_findings=1)
@@ -171,8 +175,8 @@ def test_scan_reports_lines_columns_and_limits(tmp_path):
 def test_cli_hidden_text(tmp_path, capsys, monkeypatch):
     clean, dirty = tmp_path / "clean", tmp_path / "dirty"
     clean.mkdir(), dirty.mkdir()
-    (clean / "a.txt").write_text("fine \u2764\ufe0f\n", encoding="utf-8")
-    (dirty / "a.txt").write_text("say p\u0430y" + tags("run") + "\n", encoding="utf-8")
+    (clean / "a.txt").write_bytes(("fine \u2764\ufe0f\n").encode("utf-8"))
+    (dirty / "a.txt").write_bytes(("say p\u0430y" + tags("run") + "\n").encode("utf-8"))
     assert xprobe.main(["--hidden-rules"]) == 0
     assert capsys.readouterr().out.splitlines()[0].startswith("tag_text\thigh\t")
     assert xprobe.main(["--hidden-text", "--root", str(clean)]) == 0

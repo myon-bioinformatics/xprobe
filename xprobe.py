@@ -1693,7 +1693,8 @@ def hidden_text_scan(roots=(".",), *, kinds=None, min_severity="medium", max_fil
             if len(roots) > 1:
                 label = os.fspath(root).rstrip("/") + "/" + label
             try:
-                data = path.read_bytes()[:max_bytes + 1]
+                with path.open("rb") as stream:
+                    data = stream.read(max_bytes + 1)
                 if len(data) > max_bytes or b"\0" in data[:4096]:
                     raise ValueError
                 text = data.decode("utf-8")
