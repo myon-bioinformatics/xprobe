@@ -300,3 +300,34 @@ file counts and first locations.
 `\p{Extended_Pictographic}` for every code point and the sequences against
 `\p{RGI_Emoji}` (RegExp `v` flag, Node 20+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
+
+## Hidden text: invisible and deceptive characters (0.4)
+
+```sh
+python xprobe.py --hidden-rules                         # rule, severity, what it matches
+python xprobe.py --hidden-text --root ../a --brief      # 1 if anything at/above --min-severity (default medium)
+python xprobe.py --hidden-text --min-severity high --kinds tag_text,bidi_control --root .
+python xprobe.py --strip-hidden untrusted.txt > clean.txt   # '-' reads stdin
+```
+
+`hidden_text(text)` matches rules for characters that change what a reader,
+reviewer or model receives without showing on screen: prompt-injection text
+hidden in Unicode tag characters (`tag_text`, with the hidden ASCII in
+`decoded`), bytes smuggled as a run of variation selectors (`variation_payload`,
+decoded one byte per selector), Trojan Source bidi controls (`bidi_control`, with
+"not closed before end of line" when an override or isolate is left open),
+zero-width characters, stray variation selectors, other invisible format
+characters and Hangul fillers, Latin/Cyrillic/Greek homoglyph words
+(`mixed_script`, with the minority code points in `odd`), and low-severity
+direction marks, soft hyphens and private-use code points. Valid emoji ZWJ
+sequences, VS15/VS16 after a base, subdivision flags, ideographic variation
+sequences, a leading BOM and ZWJ/ZWNJ inside joining scripts (Persian, Indic)
+are left alone, using the same emoji grammar as `emoji_sequences`.
+
+A finding is a rule match, not a verdict on intent: real pages use U+200B as a
+line-break hint, and RTL text needs direction marks, which is why those rules sit
+at medium/low. `strip_hidden(text)` removes what the selected rules match (homoglyph
+words are reported, not rewritten); keep the `hidden_text` report alongside, since
+stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
+`path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
+characters it reports.
