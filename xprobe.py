@@ -1440,7 +1440,8 @@ def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_ex
             if len(roots) > 1:
                 label = os.fspath(root).rstrip("/") + "/" + label
             try:
-                data = path.read_bytes()[:max_bytes + 1]
+                with path.open("rb") as stream:
+                    data = stream.read(max_bytes + 1)  # never load more than the cap
                 if len(data) > max_bytes or b"\0" in data[:4096]:
                     raise ValueError
                 text = data.decode("utf-8")
