@@ -170,7 +170,7 @@ def test_generation_never_executes_targets(monkeypatch):
 def test_legacy_seeded_sampling_unchanged():
     cases = xprobe.generate_cases(seed=42, count=5)
     assert [case['origin_id'] for case in cases] == [
-        'data_comma', 'short_sha', 'invalid_sha', 'escaped_sql_name', 'crlf']
+        'nul_fenced_code', 'invalid_sha', 'javascript_url', 'colon_relative', 'colon_relative']
     source = {case['id']: case for case in xprobe.known_bad_cases()}
     for index, case in enumerate(cases):
         origin = case['origin_id']

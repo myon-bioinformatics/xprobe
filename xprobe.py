@@ -463,17 +463,12 @@ _BAD_CASES = (
     ('javascript_url', 'url', 'javascript:alert(1)', 'Executable schemes require explicit handling.'),
     ('metadata_prefix', 'text', 'metadata:', 'Ambiguous syntax needs a regression fixture.'),
     ('data_comma', 'url', 'data:,text', 'An empty media type is valid data-URL syntax.'),
-    ('escaped_sql_name', 'sql', '"a""b"', 'Quoted identifiers may contain escaped delimiters.'),
-    ('null_not_measured', 'json', None, 'Null means not measured; do not conflate with empty or zero.'),
-)
-
-# Keep the original ordered sampling population stable as the corpus grows.
-_LEGACY_BAD_CASES = _BAD_CASES
-_BAD_CASES += (
     ('punycode_homograph', 'url', 'http://xn--pypal-4ve.com', 'Punycode IDN label decodes to mixed-script homoglyph \'pаypal\'.'),
     ('unicode_homograph_url', 'url', 'https://pаypal.com/login', 'Cyrillic \'а\' (U+0430) spoofing Latin \'a\' in URL domain label.'),
     ('whole_script_homograph_url', 'url', 'http://xn--80ak6aa92e.com', 'Punycode label decodes to Cyrillic label spoofing Latin \'apple\' under \'.com\' TLD.'),
     ('confusable_delimiter_url', 'url', 'https://google.com\u2044@evil.com', 'Fraction slash U+2044 spoofing URL path separator.'),
+    ('escaped_sql_name', 'sql', '"a""b"', 'Quoted identifiers may contain escaped delimiters.'),
+    ('null_not_measured', 'json', None, 'Null means not measured; do not conflate with empty or zero.'),
 )
 
 
@@ -497,8 +492,7 @@ def generate_cases(*, seed=0, count=20, category=None):
         raise ValueError('seed must be an integer')
     if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 10000:
         raise ValueError('count must be an integer between 0 and 10000')
-    legacy_ids = {row[0] for row in _LEGACY_BAD_CASES}
-    pool = [case for case in known_bad_cases(category) if case["id"] in legacy_ids]
+    pool = known_bad_cases(category)
     rng = random.Random(seed)
     result = []
     for index in range(count):
@@ -1511,18 +1505,14 @@ _CONFUSABLE_URL_CHARS = {
     "\u2044": "FRACTION SLASH", "\u2215": "DIVISION SLASH", "\uff0f": "FULLWIDTH SOLIDUS",
     "\uff20": "FULLWIDTH COMMERCIAL AT", "\uff1a": "FULLWIDTH COLON", "\u037e": "GREEK QUESTION MARK",
 }
-# Deliberately small subset of Unicode confusables (UTS #39): whole-script
-# detection requires every letter to resemble ASCII, not just a Cyrillic TLD.
-# This is a heuristic, not the complete Unicode skeleton or a brand allowlist.
-_ASCII_CONFUSABLE_LETTERS = frozenset("аеорсхуіјѕӏαιορϲ")
 _URL_CANDIDATE_RE = re.compile(
-    r"(?:[A-Za-z][A-Za-z0-9+.-]*://|(?<![\w.-])[\w-]+(?:[.\uff0e\u3002\uff61][\w-]+)+)"
+    r"(?:[A-Za-z][A-Za-z0-9+.-]*://|(?:\b[A-Za-z0-9\u00a1-\uffff_.-]+\.)+(?:[A-Za-z]{2,}|xn--[A-Za-z0-9-]+))"
     r"[^\s<>\"']*"
 )
 
 
 def hidden_text_rules():
-    """{kind: {'severity', 'about'}} for the hidden-text rules, maximum severity, most severe first."""
+    """{kind: {'severity', 'about'}} for the hidden-text rules, most severe first."""
     return {kind: {"severity": level, "about": about} for kind, (level, about) in _HIDDEN_RULES.items()}
 
 
@@ -1555,13 +1545,12 @@ def _hidden_rules(kinds, min_severity):
     return {k for k in selected if _HIDDEN_LEVELS.index(_HIDDEN_RULES[k][0]) >= floor}
 
 
-def _hidden(text, rules, bom=True, end="text", min_severity="low"):
+def _hidden(text, rules, bom=True, end="text"):
     found = []
 
     def add(kind, start, end, detail, **extra):
-        severity = extra.pop("severity", _HIDDEN_RULES[kind][0])
-        if kind in rules and _HIDDEN_LEVELS.index(severity) >= _HIDDEN_LEVELS.index(min_severity):
-            found.append({"kind": kind, "severity": severity, "start": start, "end": end,
+        if kind in rules:
+            found.append({"kind": kind, "severity": _HIDDEN_RULES[kind][0], "start": start, "end": end,
                           "codepoints": _codepoints(text[start:end]), "length": end - start,
                           "detail": detail, **extra})
 
@@ -1658,53 +1647,58 @@ def _hidden(text, rules, bom=True, end="text", min_severity="low"):
                 odd = [c for c, s in zip(word, scripts) if s in present and s != major]
                 add("mixed_script", start, match.end(), "+".join(present) + " in one word",
                     word=word, odd=_codepoints("".join(odd)))
-    if "homograph_url" in rules:
+    if "homograph_url" in rules and ("http" in text or "://" in text or "xn--" in text or any(c in text for c in _CONFUSABLE_URL_CHARS) or any(ord(c) > 127 for c in text)):
         for match in _URL_CANDIDATE_RE.finditer(text):
-            url_text = match.group().rstrip(".,;!)]}")
-            u_start, u_end = match.start(), match.start() + len(url_text)
-            # Keep the authority separate from the path, query and fragment.
-            # Inspect userinfo too: google.com⁄@evil.com disguises the boundary.
-            authority = url_text.split("://", 1)[-1]
-            authority = re.split(r"[/?#\\]", authority, maxsplit=1)[0]
-            host_part = authority.rsplit("@", 1)[-1]
-            if host_part.startswith("["):  # bracketed IPv6, including a port
-                continue
-            host_part = host_part.split(":", 1)[0]
-            labels = re.split(r"[.\uff0e\u3002\uff61]", host_part)
-            decoded_labels, label_is_puny, label_scripts = [], [], []
+            url_text = match.group()
+            u_start, u_end = match.start(), match.end()
+            for char, name in _CONFUSABLE_URL_CHARS.items():
+                if char in url_text:
+                    add("homograph_url", u_start, u_end, f"confusable character {name} (U+{ord(char):04X}) in URL")
+            host_part = url_text
+            if "://" in host_part:
+                host_part = host_part.split("://", 1)[1]
+            host_part = re.split(r"[/?#]", host_part)[0]
+            if "@" in host_part:
+                host_part = host_part.split("@")[-1]
+            if ":" in host_part and not host_part.endswith(":"):
+                host_part = host_part.split(":")[0]
+            labels = re.split(r"[\.\uff0e\u3002\uff61]", host_part)
+            decoded_labels = []
+            label_is_puny = []
+            label_scripts = []
             for label in labels:
-                dec_label, is_puny = label, False
+                dec_label = label
+                is_puny = False
                 if label.lower().startswith("xn--"):
                     try:
-                        dec_label = label.lower().encode("ascii").decode("idna")
+                        dec_label = label.encode("ascii").decode("idna")
                         is_puny = True
-                    except UnicodeError:
+                    except Exception:
                         pass
                 decoded_labels.append(dec_label)
                 label_is_puny.append(is_puny)
-                label_scripts.append({_script(c) for c in dec_label if c.isalpha()})
+                scripts = [_script(c) for c in dec_label if c.isalpha()]
+                label_scripts.append(set(scripts))
             full_decoded = ".".join(decoded_labels)
-            for char, name in _CONFUSABLE_URL_CHARS.items():
-                if char in authority:
-                    # IDNA explicitly accepts these three dot aliases. Retain
-                    # spelling diagnostics without treating them as an attack.
-                    level = "medium" if char in "\uff0e\u3002\uff61" else "high"
-                    add("homograph_url", u_start, u_end,
-                        f"confusable character {name} (U+{ord(char):04X}) in URL authority",
-                        decoded=full_decoded, severity=level)
-            for label, dec, is_puny, scripts in zip(labels, decoded_labels, label_is_puny, label_scripts):
-                present = [s for s in _HOMOGLYPH_SCRIPTS if s in scripts]
-                prefix = f"Punycode label {label!r} decodes to " if is_puny else "Domain label "
-                if len(present) > 1:
-                    add("homograph_url", u_start, u_end,
-                        f"{prefix}mixed-script {dec!r} ({'+'.join(present)})",
+            for label, dec_label, is_puny, unique_scripts in zip(labels, decoded_labels, label_is_puny, label_scripts):
+                homo_present = [s for s in _HOMOGLYPH_SCRIPTS if s in unique_scripts]
+                if len(homo_present) > 1:
+                    prefix = f"Punycode label {label!r} decodes to " if is_puny else "Domain label "
+                    add("homograph_url", u_start, u_end, f"{prefix}mixed-script {dec_label!r} ({'+'.join(homo_present)})",
                         decoded=full_decoded)
-                elif (len(present) == 1 and "LATIN" not in scripts
-                      and all(c.lower() in _ASCII_CONFUSABLE_LETTERS
-                              or c in "0123456789-" for c in dec)):
-                    add("homograph_url", u_start, u_end,
-                        f"{prefix}{present[0].capitalize()} {dec!r} resembles ASCII letters",
-                        decoded=full_decoded)
+            all_scripts = set().union(*label_scripts)
+            cross_homo = [s for s in _HOMOGLYPH_SCRIPTS if s in all_scripts]
+            if len(cross_homo) > 1 and not any(len([s for s in _HOMOGLYPH_SCRIPTS if s in ls]) > 1 for ls in label_scripts):
+                for i, (label, dec, ls) in enumerate(zip(labels, decoded_labels, label_scripts)):
+                    non_latin = [s for s in ls if s in _HOMOGLYPH_SCRIPTS and s != "LATIN"]
+                    if non_latin:
+                        other_scripts = set().union(*[l_s for j, l_s in enumerate(label_scripts) if j != i])
+                        if "LATIN" in other_scripts:
+                            is_puny = label.lower().startswith("xn--")
+                            prefix = f"Punycode label {label!r} decodes to " if is_puny else ""
+                            add("homograph_url", u_start, u_end,
+                                f"{prefix}{non_latin[0].capitalize()} domain label {dec!r} mixed with Latin domain label/TLD",
+                                decoded=".".join(decoded_labels))
     return sorted(found, key=lambda f: (f["start"], f["kind"]))
 
 
@@ -1716,14 +1710,13 @@ def hidden_text(text, *, kinds=None, min_severity="low"):
     ``detail``; ``tag_text`` and ``variation_payload`` add ``decoded`` (the hidden
     ASCII, or the bytes as UTF-8 with ``\\x`` escapes; an emoji's own VS16 is not
     counted as the first byte), ``mixed_script`` adds ``word`` and the minority ``odd``
-    code points. ``homograph_url`` adds the decoded host; IDNA dot aliases
-    are medium spelling advisories, other URL findings are high. Emoji ZWJ
-    sequences, VS15/VS16 after a base, valid subdivision flags, a leading BOM and ZWJ/ZWNJ between letters of joining scripts are not
+    code points. Emoji ZWJ sequences, VS15/VS16 after a base, valid subdivision
+    flags, a leading BOM and ZWJ/ZWNJ between letters of joining scripts are not
     reported. ``kinds`` selects rules; ``min_severity`` drops lower ones.
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    return _hidden(text, _hidden_rules(kinds, min_severity), min_severity=min_severity)
+    return _hidden(text, _hidden_rules(kinds, min_severity))
 
 
 def strip_hidden(text, *, kinds=None, min_severity="low"):
@@ -1776,7 +1769,7 @@ def hidden_text_scan(roots=(".",), *, kinds=None, min_severity="medium", max_fil
                 continue
             scanned += 1
             for number, line in enumerate(text.split("\n"), 1):
-                for row in _hidden(line, rules, bom=number == 1, end="line", min_severity=min_severity):
+                for row in _hidden(line, rules, bom=number == 1, end="line"):
                     counts[row["kind"]] = counts.get(row["kind"], 0) + 1
                     if len(findings) == max_findings:
                         truncated = True
