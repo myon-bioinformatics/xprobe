@@ -44,6 +44,11 @@ def kinds(text, **kwargs):
     ("pass\u00adword", ["soft_hyphen"]),
     ("icon \ue000\ue001", ["private_use"]),
     ("\U000F0000", ["private_use"]),
+    ("http://xn--pypal-4ve.com", ["homograph_url"]),
+    ("https://pаypal.com/login", ["homograph_url", "mixed_script"]),
+    ("http://xn--80ak6aa92e.com", ["homograph_url"]),
+    ("https://google.com\u2044@evil.com", ["homograph_url"]),
+    ("https://paypal\uff0ecom", ["homograph_url"]),
 ])
 def test_rule_matches(text, expected):
     assert kinds(text) == expected
@@ -111,9 +116,40 @@ def test_bidi_balance_and_homoglyph_details():
     assert xprobe.hidden_text("\u061c")[0]["detail"] == "ARABIC LETTER MARK"
 
 
+def test_homograph_url_details():
+    puny = xprobe.hidden_text("http://xn--pypal-4ve.com")
+    assert len(puny) == 1
+    assert puny[0]["kind"] == "homograph_url"
+    assert puny[0]["severity"] == "high"
+    assert "xn--pypal-4ve" in puny[0]["detail"] and "pаypal" in puny[0]["detail"]
+    assert puny[0]["decoded"] == "pаypal.com"
+
+    whole = xprobe.hidden_text("http://xn--80ak6aa92e.com")
+    assert len(whole) == 1
+    assert whole[0]["kind"] == "homograph_url"
+    assert "Cyrillic" in whole[0]["detail"] and "xn--80ak6aa92e" in whole[0]["detail"]
+    assert whole[0]["decoded"] == "аррӏе.com"
+
+    delim = xprobe.hidden_text("https://google.com\u2044@evil.com")
+    assert any(r["kind"] == "homograph_url" and "FRACTION SLASH" in r["detail"] for r in delim)
+
+    fullstop = xprobe.hidden_text("https://paypal\uff0ecom")
+    assert any(r["kind"] == "homograph_url" and "FULLWIDTH FULL STOP" in r["detail"] for r in fullstop)
+
+
+def test_homograph_url_known_bad_cases():
+    url_cases = xprobe.known_bad_cases(category="url")
+    ids = {c["id"] for c in url_cases}
+    assert {"punycode_homograph", "unicode_homograph_url", "whole_script_homograph_url", "confusable_delimiter_url"} <= ids
+    for case in url_cases:
+        if case["id"] in ("punycode_homograph", "unicode_homograph_url", "whole_script_homograph_url", "confusable_delimiter_url"):
+            findings = xprobe.hidden_text(case["value"])
+            assert any(f["kind"] == "homograph_url" for f in findings)
+
+
 def test_rule_selection_and_validation():
     rules = xprobe.hidden_text_rules()
-    assert list(rules)[:3] == ["tag_text", "variation_payload", "bidi_control"]
+    assert list(rules)[:4] == ["tag_text", "variation_payload", "bidi_control", "homograph_url"]
     assert {r["severity"] for r in rules.values()} == {"low", "medium", "high"}
     mixed = "p\u0430y\u200b\u00ad" + tags("x") + "\ue000"
     assert kinds(mixed) == ["mixed_script", "zero_width", "soft_hyphen", "tag_text", "private_use"]
@@ -135,6 +171,8 @@ def test_strip_hidden_keeps_visible_text_and_emoji():
     assert xprobe.strip_hidden(text) == "\ufeff\U0001F469\u200d\U0001F4BB p\u0430y ok \u2764\ufe0f"
     assert xprobe.strip_hidden(text, min_severity="medium").endswith("\u00ad")
     assert xprobe.strip_hidden("a\u200bb\u202ec", kinds="zero_width") == "ab\u202ec"
+    url_text = "http://xn--pypal-4ve.com\u200b"
+    assert xprobe.strip_hidden(url_text) == "http://xn--pypal-4ve.com"
 
 
 def test_scan_reports_lines_columns_and_limits(tmp_path):
@@ -199,3 +237,98 @@ def test_cli_hidden_text(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(sys, "stdin", stdin)
     assert xprobe.main(["--strip-hidden", "-", "--min-severity", "medium"]) == 0
     assert capsys.readouterr().out == "ab\u00ad\n"
+
+
+@pytest.mark.parametrize('host', [
+    '日本語.jp', '例え.テスト', '東京タワー.jp', 'shop.東京.jp',
+    'shop日本語.jp', 'bücher.de', 'пример.com', 'παράδειγμα.com',
+    'магазин.рф', 'пример.shop.рф', '日本語.пример.jp',
+])
+def test_legitimate_idn_unicode_and_punycode(host):
+    for spelling in (host, host.encode('idna').decode('ascii')):
+        url = 'https://' + spelling + '/検索?q=日本語#案内'
+        assert xprobe.hidden_text(url, kinds='homograph_url') == []
+        assert xprobe.strip_hidden(url) == url
+
+
+@pytest.mark.parametrize('suffix', [
+    '/日本語', '/a⁄b', '/a∕b', '/a／b', '/＠：;．。｡',
+    '?q=日本語⁄＠：', '#日本語⁄＠：', '/docs/pаypal.com',
+])
+def test_unicode_outside_authority_is_not_a_host_attack(suffix):
+    for host in ('example.com', '日本語.jp', 'xn--bcher-kva.de'):
+        url = 'https://' + host + suffix
+        assert xprobe.hidden_text(url, kinds='homograph_url') == []
+        assert xprobe.strip_hidden(url) == url
+
+
+@pytest.mark.parametrize('host, decoded', [
+    ('pаypal.com', 'pаypal.com'),
+    ('xn--pypal-4ve.com', 'pаypal.com'),
+    ('XN--PYPAL-4VE.COM', 'pаypal.COM'),
+    ('аррӏе.com', 'аррӏе.com'),
+    ('xn--80ak6aa92e.com', 'аррӏе.com'),
+    ('XN--80AK6AA92E.COM', 'аррӏе.COM'),
+    ('аррӏе.рф', 'аррӏе.рф'),
+    ('pаypal.рф', 'pаypal.рф'),
+    ('shop.аррӏе.テスト', 'shop.аррӏе.テスト'),
+    ('αρρ.com', 'αρρ.com'),
+])
+@pytest.mark.parametrize('prefix', ['', 'https://', 'https://user:pass@'])
+def test_host_attacks_offsets_decoded_and_strip(host, decoded, prefix):
+    # Userinfo without a scheme is not a supported bare-host spelling.
+    url = prefix + host + ':8443/検索?q=＠#日本語'
+    text = '前🙂 ' + url + ' 後'
+    rows = xprobe.hidden_text(text, kinds='homograph_url', min_severity='high')
+    assert rows
+    for row in rows:
+        assert row['severity'] == 'high'
+        assert row['decoded'] == decoded
+        assert text[row['start']:row['end']] == url
+        assert row['start'] == 3 and row['length'] == len(url)
+        assert row['codepoints'] == ['U+%04X' % ord(c) for c in url[:16]]
+    assert xprobe.strip_hidden(text) == text
+    assert xprobe.strip_hidden(text, kinds='homograph_url') == text
+    assert xprobe.strip_hidden(text + '\u200b') == text
+
+
+@pytest.mark.parametrize('char', ['⁄', '∕', '／', '＠', '：', ';'])
+def test_delimiter_findings_include_actual_host(char):
+    url = 'https://google.com' + char + '@evil.com/path?q=日本語'
+    (row,) = xprobe.hidden_text(url, kinds='homograph_url')
+    assert row['severity'] == 'high' and row['decoded'] == 'evil.com'
+    assert row['start'] == 0 and row['end'] == len(url)
+    assert xprobe.strip_hidden(url) == url
+
+
+@pytest.mark.parametrize('dot', ['．', '。', '｡'])
+def test_idna_dot_alias_is_spelling_advisory(dot, tmp_path):
+    url = 'https://日本語' + dot + 'jp/検索'
+    (row,) = xprobe.hidden_text(url, kinds='homograph_url')
+    assert row['severity'] == 'medium' and row['decoded'] == '日本語.jp'
+    assert xprobe.hidden_text(url, kinds='homograph_url', min_severity='high') == []
+    assert xprobe.strip_hidden(url) == url
+    path = tmp_path / 'urls.txt'
+    path.write_text('題\n🙂 ' + url + '\n', encoding='utf-8')
+    (scanned,) = xprobe.hidden_text_scan(path)['findings']
+    assert (scanned['line'], scanned['column'], scanned['severity']) == (2, 3, 'medium')
+    assert scanned['decoded'] == '日本語.jp'
+    assert xprobe.hidden_text_scan(path, min_severity='high')['findings'] == []
+
+
+@pytest.mark.parametrize('url', [
+    'https://[2001:db8::1]:443/⁄＠', 'https://example.com:443/a⁄b',
+    'https://user:pass@example.com/path?q=＠',
+    'https://xn--invalid-!.com', 'https://XN--.com',
+    'https://example.com\\path⁄＠',
+])
+def test_non_idn_authorities_and_malformed_ace_do_not_crash(url):
+    assert xprobe.hidden_text(url, kinds='homograph_url') == []
+
+
+def test_multiple_urls_do_not_leak_host_or_offsets():
+    text = '(https://аррӏе.com/a). https://example.com/?q=⁄ https://pаypal.com/b'
+    rows = xprobe.hidden_text(text, kinds='homograph_url')
+    assert [text[r['start']:r['end']] for r in rows] == [
+        'https://аррӏе.com/a', 'https://pаypal.com/b']
+    assert [r['decoded'] for r in rows] == ['аррӏе.com', 'pаypal.com']

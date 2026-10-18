@@ -316,13 +316,34 @@ hidden in Unicode tag characters (`tag_text`, with the hidden ASCII in
 `decoded`), bytes smuggled as a run of variation selectors (`variation_payload`,
 decoded one byte per selector), Trojan Source bidi controls (`bidi_control`, with
 "not closed before end of line" when an override or isolate is left open),
-zero-width characters, stray variation selectors, other invisible format
-characters and Hangul fillers, Latin/Cyrillic/Greek homoglyph words
-(`mixed_script`, with the minority code points in `odd`), and low-severity
+IDN punycode homoglyphs, mixed-script domain labels and confusable URL delimiters
+(`homograph_url`, with `decoded` host labels), zero-width characters, stray variation
+selectors, other invisible format characters and Hangul fillers, Latin/Cyrillic/Greek
+homoglyph words (`mixed_script`, with the minority code points in `odd`), and low-severity
 direction marks, soft hyphens and private-use code points. Valid emoji ZWJ
 sequences, VS15/VS16 after a base, subdivision flags, ideographic variation
 sequences, a leading BOM and ZWJ/ZWNJ inside joining scripts (Persian, Indic)
 are left alone, using the same emoji grammar as `emoji_sequences`.
+
+`homograph_url` inspects the URL authority, not Unicode in paths, queries or
+fragments. `decoded` is the host with ACE labels decoded and IDNA dot aliases
+normalized; `start`/`end` cover the matched URL (excluding trailing prose
+punctuation). Latin/Cyrillic and other homoglyph-script mixtures **within a
+label** are high-severity candidates. Merely using different scripts in separate
+labels, Japanese script mixtures, or Punycode is not evidence of spoofing.
+Whole-script candidates require every letter in a label to belong to a small
+ASCII-confusable Cyrillic/Greek subset; this is a conservative heuristic, not a
+complete UTS #39 skeleton, ownership check, or maliciousness verdict. Valid IDNA
+dot aliases (`。`, `．`, `｡`) retain a **medium** spelling advisory and are omitted
+at `min_severity="high"`; delimiter lookalikes in the authority remain high.
+The rule metadata reports its maximum severity. Standard-library IDNA decoding
+uses IDNA 2003; malformed or unsupported ACE labels are left undecoded. The
+scanner is not a browser URL validator and does not percent-decode hosts.
+`strip_hidden()` keeps reported URLs intact while still removing independently
+reported hidden characters.
+
+References: [Unicode UTS #39](https://www.unicode.org/reports/tr39/),
+[Python IDNA codec](https://docs.python.org/3/library/codecs.html#encodings-idna).
 
 A finding is a rule match, not a verdict on intent: real pages use U+200B as a
 line-break hint, and RTL text needs direction marks, which is why those rules sit

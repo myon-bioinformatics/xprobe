@@ -16,7 +16,7 @@ def test_matrix_preserves_source_identity_and_bit_order():
     assert names == ['ascii', 'unicode', 'empty', 'whitespace', 'newline', 'nul',
                      'long', 'negative', 'zero', 'positive', 'large', 'missing',
                      'wrong_type']
-    assert len(matrix['rows']) == 25
+    assert len(matrix['rows']) == 29
     assert {row['id'] for row in matrix['rows']} == {
         case['id'] for case in xprobe.known_bad_cases()
     } | {'boundary-' + kind + '-' + case['name']
@@ -133,7 +133,7 @@ def test_seed_replay_freshness_and_rng_isolation():
     first['cases'][0]['value']['text'] = 'mutated'
     first['matrix']['factor_names'].clear()
     first['matrix']['rows'].clear()
-    assert len(xprobe.case_factor_matrix()['rows']) == 25
+    assert len(xprobe.case_factor_matrix()['rows']) == 29
     assert all(case['value']['text'] != 'mutated'
                for case in xprobe.generate_factor_cases(seed=42)['cases'])
 

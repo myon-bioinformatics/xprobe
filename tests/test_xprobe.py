@@ -143,7 +143,7 @@ class IntegrationTests(unittest.TestCase):
 
     @unittest.skipUnless(hasattr(sys, "stdlib_module_names"), "stdlib inventory requires Python 3.10+")
     def test_stdlib_imports(self):
-        tree = ast.parse((ROOT / "xprobe.py").read_text())
+        tree = ast.parse((ROOT / "xprobe.py").read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:

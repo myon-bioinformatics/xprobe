@@ -467,6 +467,15 @@ _BAD_CASES = (
     ('null_not_measured', 'json', None, 'Null means not measured; do not conflate with empty or zero.'),
 )
 
+# Keep the original ordered sampling population stable as the corpus grows.
+_LEGACY_BAD_CASES = _BAD_CASES
+_BAD_CASES += (
+    ('punycode_homograph', 'url', 'http://xn--pypal-4ve.com', 'Punycode IDN label decodes to mixed-script homoglyph \'pаypal\'.'),
+    ('unicode_homograph_url', 'url', 'https://pаypal.com/login', 'Cyrillic \'а\' (U+0430) spoofing Latin \'a\' in URL domain label.'),
+    ('whole_script_homograph_url', 'url', 'http://xn--80ak6aa92e.com', 'Punycode label decodes to Cyrillic label spoofing Latin \'apple\' under \'.com\' TLD.'),
+    ('confusable_delimiter_url', 'url', 'https://google.com\u2044@evil.com', 'Fraction slash U+2044 spoofing URL path separator.'),
+)
+
 
 def known_bad_cases(category=None):
     """Fresh JSON-compatible inputs with explanation and stable IDs."""
@@ -488,7 +497,8 @@ def generate_cases(*, seed=0, count=20, category=None):
         raise ValueError('seed must be an integer')
     if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 10000:
         raise ValueError('count must be an integer between 0 and 10000')
-    pool = known_bad_cases(category)
+    legacy_ids = {row[0] for row in _LEGACY_BAD_CASES}
+    pool = [case for case in known_bad_cases(category) if case["id"] in legacy_ids]
     rng = random.Random(seed)
     result = []
     for index in range(count):
@@ -1475,6 +1485,7 @@ _HIDDEN_RULES = {
     "tag_text": ("high", "Unicode tag characters outside an emoji subdivision flag; they spell invisible ASCII"),
     "variation_payload": ("high", "four or more variation selectors in a row; decoded as one byte per selector"),
     "bidi_control": ("high", "bidirectional embedding, override or isolate control (Trojan Source reordering)"),
+    "homograph_url": ("high", "URL or domain name with IDN punycode homoglyph, mixed-script label or confusable character spoofing"),
     "zero_width": ("medium", "zero-width space, joiner, word joiner or BOM outside emoji and joining scripts"),
     "variation_selector": ("medium", "variation selector with no visible base, or repeated"),
     "invisible_format": ("medium", "other invisible format character or blank-looking filler letter"),
@@ -1495,10 +1506,23 @@ _HOMOGLYPH_SCRIPTS = ("LATIN", "CYRILLIC", "GREEK", "ARMENIAN", "CHEROKEE")
 _UNJOINED_SCRIPTS = _HOMOGLYPH_SCRIPTS + ("CJK", "HIRAGANA", "KATAKANA", "HANGUL", "DIGIT")
 _TAG_FLAG_RE = re.compile("\U0001F3F4[\U000E0030-\U000E0039\U000E0061-\U000E007A]{3,7}\U000E007F")
 _WORD_RE = re.compile(r"[^\W\d_]+")
+_CONFUSABLE_URL_CHARS = {
+    "\uff0e": "FULLWIDTH FULL STOP", "\u3002": "IDEOGRAPHIC FULL STOP", "\uff61": "HALFWIDTH IDEOGRAPHIC FULL STOP",
+    "\u2044": "FRACTION SLASH", "\u2215": "DIVISION SLASH", "\uff0f": "FULLWIDTH SOLIDUS",
+    "\uff20": "FULLWIDTH COMMERCIAL AT", "\uff1a": "FULLWIDTH COLON", "\u037e": "GREEK QUESTION MARK",
+}
+# Deliberately small subset of Unicode confusables (UTS #39): whole-script
+# detection requires every letter to resemble ASCII, not just a Cyrillic TLD.
+# This is a heuristic, not the complete Unicode skeleton or a brand allowlist.
+_ASCII_CONFUSABLE_LETTERS = frozenset("аеорсхуіјѕӏαιορϲ")
+_URL_CANDIDATE_RE = re.compile(
+    r"(?:[A-Za-z][A-Za-z0-9+.-]*://|(?<![\w.-])[\w-]+(?:[.\uff0e\u3002\uff61][\w-]+)+)"
+    r"[^\s<>\"']*"
+)
 
 
 def hidden_text_rules():
-    """{kind: {'severity', 'about'}} for the hidden-text rules, most severe first."""
+    """{kind: {'severity', 'about'}} for the hidden-text rules, maximum severity, most severe first."""
     return {kind: {"severity": level, "about": about} for kind, (level, about) in _HIDDEN_RULES.items()}
 
 
@@ -1531,12 +1555,13 @@ def _hidden_rules(kinds, min_severity):
     return {k for k in selected if _HIDDEN_LEVELS.index(_HIDDEN_RULES[k][0]) >= floor}
 
 
-def _hidden(text, rules, bom=True, end="text"):
+def _hidden(text, rules, bom=True, end="text", min_severity="low"):
     found = []
 
     def add(kind, start, end, detail, **extra):
-        if kind in rules:
-            found.append({"kind": kind, "severity": _HIDDEN_RULES[kind][0], "start": start, "end": end,
+        severity = extra.pop("severity", _HIDDEN_RULES[kind][0])
+        if kind in rules and _HIDDEN_LEVELS.index(severity) >= _HIDDEN_LEVELS.index(min_severity):
+            found.append({"kind": kind, "severity": severity, "start": start, "end": end,
                           "codepoints": _codepoints(text[start:end]), "length": end - start,
                           "detail": detail, **extra})
 
@@ -1633,6 +1658,53 @@ def _hidden(text, rules, bom=True, end="text"):
                 odd = [c for c, s in zip(word, scripts) if s in present and s != major]
                 add("mixed_script", start, match.end(), "+".join(present) + " in one word",
                     word=word, odd=_codepoints("".join(odd)))
+    if "homograph_url" in rules:
+        for match in _URL_CANDIDATE_RE.finditer(text):
+            url_text = match.group().rstrip(".,;!)]}")
+            u_start, u_end = match.start(), match.start() + len(url_text)
+            # Keep the authority separate from the path, query and fragment.
+            # Inspect userinfo too: google.com⁄@evil.com disguises the boundary.
+            authority = url_text.split("://", 1)[-1]
+            authority = re.split(r"[/?#\\]", authority, maxsplit=1)[0]
+            host_part = authority.rsplit("@", 1)[-1]
+            if host_part.startswith("["):  # bracketed IPv6, including a port
+                continue
+            host_part = host_part.split(":", 1)[0]
+            labels = re.split(r"[.\uff0e\u3002\uff61]", host_part)
+            decoded_labels, label_is_puny, label_scripts = [], [], []
+            for label in labels:
+                dec_label, is_puny = label, False
+                if label.lower().startswith("xn--"):
+                    try:
+                        dec_label = label.lower().encode("ascii").decode("idna")
+                        is_puny = True
+                    except UnicodeError:
+                        pass
+                decoded_labels.append(dec_label)
+                label_is_puny.append(is_puny)
+                label_scripts.append({_script(c) for c in dec_label if c.isalpha()})
+            full_decoded = ".".join(decoded_labels)
+            for char, name in _CONFUSABLE_URL_CHARS.items():
+                if char in authority:
+                    # IDNA explicitly accepts these three dot aliases. Retain
+                    # spelling diagnostics without treating them as an attack.
+                    level = "medium" if char in "\uff0e\u3002\uff61" else "high"
+                    add("homograph_url", u_start, u_end,
+                        f"confusable character {name} (U+{ord(char):04X}) in URL authority",
+                        decoded=full_decoded, severity=level)
+            for label, dec, is_puny, scripts in zip(labels, decoded_labels, label_is_puny, label_scripts):
+                present = [s for s in _HOMOGLYPH_SCRIPTS if s in scripts]
+                prefix = f"Punycode label {label!r} decodes to " if is_puny else "Domain label "
+                if len(present) > 1:
+                    add("homograph_url", u_start, u_end,
+                        f"{prefix}mixed-script {dec!r} ({'+'.join(present)})",
+                        decoded=full_decoded)
+                elif (len(present) == 1 and "LATIN" not in scripts
+                      and all(c.lower() in _ASCII_CONFUSABLE_LETTERS
+                              or c in "0123456789-" for c in dec)):
+                    add("homograph_url", u_start, u_end,
+                        f"{prefix}{present[0].capitalize()} {dec!r} resembles ASCII letters",
+                        decoded=full_decoded)
     return sorted(found, key=lambda f: (f["start"], f["kind"]))
 
 
@@ -1644,24 +1716,25 @@ def hidden_text(text, *, kinds=None, min_severity="low"):
     ``detail``; ``tag_text`` and ``variation_payload`` add ``decoded`` (the hidden
     ASCII, or the bytes as UTF-8 with ``\\x`` escapes; an emoji's own VS16 is not
     counted as the first byte), ``mixed_script`` adds ``word`` and the minority ``odd``
-    code points. Emoji ZWJ sequences, VS15/VS16 after a base, valid subdivision
-    flags, a leading BOM and ZWJ/ZWNJ between letters of joining scripts are not
+    code points. ``homograph_url`` adds the decoded host; IDNA dot aliases
+    are medium spelling advisories, other URL findings are high. Emoji ZWJ
+    sequences, VS15/VS16 after a base, valid subdivision flags, a leading BOM and ZWJ/ZWNJ between letters of joining scripts are not
     reported. ``kinds`` selects rules; ``min_severity`` drops lower ones.
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    return _hidden(text, _hidden_rules(kinds, min_severity))
+    return _hidden(text, _hidden_rules(kinds, min_severity), min_severity=min_severity)
 
 
 def strip_hidden(text, *, kinds=None, min_severity="low"):
-    """``text`` without the characters ``hidden_text`` reports (``mixed_script`` words are kept).
+    """``text`` without the characters ``hidden_text`` reports (``mixed_script`` words and ``homograph_url`` are kept).
 
     Use before handing untrusted text to a model or a reviewer; the report from
     ``hidden_text`` is what to log, since stripping alone hides that anything was there.
     """
     drop = set()
     for row in hidden_text(text, kinds=kinds, min_severity=min_severity):
-        if row["kind"] != "mixed_script":
+        if row["kind"] not in ("mixed_script", "homograph_url"):
             drop.update(range(row["start"], row["end"]))
     return "".join(c for i, c in enumerate(text) if i not in drop)
 
@@ -1703,7 +1776,7 @@ def hidden_text_scan(roots=(".",), *, kinds=None, min_severity="medium", max_fil
                 continue
             scanned += 1
             for number, line in enumerate(text.split("\n"), 1):
-                for row in _hidden(line, rules, bom=number == 1, end="line"):
+                for row in _hidden(line, rules, bom=number == 1, end="line", min_severity=min_severity):
                     counts[row["kind"]] = counts.get(row["kind"], 0) + 1
                     if len(findings) == max_findings:
                         truncated = True
