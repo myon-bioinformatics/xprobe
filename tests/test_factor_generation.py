@@ -16,7 +16,7 @@ def test_matrix_preserves_source_identity_and_bit_order():
     assert names == ['ascii', 'unicode', 'empty', 'whitespace', 'newline', 'nul',
                      'long', 'negative', 'zero', 'positive', 'large', 'missing',
                      'wrong_type']
-    assert len(matrix['rows']) == 25
+    assert len(matrix['rows']) == 29
     assert {row['id'] for row in matrix['rows']} == {
         case['id'] for case in xprobe.known_bad_cases()
     } | {'boundary-' + kind + '-' + case['name']
@@ -133,7 +133,7 @@ def test_seed_replay_freshness_and_rng_isolation():
     first['cases'][0]['value']['text'] = 'mutated'
     first['matrix']['factor_names'].clear()
     first['matrix']['rows'].clear()
-    assert len(xprobe.case_factor_matrix()['rows']) == 25
+    assert len(xprobe.case_factor_matrix()['rows']) == 29
     assert all(case['value']['text'] != 'mutated'
                for case in xprobe.generate_factor_cases(seed=42)['cases'])
 
@@ -170,7 +170,7 @@ def test_generation_never_executes_targets(monkeypatch):
 def test_legacy_seeded_sampling_unchanged():
     cases = xprobe.generate_cases(seed=42, count=5)
     assert [case['origin_id'] for case in cases] == [
-        'data_comma', 'short_sha', 'invalid_sha', 'escaped_sql_name', 'crlf']
+        'nul_fenced_code', 'invalid_sha', 'javascript_url', 'colon_relative', 'colon_relative']
     source = {case['id']: case for case in xprobe.known_bad_cases()}
     for index, case in enumerate(cases):
         origin = case['origin_id']

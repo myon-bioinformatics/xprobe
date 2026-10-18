@@ -463,6 +463,10 @@ _BAD_CASES = (
     ('javascript_url', 'url', 'javascript:alert(1)', 'Executable schemes require explicit handling.'),
     ('metadata_prefix', 'text', 'metadata:', 'Ambiguous syntax needs a regression fixture.'),
     ('data_comma', 'url', 'data:,text', 'An empty media type is valid data-URL syntax.'),
+    ('punycode_homograph', 'url', 'http://xn--pypal-4ve.com', 'Punycode IDN label decodes to mixed-script homoglyph \'pаypal\'.'),
+    ('unicode_homograph_url', 'url', 'https://pаypal.com/login', 'Cyrillic \'а\' (U+0430) spoofing Latin \'a\' in URL domain label.'),
+    ('whole_script_homograph_url', 'url', 'http://xn--80ak6aa92e.com', 'Punycode label decodes to Cyrillic label spoofing Latin \'apple\' under \'.com\' TLD.'),
+    ('confusable_delimiter_url', 'url', 'https://google.com\u2044@evil.com', 'Fraction slash U+2044 spoofing URL path separator.'),
     ('escaped_sql_name', 'sql', '"a""b"', 'Quoted identifiers may contain escaped delimiters.'),
     ('null_not_measured', 'json', None, 'Null means not measured; do not conflate with empty or zero.'),
 )
@@ -1475,6 +1479,7 @@ _HIDDEN_RULES = {
     "tag_text": ("high", "Unicode tag characters outside an emoji subdivision flag; they spell invisible ASCII"),
     "variation_payload": ("high", "four or more variation selectors in a row; decoded as one byte per selector"),
     "bidi_control": ("high", "bidirectional embedding, override or isolate control (Trojan Source reordering)"),
+    "homograph_url": ("high", "URL or domain name with IDN punycode homoglyph, mixed-script label or confusable character spoofing"),
     "zero_width": ("medium", "zero-width space, joiner, word joiner or BOM outside emoji and joining scripts"),
     "variation_selector": ("medium", "variation selector with no visible base, or repeated"),
     "invisible_format": ("medium", "other invisible format character or blank-looking filler letter"),
@@ -1495,6 +1500,15 @@ _HOMOGLYPH_SCRIPTS = ("LATIN", "CYRILLIC", "GREEK", "ARMENIAN", "CHEROKEE")
 _UNJOINED_SCRIPTS = _HOMOGLYPH_SCRIPTS + ("CJK", "HIRAGANA", "KATAKANA", "HANGUL", "DIGIT")
 _TAG_FLAG_RE = re.compile("\U0001F3F4[\U000E0030-\U000E0039\U000E0061-\U000E007A]{3,7}\U000E007F")
 _WORD_RE = re.compile(r"[^\W\d_]+")
+_CONFUSABLE_URL_CHARS = {
+    "\uff0e": "FULLWIDTH FULL STOP", "\u3002": "IDEOGRAPHIC FULL STOP", "\uff61": "HALFWIDTH IDEOGRAPHIC FULL STOP",
+    "\u2044": "FRACTION SLASH", "\u2215": "DIVISION SLASH", "\uff0f": "FULLWIDTH SOLIDUS",
+    "\uff20": "FULLWIDTH COMMERCIAL AT", "\uff1a": "FULLWIDTH COLON", "\u037e": "GREEK QUESTION MARK",
+}
+_URL_CANDIDATE_RE = re.compile(
+    r"(?:[A-Za-z][A-Za-z0-9+.-]*://|(?:\b[A-Za-z0-9\u00a1-\uffff_.-]+\.)+(?:[A-Za-z]{2,}|xn--[A-Za-z0-9-]+))"
+    r"[^\s<>\"']*"
+)
 
 
 def hidden_text_rules():
@@ -1633,6 +1647,58 @@ def _hidden(text, rules, bom=True, end="text"):
                 odd = [c for c, s in zip(word, scripts) if s in present and s != major]
                 add("mixed_script", start, match.end(), "+".join(present) + " in one word",
                     word=word, odd=_codepoints("".join(odd)))
+    if "homograph_url" in rules and ("http" in text or "://" in text or "xn--" in text or any(c in text for c in _CONFUSABLE_URL_CHARS) or any(ord(c) > 127 for c in text)):
+        for match in _URL_CANDIDATE_RE.finditer(text):
+            url_text = match.group()
+            u_start, u_end = match.start(), match.end()
+            for char, name in _CONFUSABLE_URL_CHARS.items():
+                if char in url_text:
+                    add("homograph_url", u_start, u_end, f"confusable character {name} (U+{ord(char):04X}) in URL")
+            host_part = url_text
+            if "://" in host_part:
+                host_part = host_part.split("://", 1)[1]
+            host_part = re.split(r"[/?#]", host_part)[0]
+            if "@" in host_part:
+                host_part = host_part.split("@")[-1]
+            if ":" in host_part and not host_part.endswith(":"):
+                host_part = host_part.split(":")[0]
+            labels = re.split(r"[\.\uff0e\u3002\uff61]", host_part)
+            decoded_labels = []
+            label_is_puny = []
+            label_scripts = []
+            for label in labels:
+                dec_label = label
+                is_puny = False
+                if label.lower().startswith("xn--"):
+                    try:
+                        dec_label = label.encode("ascii").decode("idna")
+                        is_puny = True
+                    except Exception:
+                        pass
+                decoded_labels.append(dec_label)
+                label_is_puny.append(is_puny)
+                scripts = [_script(c) for c in dec_label if c.isalpha()]
+                label_scripts.append(set(scripts))
+            full_decoded = ".".join(decoded_labels)
+            for label, dec_label, is_puny, unique_scripts in zip(labels, decoded_labels, label_is_puny, label_scripts):
+                homo_present = [s for s in _HOMOGLYPH_SCRIPTS if s in unique_scripts]
+                if len(homo_present) > 1:
+                    prefix = f"Punycode label {label!r} decodes to " if is_puny else "Domain label "
+                    add("homograph_url", u_start, u_end, f"{prefix}mixed-script {dec_label!r} ({'+'.join(homo_present)})",
+                        decoded=full_decoded)
+            all_scripts = set().union(*label_scripts)
+            cross_homo = [s for s in _HOMOGLYPH_SCRIPTS if s in all_scripts]
+            if len(cross_homo) > 1 and not any(len([s for s in _HOMOGLYPH_SCRIPTS if s in ls]) > 1 for ls in label_scripts):
+                for i, (label, dec, ls) in enumerate(zip(labels, decoded_labels, label_scripts)):
+                    non_latin = [s for s in ls if s in _HOMOGLYPH_SCRIPTS and s != "LATIN"]
+                    if non_latin:
+                        other_scripts = set().union(*[l_s for j, l_s in enumerate(label_scripts) if j != i])
+                        if "LATIN" in other_scripts:
+                            is_puny = label.lower().startswith("xn--")
+                            prefix = f"Punycode label {label!r} decodes to " if is_puny else ""
+                            add("homograph_url", u_start, u_end,
+                                f"{prefix}{non_latin[0].capitalize()} domain label {dec!r} mixed with Latin domain label/TLD",
+                                decoded=".".join(decoded_labels))
     return sorted(found, key=lambda f: (f["start"], f["kind"]))
 
 
@@ -1654,14 +1720,14 @@ def hidden_text(text, *, kinds=None, min_severity="low"):
 
 
 def strip_hidden(text, *, kinds=None, min_severity="low"):
-    """``text`` without the characters ``hidden_text`` reports (``mixed_script`` words are kept).
+    """``text`` without the characters ``hidden_text`` reports (``mixed_script`` words and ``homograph_url`` are kept).
 
     Use before handing untrusted text to a model or a reviewer; the report from
     ``hidden_text`` is what to log, since stripping alone hides that anything was there.
     """
     drop = set()
     for row in hidden_text(text, kinds=kinds, min_severity=min_severity):
-        if row["kind"] != "mixed_script":
+        if row["kind"] not in ("mixed_script", "homograph_url"):
             drop.update(range(row["start"], row["end"]))
     return "".join(c for i, c in enumerate(text) if i not in drop)
 

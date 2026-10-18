@@ -44,6 +44,11 @@ def kinds(text, **kwargs):
     ("pass\u00adword", ["soft_hyphen"]),
     ("icon \ue000\ue001", ["private_use"]),
     ("\U000F0000", ["private_use"]),
+    ("http://xn--pypal-4ve.com", ["homograph_url"]),
+    ("https://pаypal.com/login", ["homograph_url", "mixed_script"]),
+    ("http://xn--80ak6aa92e.com", ["homograph_url"]),
+    ("https://google.com\u2044@evil.com", ["homograph_url"]),
+    ("https://paypal\uff0ecom", ["homograph_url"]),
 ])
 def test_rule_matches(text, expected):
     assert kinds(text) == expected
@@ -111,9 +116,40 @@ def test_bidi_balance_and_homoglyph_details():
     assert xprobe.hidden_text("\u061c")[0]["detail"] == "ARABIC LETTER MARK"
 
 
+def test_homograph_url_details():
+    puny = xprobe.hidden_text("http://xn--pypal-4ve.com")
+    assert len(puny) == 1
+    assert puny[0]["kind"] == "homograph_url"
+    assert puny[0]["severity"] == "high"
+    assert "xn--pypal-4ve" in puny[0]["detail"] and "pаypal" in puny[0]["detail"]
+    assert puny[0]["decoded"] == "pаypal.com"
+
+    whole = xprobe.hidden_text("http://xn--80ak6aa92e.com")
+    assert len(whole) == 1
+    assert whole[0]["kind"] == "homograph_url"
+    assert "Cyrillic" in whole[0]["detail"] and "xn--80ak6aa92e" in whole[0]["detail"]
+    assert whole[0]["decoded"] == "аррӏе.com"
+
+    delim = xprobe.hidden_text("https://google.com\u2044@evil.com")
+    assert any(r["kind"] == "homograph_url" and "FRACTION SLASH" in r["detail"] for r in delim)
+
+    fullstop = xprobe.hidden_text("https://paypal\uff0ecom")
+    assert any(r["kind"] == "homograph_url" and "FULLWIDTH FULL STOP" in r["detail"] for r in fullstop)
+
+
+def test_homograph_url_known_bad_cases():
+    url_cases = xprobe.known_bad_cases(category="url")
+    ids = {c["id"] for c in url_cases}
+    assert {"punycode_homograph", "unicode_homograph_url", "whole_script_homograph_url", "confusable_delimiter_url"} <= ids
+    for case in url_cases:
+        if case["id"] in ("punycode_homograph", "unicode_homograph_url", "whole_script_homograph_url", "confusable_delimiter_url"):
+            findings = xprobe.hidden_text(case["value"])
+            assert any(f["kind"] == "homograph_url" for f in findings)
+
+
 def test_rule_selection_and_validation():
     rules = xprobe.hidden_text_rules()
-    assert list(rules)[:3] == ["tag_text", "variation_payload", "bidi_control"]
+    assert list(rules)[:4] == ["tag_text", "variation_payload", "bidi_control", "homograph_url"]
     assert {r["severity"] for r in rules.values()} == {"low", "medium", "high"}
     mixed = "p\u0430y\u200b\u00ad" + tags("x") + "\ue000"
     assert kinds(mixed) == ["mixed_script", "zero_width", "soft_hyphen", "tag_text", "private_use"]
@@ -135,6 +171,8 @@ def test_strip_hidden_keeps_visible_text_and_emoji():
     assert xprobe.strip_hidden(text) == "\ufeff\U0001F469\u200d\U0001F4BB p\u0430y ok \u2764\ufe0f"
     assert xprobe.strip_hidden(text, min_severity="medium").endswith("\u00ad")
     assert xprobe.strip_hidden("a\u200bb\u202ec", kinds="zero_width") == "ab\u202ec"
+    url_text = "http://xn--pypal-4ve.com\u200b"
+    assert xprobe.strip_hidden(url_text) == "http://xn--pypal-4ve.com"
 
 
 def test_scan_reports_lines_columns_and_limits(tmp_path):

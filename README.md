@@ -316,9 +316,10 @@ hidden in Unicode tag characters (`tag_text`, with the hidden ASCII in
 `decoded`), bytes smuggled as a run of variation selectors (`variation_payload`,
 decoded one byte per selector), Trojan Source bidi controls (`bidi_control`, with
 "not closed before end of line" when an override or isolate is left open),
-zero-width characters, stray variation selectors, other invisible format
-characters and Hangul fillers, Latin/Cyrillic/Greek homoglyph words
-(`mixed_script`, with the minority code points in `odd`), and low-severity
+IDN punycode homoglyphs, mixed-script domain labels and confusable URL delimiters
+(`homograph_url`, with `decoded` host labels), zero-width characters, stray variation
+selectors, other invisible format characters and Hangul fillers, Latin/Cyrillic/Greek
+homoglyph words (`mixed_script`, with the minority code points in `odd`), and low-severity
 direction marks, soft hyphens and private-use code points. Valid emoji ZWJ
 sequences, VS15/VS16 after a base, subdivision flags, ideographic variation
 sequences, a leading BOM and ZWJ/ZWNJ inside joining scripts (Persian, Indic)
