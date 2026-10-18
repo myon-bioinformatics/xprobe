@@ -274,3 +274,60 @@ python xprobe.py --search tomllib --root ../a --root ../b --brief
 
 `--root` repeats for `--search` and `--preset` too; with more than one root,
 paths are prefixed with their root.
+
+## Emoji: sequences, reverse lookup and inventory (0.4)
+
+```sh
+python xprobe.py --emoji-find house            # name -> emoji (stdlib unicodedata)
+python xprobe.py --emoji-find "flag jp"
+python xprobe.py --emoji-explain "TEXT"        # split into sequences: code points and names
+python xprobe.py --emoji --root ../a --root ../b --brief   # which emoji are used where
+```
+
+`emoji_sequences(text)` finds whole emoji sequences (ZWJ, skin-tone modifiers,
+flags, keycaps, subdivision tag flags) using the Extended_Pictographic table and the
+UTS #51 sequence shape, with offsets, `kind`, and an `identity` without U+FE0F (the
+same rule as browser-test-kit's `route_trail.py`, so `❤️` and `❤` are one emoji).
+Text-default symbols such as the copyright sign only count with U+FE0F.
+`emoji_name()` and `emoji_find()` use this interpreter's `unicodedata`, which names
+single code points only: a ZWJ sequence reads as its parts (`WOMAN + PERSONAL
+COMPUTER`), and very new emoji are unnamed on older Pythons (`unicodedata.unidata_version`
+is reported). `--emoji-names FILE` (or `names=load_emoji_names(FILE)`) takes CLDR names from QueRyu's accumulated `emoji_names.json` first, naming skin-tone/hair variants from their base (`woman technologist: medium skin tone`), so names work offline without unicode.org. `emoji_inventory(roots)` counts identities across roots with the
+spellings used (`forms`, to catch a heading written both with and without U+FE0F),
+file counts and first locations.
+
+`tests/test_xprobe_emoji.py` mirrors the table against Node's
+`\p{Extended_Pictographic}` for every code point and the sequences against
+`\p{RGI_Emoji}` (RegExp `v` flag, Node 20+) on `tests/fixtures/emoji_corpus.txt`;
+both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
+
+## Hidden text: invisible and deceptive characters (0.4)
+
+```sh
+python xprobe.py --hidden-rules                         # rule, severity, what it matches
+python xprobe.py --hidden-text --root ../a --brief      # 1 if anything at/above --min-severity (default medium)
+python xprobe.py --hidden-text --min-severity high --kinds tag_text,bidi_control --root .
+python xprobe.py --strip-hidden untrusted.txt > clean.txt   # '-' reads stdin
+```
+
+`hidden_text(text)` matches rules for characters that change what a reader,
+reviewer or model receives without showing on screen: prompt-injection text
+hidden in Unicode tag characters (`tag_text`, with the hidden ASCII in
+`decoded`), bytes smuggled as a run of variation selectors (`variation_payload`,
+decoded one byte per selector), Trojan Source bidi controls (`bidi_control`, with
+"not closed before end of line" when an override or isolate is left open),
+zero-width characters, stray variation selectors, other invisible format
+characters and Hangul fillers, Latin/Cyrillic/Greek homoglyph words
+(`mixed_script`, with the minority code points in `odd`), and low-severity
+direction marks, soft hyphens and private-use code points. Valid emoji ZWJ
+sequences, VS15/VS16 after a base, subdivision flags, ideographic variation
+sequences, a leading BOM and ZWJ/ZWNJ inside joining scripts (Persian, Indic)
+are left alone, using the same emoji grammar as `emoji_sequences`.
+
+A finding is a rule match, not a verdict on intent: real pages use U+200B as a
+line-break hint, and RTL text needs direction marks, which is why those rules sit
+at medium/low. `strip_hidden(text)` removes what the selected rules match (homoglyph
+words are reported, not rewritten); keep the `hidden_text` report alongside, since
+stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
+`path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
+characters it reports.
