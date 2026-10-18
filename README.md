@@ -325,6 +325,26 @@ sequences, VS15/VS16 after a base, subdivision flags, ideographic variation
 sequences, a leading BOM and ZWJ/ZWNJ inside joining scripts (Persian, Indic)
 are left alone, using the same emoji grammar as `emoji_sequences`.
 
+`homograph_url` inspects the URL authority, not Unicode in paths, queries or
+fragments. `decoded` is the host with ACE labels decoded and IDNA dot aliases
+normalized; `start`/`end` cover the matched URL (excluding trailing prose
+punctuation). Latin/Cyrillic and other homoglyph-script mixtures **within a
+label** are high-severity candidates. Merely using different scripts in separate
+labels, Japanese script mixtures, or Punycode is not evidence of spoofing.
+Whole-script candidates require every letter in a label to belong to a small
+ASCII-confusable Cyrillic/Greek subset; this is a conservative heuristic, not a
+complete UTS #39 skeleton, ownership check, or maliciousness verdict. Valid IDNA
+dot aliases (`。`, `．`, `｡`) retain a **medium** spelling advisory and are omitted
+at `min_severity="high"`; delimiter lookalikes in the authority remain high.
+The rule metadata reports its maximum severity. Standard-library IDNA decoding
+uses IDNA 2003; malformed or unsupported ACE labels are left undecoded. The
+scanner is not a browser URL validator and does not percent-decode hosts.
+`strip_hidden()` keeps reported URLs intact while still removing independently
+reported hidden characters.
+
+References: [Unicode UTS #39](https://www.unicode.org/reports/tr39/),
+[Python IDNA codec](https://docs.python.org/3/library/codecs.html#encodings-idna).
+
 A finding is a rule match, not a verdict on intent: real pages use U+200B as a
 line-break hint, and RTL text needs direction marks, which is why those rules sit
 at medium/low. `strip_hidden(text)` removes what the selected rules match (homoglyph
