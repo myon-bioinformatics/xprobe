@@ -1351,7 +1351,7 @@ def emoji_name(sequence, names=None):
     chars = [c for c in sequence if c not in "\ufe0f\u200d"]
     if len(chars) == 2 and all("\U0001F1E6" <= c <= "\U0001F1FF" for c in chars):
         return "FLAG " + "".join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
-    if chars and chars[-1] == "⃣":
+    if chars and chars[-1] == "\u20e3":
         return "KEYCAP " + chars[0]
     if chars and chars[0] == "\U0001F3F4" and len(chars) > 2 and chars[-1] == "\U000E007F":
         return "FLAG " + "".join(chr(ord(c) - 0xE0000) for c in chars[1:-1])
@@ -1377,7 +1377,7 @@ def emoji_sequences(text, names=None):
         if len(seq) == 1 and ord(seq) < 0x2190 and not text[match.end():match.end() + 1] == "\ufe0f":
             continue  # (c) (r) !! ?! TM i stay text unless followed by VS16 (handled by the grammar)
         kind = ("flag" if "\U0001F1E6" <= seq[0] <= "\U0001F1FF" else
-                "keycap" if seq.endswith("⃣") else
+                "keycap" if seq.endswith("\u20e3") else
                 "tag" if seq.endswith("\U000E007F") else
                 "zwj" if "\u200d" in seq else
                 "modified" if any("\U0001F3FB" <= c <= "\U0001F3FF" for c in seq) else "single")

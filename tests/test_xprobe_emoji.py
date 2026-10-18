@@ -113,12 +113,12 @@ def test_inventory_counts_forms_and_cli(tmp_path, capsys):
 def test_names_table_from_queryu_is_preferred(tmp_path, capsys):
     table = tmp_path / "emoji_names.json"
     table.write_text(json.dumps({"schema": "queryu.emoji-names/1", "sources": [],
-                                 "names": {"\U0001F469‍\U0001F4BB": "woman technologist",
-                                           "\U0001F5FA️": "world map"}}), encoding="utf-8")
+                                 "names": {"\U0001F469\u200d\U0001F4BB": "woman technologist",
+                                           "\U0001F5FA\ufe0f": "world map"}}), encoding="utf-8")
     names = xprobe.load_emoji_names(table)
-    assert names == {"\U0001F469‍\U0001F4BB": "woman technologist", "\U0001F5FA": "world map"}
-    assert xprobe.emoji_name("\U0001F5FA️", names) == "world map"
-    assert xprobe.emoji_name("\U0001F469\U0001F3FD‍\U0001F4BB", names) == "woman technologist: medium skin tone"
+    assert names == {"\U0001F469\u200d\U0001F4BB": "woman technologist", "\U0001F5FA": "world map"}
+    assert xprobe.emoji_name("\U0001F5FA\ufe0f", names) == "world map"
+    assert xprobe.emoji_name("\U0001F469\U0001F3FD\u200d\U0001F4BB", names) == "woman technologist: medium skin tone"
     assert xprobe.emoji_name("\U0001F3E0", names) == "HOUSE BUILDING"  # not in the table: unicodedata
     plain = tmp_path / "plain.json"
     plain.write_text(json.dumps({"\U0001F3E0": "house"}), encoding="utf-8")
