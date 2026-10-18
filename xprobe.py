@@ -23,7 +23,9 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "corpus_from_json", "merge_cases", "cases_from_junit", "main",
            "pytest_receipt", "case_factor_matrix", "generate_factor_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
-           "load_toml", "load_yaml", "junit_annotations", "portability_findings"]
+           "load_toml", "load_yaml", "junit_annotations", "portability_findings",
+           "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory",
+           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan"]
 
 
 def _limit(value, name):
@@ -1273,6 +1275,446 @@ def portability_findings(root=".", *, min_python=None, max_python=(3, 14), local
             "encoding": encoding, "files": scanned, "truncated": truncated, "findings": findings}
 
 
+
+# --- emoji: sequences, inventory and reverse lookup (stdlib only) --------------
+# Extended_Pictographic (UTS #51 / emoji-data.txt), the code points an emoji
+# sequence may start from. The property includes reserved blocks, so the table
+# stays valid as new emoji are assigned; tests compare it with Node's
+# \p{Extended_Pictographic} for every code point.
+_EXT_PICT_UNICODE = "16.0"  # Unicode 17 narrowed the property; this wider table is a superset of it
+_EXT_PICT = ("a9 ae 203c 2049 2122 2139 2194-2199 21a9-21aa 231a-231b 2328 2388 23cf 23e9-23f3 "
+             "23f8-23fa 24c2 25aa-25ab 25b6 25c0 25fb-25fe 2600-2605 2607-2612 2614-2685 2690-2705 "
+             "2708-2712 2714 2716 271d 2721 2728 2733-2734 2744 2747 274c 274e 2753-2755 2757 "
+             "2763-2767 2795-2797 27a1 27b0 27bf 2934-2935 2b05-2b07 2b1b-2b1c 2b50 2b55 3030 303d "
+             "3297 3299 1f000-1f0ff 1f10d-1f10f 1f12f 1f16c-1f171 1f17e-1f17f 1f18e 1f191-1f19a "
+             "1f1ad-1f1e5 1f201-1f20f 1f21a 1f22f 1f232-1f23a 1f23c-1f23f 1f249-1f3fa 1f400-1f53d "
+             "1f546-1f64f 1f680-1f6ff 1f774-1f77f 1f7d5-1f7ff 1f80c-1f80f 1f848-1f84f 1f85a-1f85f "
+             "1f888-1f88f 1f8ae-1f8ff 1f90c-1f93a 1f93c-1f945 1f947-1faff 1fc00-1fffd")
+
+
+def _emoji_class():
+    parts = []
+    for item in _EXT_PICT.split():
+        lo, _, hi = item.partition("-")
+        parts.append("\\U%08x" % int(lo, 16) + ("-\\U%08x" % int(hi, 16) if hi else ""))
+    return "[" + "".join(parts) + "]"
+
+
+_PICT = _emoji_class()
+_EMOJI_MOD = "[\\U0001F3FB-\\U0001F3FF]"
+_EMOJI_ELEMENT = _PICT + "(?:\\uFE0F|" + _EMOJI_MOD + ")?"
+_EMOJI_RE = re.compile(
+    "[\\U0001F1E6-\\U0001F1FF]{2}"                      # flag: two regional indicators
+    "|[0-9#*]\\uFE0F?\\u20E3"                            # keycap
+    "|\\U0001F3F4[\\U000E0020-\\U000E007E]+\\U000E007F"  # tag sequence (subdivision flag)
+    "|" + _EMOJI_ELEMENT + "(?:\\u200D" + _EMOJI_ELEMENT + ")*")
+_PICT_RE = re.compile(_PICT)
+
+
+def emoji_identity(sequence):
+    """Comparison form: without U+FE0F, so a heading's "\\u2764\\ufe0f" and "\\u2764" are one emoji."""
+    return sequence.replace("\ufe0f", "")
+
+
+def load_emoji_names(path):
+    """identity -> name from a QueRyu ``emoji_names.json`` (``queryu.emoji-names/1``) or a plain JSON object."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    names = data.get("names") if isinstance(data, dict) and data.get("schema") == "queryu.emoji-names/1" else data
+    if not isinstance(names, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in names.items()):
+        raise ValueError(f"{path}: expected queryu.emoji-names/1 or an object of emoji -> name")
+    return {emoji_identity(k): v for k, v in names.items()}
+
+
+_EMOJI_PARTS = {"\U0001F3FB": "light skin tone", "\U0001F3FC": "medium-light skin tone",
+                "\U0001F3FD": "medium skin tone", "\U0001F3FE": "medium-dark skin tone",
+                "\U0001F3FF": "dark skin tone", "\U0001F9B0": "red hair", "\U0001F9B1": "curly hair",
+                "\U0001F9B3": "white hair", "\U0001F9B2": "bald"}
+
+
+def emoji_name(sequence, names=None):
+    """A readable name from stdlib data: component names joined by " + ".
+
+    Flags become ``FLAG JP``, keycaps ``KEYCAP #``, subdivision flags ``FLAG gbsct``.
+    unicodedata only names single code points (its version is ``unicodedata.unidata_version``),
+    so a ZWJ sequence such as woman technologist reads ``WOMAN + PERSONAL COMPUTER``.
+    ``names`` (identity -> name, e.g. ``load_emoji_names("emoji_names.json")`` from QueRyu)
+    is tried first, with skin-tone/hair variants named from their base (CLDR pattern).
+    """
+    if names:
+        key = emoji_identity(sequence)
+        if key in names:
+            return names[key]
+        base = "\u200d".join(p for p in "".join(c for c in key if c not in _EMOJI_PARTS).split("\u200d") if p)
+        parts = [_EMOJI_PARTS[c] for c in key if c in _EMOJI_PARTS]
+        if parts and base in names:
+            return names[base] + ": " + ", ".join(dict.fromkeys(parts))
+    chars = [c for c in sequence if c not in "\ufe0f\u200d"]
+    if len(chars) == 2 and all("\U0001F1E6" <= c <= "\U0001F1FF" for c in chars):
+        return "FLAG " + "".join(chr(ord(c) - 0x1F1E6 + 65) for c in chars)
+    if chars and chars[-1] == "\u20e3":
+        return "KEYCAP " + chars[0]
+    if chars and chars[0] == "\U0001F3F4" and len(chars) > 2 and chars[-1] == "\U000E007F":
+        return "FLAG " + "".join(chr(ord(c) - 0xE0000) for c in chars[1:-1])
+    return " + ".join(unicodedata.name(c, "U+%04X" % ord(c)) for c in chars)
+
+
+def emoji_sequences(text, names=None):
+    """Emoji sequences in ``text`` with offsets: flags, keycaps, tag flags, modifiers, ZWJ sequences.
+
+    Each row has ``emoji`` (as written), ``identity`` (without U+FE0F), ``kind``
+    (single/modified/zwj/flag/keycap/tag), ``start``/``end`` (str offsets) and ``name``.
+    The grammar is UTS #51's possible-emoji shape over Extended_Pictographic, so it
+    also accepts non-RGI combinations; text-default symbols such as (c) count only
+    with U+FE0F.
+    """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    rows = []
+    for match in _EMOJI_RE.finditer(text):
+        seq = match.group()
+        if len(seq) == 1 and ord(seq) < 0x1F000 and not unicodedata.category(seq).startswith("So"):
+            continue
+        if len(seq) == 1 and ord(seq) < 0x2190 and not text[match.end():match.end() + 1] == "\ufe0f":
+            continue  # (c) (r) !! ?! TM i stay text unless followed by VS16 (handled by the grammar)
+        kind = ("flag" if "\U0001F1E6" <= seq[0] <= "\U0001F1FF" else
+                "keycap" if seq.endswith("\u20e3") else
+                "tag" if seq.endswith("\U000E007F") else
+                "zwj" if "\u200d" in seq else
+                "modified" if any("\U0001F3FB" <= c <= "\U0001F3FF" for c in seq) else "single")
+        rows.append({"emoji": seq, "identity": emoji_identity(seq), "kind": kind,
+                     "start": match.start(), "end": match.end(), "name": emoji_name(seq, names)})
+    return rows
+
+
+def emoji_find(query, *, limit=20):
+    """Single-code-point emoji whose Unicode name contains every word of ``query``.
+
+    ``emoji_find("house")`` -> HOUSE BUILDING, HOUSE WITH GARDEN, ...; ``"flag jp"``
+    returns the flag built from regional indicators. Names come from this
+    interpreter's ``unicodedata`` (versions differ across Python releases).
+    """
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("query is required")
+    _limit(limit, "limit")
+    words = query.upper().split()
+    if len(words) == 2 and words[0] == "FLAG" and re.fullmatch(r"[A-Z]{2}", words[1]):
+        flag = "".join(chr(0x1F1E6 + ord(c) - 65) for c in words[1])
+        return [{"emoji": flag, "name": emoji_name(flag), "codepoints": ["U+%04X" % ord(c) for c in flag]}]
+    rows = []
+    for item in _EXT_PICT.split():
+        lo, _, hi = item.partition("-")
+        for code in range(int(lo, 16), int(hi or lo, 16) + 1):
+            name = unicodedata.name(chr(code), "")
+            if name and all(w in name for w in words):
+                rows.append({"emoji": chr(code), "name": name, "codepoints": ["U+%04X" % code]})
+    rows.sort(key=lambda r: (len(r["name"]), r["name"]))
+    return rows[:limit]
+
+
+_EMOJI_SKIP = {".git", "node_modules", ".venv", "venv", "__pycache__", "build", "dist", ".tox"}
+
+
+def emoji_inventory(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_examples=3, names=None):
+    """Which emoji appear where: counts per identity across one or more roots.
+
+    Rows: ``identity``, ``count``, ``files``, ``forms`` (spellings with/without U+FE0F
+    and their counts; two forms of one identity is a common heading inconsistency),
+    ``name`` and the first ``max_examples`` ``path:line``. UTF-8 text files only;
+    binary or undecodable files are skipped and counted.
+    """
+    if isinstance(roots, (str, os.PathLike)):
+        roots = [roots]
+    for value, label in ((max_files, "max_files"), (max_bytes, "max_bytes"), (max_examples, "max_examples")):
+        _limit(value, label)
+    stats, scanned, skipped, truncated = {}, 0, 0, False
+    for root in roots:
+        base = Path(root)
+        paths = [base] if base.is_file() else sorted(
+            p for p in base.rglob("*") if p.is_file()
+            and not any(part in _EMOJI_SKIP for part in p.relative_to(base).parts))
+        for path in paths:
+            if scanned == max_files:
+                truncated = True
+                break
+            label = (path.name if base.is_file() else path.relative_to(base).as_posix())
+            if len(roots) > 1:
+                label = os.fspath(root).rstrip("/") + "/" + label
+            try:
+                with path.open("rb") as stream:
+                    data = stream.read(max_bytes + 1)  # never load more than the cap
+                if len(data) > max_bytes or b"\0" in data[:4096]:
+                    raise ValueError
+                text = data.decode("utf-8")
+            except (OSError, ValueError):
+                skipped += 1
+                continue
+            scanned += 1
+            for number, line in enumerate(text.splitlines(), 1):
+                for row in emoji_sequences(line, names):
+                    entry = stats.setdefault(row["identity"], {"identity": row["identity"], "count": 0,
+                                                              "files": set(), "forms": {}, "name": row["name"],
+                                                              "kind": row["kind"], "examples": []})
+                    entry["count"] += 1
+                    entry["files"].add(label)
+                    entry["forms"][row["emoji"]] = entry["forms"].get(row["emoji"], 0) + 1
+                    if len(entry["examples"]) < max_examples:
+                        entry["examples"].append(f"{label}:{number}")
+    rows = sorted(stats.values(), key=lambda e: (-e["count"], e["identity"]))
+    for row in rows:
+        row["files"] = len(row["files"])
+    return {"schema": "xprobe.emoji-inventory.v1", "unicodedata": unicodedata.unidata_version,
+            "files": scanned, "skipped": skipped, "truncated": truncated, "emoji": rows}
+
+
+# Hidden text: characters that change what a reader, a reviewer or a model
+# receives without showing on screen (prompt injection, Trojan Source, homoglyph
+# spoofing, variation-selector smuggling). Matching is per code point and per
+# word; nothing here decides intent, so every finding is a rule match to review.
+_HIDDEN_LEVELS = ("low", "medium", "high")
+_HIDDEN_RULES = {
+    "tag_text": ("high", "Unicode tag characters outside an emoji subdivision flag; they spell invisible ASCII"),
+    "variation_payload": ("high", "four or more variation selectors in a row; decoded as one byte per selector"),
+    "bidi_control": ("high", "bidirectional embedding, override or isolate control (Trojan Source reordering)"),
+    "zero_width": ("medium", "zero-width space, joiner, word joiner or BOM outside emoji and joining scripts"),
+    "variation_selector": ("medium", "variation selector with no visible base, or repeated"),
+    "invisible_format": ("medium", "other invisible format character or blank-looking filler letter"),
+    "mixed_script": ("medium", "one word mixing Latin, Cyrillic, Greek, Armenian or Cherokee letters (homoglyphs)"),
+    "bidi_mark": ("low", "LRM/RLM/ALM direction mark; normal inside right-to-left text"),
+    "soft_hyphen": ("low", "soft hyphen: invisible unless the line breaks there; splits keywords"),
+    "private_use": ("low", "private-use code point (icon fonts, or text only some fonts show)"),
+}
+_BIDI_OPEN = {"\u202a": "pdf", "\u202b": "pdf", "\u202d": "pdf", "\u202e": "pdf",
+              "\u2066": "pdi", "\u2067": "pdi", "\u2068": "pdi"}
+_BIDI_CLOSE = {"\u202c": "pdf", "\u2069": "pdi"}
+_BIDI_MARKS = "\u200e\u200f\u061c"
+_ZERO_WIDTH = "\u200b\u200c\u200d\u2060\ufeff\u180e"
+_JOINERS = "\u200c\u200d"
+_FILLERS = "\u115f\u1160\u3164\uffa0\u2800\u034f\u17b4\u17b5"  # Hangul fillers, braille blank, CGJ, Khmer
+_SHOWN_FORMAT = set("\u0600\u0601\u0602\u0603\u0604\u0605\u06dd\u070f\u0890\u0891\u08e2\U000110bd\U000110cd")
+_HOMOGLYPH_SCRIPTS = ("LATIN", "CYRILLIC", "GREEK", "ARMENIAN", "CHEROKEE")
+_UNJOINED_SCRIPTS = _HOMOGLYPH_SCRIPTS + ("CJK", "HIRAGANA", "KATAKANA", "HANGUL", "DIGIT")
+_TAG_FLAG_RE = re.compile("\U0001F3F4[\U000E0030-\U000E0039\U000E0061-\U000E007A]{3,7}\U000E007F")
+_WORD_RE = re.compile(r"[^\W\d_]+")
+
+
+def hidden_text_rules():
+    """{kind: {'severity', 'about'}} for the hidden-text rules, most severe first."""
+    return {kind: {"severity": level, "about": about} for kind, (level, about) in _HIDDEN_RULES.items()}
+
+
+def _selector(char):
+    code = ord(char)
+    return 0xFE00 <= code <= 0xFE0F or 0xE0100 <= code <= 0xE01EF
+
+
+def _script(char):
+    words = unicodedata.name(char, "").split()
+    while words and words[0] in ("FULLWIDTH", "HALFWIDTH"):
+        words = words[1:]
+    return words[0] if words else ""
+
+
+def _codepoints(text, limit=16):
+    return ["U+%04X" % ord(c) for c in text[:limit]]
+
+
+def _hidden_rules(kinds, min_severity):
+    if min_severity not in _HIDDEN_LEVELS:
+        raise ValueError("min_severity must be one of " + ", ".join(_HIDDEN_LEVELS))
+    if isinstance(kinds, str):
+        kinds = [kinds]
+    selected = set(_HIDDEN_RULES) if kinds is None else set(kinds)
+    unknown = sorted(selected - set(_HIDDEN_RULES))
+    if unknown:
+        raise ValueError("unknown hidden-text kind(s): " + ", ".join(unknown))
+    floor = _HIDDEN_LEVELS.index(min_severity)
+    return {k for k in selected if _HIDDEN_LEVELS.index(_HIDDEN_RULES[k][0]) >= floor}
+
+
+def _hidden(text, rules, bom=True, end="text"):
+    found = []
+
+    def add(kind, start, end, detail, **extra):
+        if kind in rules:
+            found.append({"kind": kind, "severity": _HIDDEN_RULES[kind][0], "start": start, "end": end,
+                          "codepoints": _codepoints(text[start:end]), "length": end - start,
+                          "detail": detail, **extra})
+
+    emoji = set()
+    for match in _EMOJI_RE.finditer(text):
+        if not match.group().endswith("\U000E007F"):
+            emoji.update(range(match.start(), match.end()))
+    for match in _TAG_FLAG_RE.finditer(text):
+        emoji.update(range(match.start(), match.end()))
+    stack, i, n = [], 0, len(text)
+    while i < n:
+        char, code = text[i], ord(text[i])
+        if 0xE0000 <= code <= 0xE007F and i not in emoji:
+            j = i
+            while j < n and 0xE0000 <= ord(text[j]) <= 0xE007F and j not in emoji:
+                j += 1
+            hidden = "".join(chr(ord(c) - 0xE0000) for c in text[i:j] if 0xE0020 <= ord(c) <= 0xE007E)
+            add("tag_text", i, j, "%d tag character(s)" % (j - i), decoded=hidden)
+            i = j
+            continue
+        if _selector(char):
+            if i in emoji and i + 1 < n and _selector(text[i + 1]):
+                i += 1  # the first selector is the emoji's VS16; the run starts after it
+            j = i
+            while j < n and _selector(text[j]):
+                j += 1
+            if j - i >= 4:
+                data = bytes(ord(c) - 0xFE00 if ord(c) <= 0xFE0F else ord(c) - 0xE0100 + 16 for c in text[i:j])
+                add("variation_payload", i, j, "%d selector(s) in a row" % (j - i),
+                    decoded=data.decode("utf-8", "backslashreplace"))
+            elif j - i > 1:
+                add("variation_selector", i, j, "%d selector(s) in a row" % (j - i))
+            elif i not in emoji and i and _selector(text[i - 1]):
+                add("variation_selector", i, j, "selector after the emoji's own selector")
+            elif i not in emoji and (not i or unicodedata.category(text[i - 1])[0] in "ZC"):
+                add("variation_selector", i, j, "no visible base before the selector")
+            i = j
+            continue
+        if i in emoji:
+            i += 1
+            continue
+        if char in _BIDI_OPEN:
+            add("bidi_control", i, i + 1, unicodedata.name(char))
+            if "bidi_control" in rules:
+                stack.append((_BIDI_OPEN[char], found[-1]))
+        elif char in _BIDI_CLOSE:
+            if stack and stack[-1][0] == _BIDI_CLOSE[char]:
+                stack.pop()
+            add("bidi_control", i, i + 1, unicodedata.name(char))
+        elif char in "\n\r\u2028\u2029\x85":
+            for _, row in stack:
+                row["detail"] += ", not closed before end of line"
+            stack = []
+        elif char in _BIDI_MARKS:
+            add("bidi_mark", i, i + 1, unicodedata.name(char, "ARABIC LETTER MARK"))
+        elif char in _ZERO_WIDTH:
+            if char == "\ufeff" and i == 0 and bom:
+                i += 1
+                continue
+            j = i
+            while j < n and text[j] in _ZERO_WIDTH and j not in emoji:
+                j += 1
+            left, right = text[i - 1] if i else "", text[j] if j < n else ""
+            joined = (j - i == 1 and char in _JOINERS and left and right
+                      and unicodedata.category(left)[0] in "LM" and unicodedata.category(right)[0] in "LM"
+                      and _script(left) not in _UNJOINED_SCRIPTS)
+            if not joined:
+                add("zero_width", i, j, ", ".join(dict.fromkeys(unicodedata.name(c) for c in text[i:j])))
+            i = j
+            continue
+        elif char == "\u00ad":
+            add("soft_hyphen", i, i + 1, "SOFT HYPHEN")
+        elif char in _FILLERS or (unicodedata.category(char) == "Cf" and char not in _SHOWN_FORMAT):
+            add("invisible_format", i, i + 1, unicodedata.name(char, "U+%04X" % code))
+        elif unicodedata.category(char) == "Co":
+            j = i
+            while j < n and unicodedata.category(text[j]) == "Co":
+                j += 1
+            add("private_use", i, j, "%d private-use code point(s)" % (j - i))
+            i = j
+            continue
+        i += 1
+    for _, row in stack:
+        row["detail"] += ", not closed before end of " + end
+    if "mixed_script" in rules:
+        for match in _WORD_RE.finditer(text):
+            start, word = match.start(), match.group()
+            if start and text[start - 1] == "\\":
+                start, word = start + 1, word[1:]  # "\\n\u0421..." in JSON/source: the n is an escape
+            scripts = [_script(c) for c in word]
+            present = [s for s in _HOMOGLYPH_SCRIPTS if s in scripts]
+            if len(present) > 1:
+                major = max(present, key=scripts.count)
+                odd = [c for c, s in zip(word, scripts) if s in present and s != major]
+                add("mixed_script", start, match.end(), "+".join(present) + " in one word",
+                    word=word, odd=_codepoints("".join(odd)))
+    return sorted(found, key=lambda f: (f["start"], f["kind"]))
+
+
+def hidden_text(text, *, kinds=None, min_severity="low"):
+    """Rule matches for invisible or deceptive characters in ``text``.
+
+    Each row has ``kind`` (see ``hidden_text_rules()``), ``severity``,
+    ``start``/``end`` (str offsets), ``codepoints`` (first 16), ``length`` and
+    ``detail``; ``tag_text`` and ``variation_payload`` add ``decoded`` (the hidden
+    ASCII, or the bytes as UTF-8 with ``\\x`` escapes; an emoji's own VS16 is not
+    counted as the first byte), ``mixed_script`` adds ``word`` and the minority ``odd``
+    code points. Emoji ZWJ sequences, VS15/VS16 after a base, valid subdivision
+    flags, a leading BOM and ZWJ/ZWNJ between letters of joining scripts are not
+    reported. ``kinds`` selects rules; ``min_severity`` drops lower ones.
+    """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    return _hidden(text, _hidden_rules(kinds, min_severity))
+
+
+def strip_hidden(text, *, kinds=None, min_severity="low"):
+    """``text`` without the characters ``hidden_text`` reports (``mixed_script`` words are kept).
+
+    Use before handing untrusted text to a model or a reviewer; the report from
+    ``hidden_text`` is what to log, since stripping alone hides that anything was there.
+    """
+    drop = set()
+    for row in hidden_text(text, kinds=kinds, min_severity=min_severity):
+        if row["kind"] != "mixed_script":
+            drop.update(range(row["start"], row["end"]))
+    return "".join(c for i, c in enumerate(text) if i not in drop)
+
+
+def hidden_text_scan(roots=(".",), *, kinds=None, min_severity="medium", max_files=5000,
+                     max_bytes=1_000_000, max_findings=1000):
+    """``hidden_text`` over UTF-8 files under one or more roots, with ``path``/``line``/``column``.
+
+    Binary, oversized and undecodable files are skipped and counted. ``counts``
+    covers every finding even when ``findings`` is cut at ``max_findings``
+    (``truncated`` is then true).
+    """
+    rules = _hidden_rules(kinds, min_severity)
+    if isinstance(roots, (str, os.PathLike)):
+        roots = [roots]
+    for value, label in ((max_files, "max_files"), (max_bytes, "max_bytes"), (max_findings, "max_findings")):
+        _limit(value, label)
+    findings, counts, scanned, skipped, truncated = [], {}, 0, 0, False
+    for root in roots:
+        base = Path(root)
+        paths = [base] if base.is_file() else sorted(
+            p for p in base.rglob("*") if p.is_file()
+            and not any(part in _EMOJI_SKIP for part in p.relative_to(base).parts))
+        for path in paths:
+            if scanned == max_files:
+                truncated = True
+                break
+            label = path.name if base.is_file() else path.relative_to(base).as_posix()
+            if len(roots) > 1:
+                label = os.fspath(root).rstrip("/") + "/" + label
+            try:
+                with path.open("rb") as stream:
+                    data = stream.read(max_bytes + 1)
+                if len(data) > max_bytes or b"\0" in data[:4096]:
+                    raise ValueError
+                text = data.decode("utf-8")
+            except (OSError, ValueError):
+                skipped += 1
+                continue
+            scanned += 1
+            for number, line in enumerate(text.split("\n"), 1):
+                for row in _hidden(line, rules, bom=number == 1, end="line"):
+                    counts[row["kind"]] = counts.get(row["kind"], 0) + 1
+                    if len(findings) == max_findings:
+                        truncated = True
+                        continue
+                    row = {"path": label, "line": number, "column": row.pop("start") + 1, **row}
+                    row.pop("end")
+                    findings.append(row)
+    return {"schema": "xprobe.hidden-text.v1", "min_severity": min_severity, "files": scanned,
+            "skipped": skipped, "truncated": truncated, "counts": counts, "findings": findings}
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
@@ -1291,6 +1733,16 @@ def main(argv=None):
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
     modes.add_argument("--annotate-junit", metavar="FILE", help="Print ::error workflow commands for failed JUnit testcases")
+    modes.add_argument("--emoji", action="store_true", help="Emoji used under --root: counts, spellings, files")
+    modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
+    modes.add_argument("--emoji-explain", metavar="TEXT", help="Split TEXT into emoji sequences with names and code points")
+    parser.add_argument("--emoji-names", metavar="FILE", help="Names table for --emoji/--emoji-explain (QueRyu emoji_names.json)")
+    modes.add_argument("--hidden-text", action="store_true",
+                       help="Invisible/deceptive characters under --root (tag text, bidi, zero-width, homoglyphs); 1 if any")
+    modes.add_argument("--hidden-rules", action="store_true", help="List the --hidden-text rules and severities")
+    modes.add_argument("--strip-hidden", metavar="FILE", help="Print FILE ('-' = stdin) without the characters --hidden-text reports")
+    parser.add_argument("--min-severity", choices=_HIDDEN_LEVELS, help="--hidden-text: medium; --strip-hidden: low")
+    parser.add_argument("--kinds", metavar="K1,K2", help="Only these --hidden-text/--strip-hidden rules")
     modes.add_argument("--portability", action="store_true", help="Sources that break on --min-python/--max-python or a cp1252 locale")
     parser.add_argument("--min-python", metavar="X.Y", help="Default: requires-python in ROOT/pyproject.toml, else 3.10")
     parser.add_argument("--max-python", default="3.14", metavar="X.Y")
@@ -1311,6 +1763,51 @@ def main(argv=None):
             for line in junit_annotations(Path(args.annotate_junit).read_text(encoding="utf-8")):
                 print(line)
             return 0
+        if args.emoji_find is not None or args.emoji_explain is not None:
+            rows = (emoji_find(args.emoji_find, limit=args.max_matches) if args.emoji_find is not None
+                    else emoji_sequences(args.emoji_explain,
+                                         load_emoji_names(args.emoji_names) if args.emoji_names else None))
+            for row in rows:
+                points = " ".join(row.get("codepoints") or ["U+%04X" % ord(c) for c in row["emoji"]])
+                print(f"{row['emoji']}\t{points}\t{row['name']}")
+            return 0 if rows else 1
+        if args.emoji:
+            report = emoji_inventory(roots, max_bytes=args.max_bytes,
+                                     names=load_emoji_names(args.emoji_names) if args.emoji_names else None)
+            if args.brief:
+                for row in report["emoji"][:args.max_matches]:
+                    forms = "" if len(row["forms"]) == 1 else "  forms: " + " ".join(
+                        f"{form}x{count}" for form, count in row["forms"].items())
+                    print(f"{row['identity']}\t{row['count']}\t{row['files']} file(s)\t{row['name']}{forms}")
+                print(f"emoji: {len(report['emoji'])} distinct in {report['files']} file(s); "
+                      f"unicodedata {report['unicodedata']}")
+            else:
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0
+        if args.hidden_rules:
+            for kind, rule in hidden_text_rules().items():
+                print(f"{kind}\t{rule['severity']}\t{rule['about']}")
+            return 0
+        kinds = [k for k in args.kinds.split(",") if k] if args.kinds else None
+        if args.strip_hidden is not None:
+            raw = sys.stdin.buffer.read() if args.strip_hidden == "-" else Path(args.strip_hidden).read_bytes()
+            text = raw.decode("utf-8")
+            sys.stdout.buffer.write(strip_hidden(text, kinds=kinds, min_severity=args.min_severity or "low")
+                                    .encode("utf-8"))
+            return 0
+        if args.hidden_text:
+            report = hidden_text_scan(roots, kinds=kinds, min_severity=args.min_severity or "medium",
+                                      max_bytes=args.max_bytes, max_findings=args.max_matches)
+            if args.brief:
+                for f in report["findings"]:
+                    extra = "".join(f" {key}={ascii(f[key])}" for key in ("decoded", "word") if key in f)
+                    print(f"{f['path']}:{f['line']}:{f['column']}: {f['severity']} {f['kind']} "
+                          f"{' '.join(f['codepoints'])} {f['detail']}{extra}")
+                print(f"hidden-text: {sum(report['counts'].values())} finding(s) in {report['files']} file(s)"
+                      + ("; truncated" if report["truncated"] else ""))
+            else:
+                print(json.dumps(report, ensure_ascii=True, indent=2))
+            return 1 if report["counts"] else 0
         if args.portability:
             version = lambda text: tuple(int(x) for x in text.split("."))[:2]
             reports = [portability_findings(root, min_python=version(args.min_python) if args.min_python else None,
