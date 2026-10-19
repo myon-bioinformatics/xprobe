@@ -364,6 +364,9 @@ node xprobe.cjs --strip-hidden - < untrusted.txt
 const {hiddenText, stripHidden, hiddenTextRules} = require("./xprobe.cjs");
 ```
 
+`xprobe.d.cts` declares the same API (kinds, severities, finding fields) for TypeScript and
+editors without a build step; `tests/types.test.cjs` keeps its names and kinds equal to the runtime.
+
 `xprobe.cjs` is a standard-library CommonJS twin of the hidden-text rules for Node 18+
 pipelines, Playwright tests and anything that should not spawn Python. It reports the
 same findings as `hidden_text` (kind, severity, code-point offsets, code points,
