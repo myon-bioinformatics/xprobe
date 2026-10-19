@@ -352,3 +352,22 @@ words are reported, not rewritten); keep the `hidden_text` report alongside, sin
 stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
+
+### From Node (`xprobe.cjs`)
+
+```sh
+node xprobe.cjs --hidden-text untrusted.txt     # JSON findings, ASCII-escaped; exit 1 if any
+node xprobe.cjs --strip-hidden - < untrusted.txt
+```
+
+```js
+const {hiddenText, stripHidden, hiddenTextRules} = require("./xprobe.cjs");
+```
+
+`xprobe.cjs` is a standard-library CommonJS twin of the hidden-text rules for Node
+pipelines, Playwright tests and anything that should not spawn Python. It reports the
+same findings as `hidden_text` (kind, severity, code-point offsets, code points,
+`decoded`, `word`, `odd`); only `detail` writes a code point (`U+202E`) where Python
+spells a Unicode character name. `tests/test_xprobe_cjs_twin.py` runs both on a shared
+corpus of the hidden-text cases and compares them, including `stripHidden`.
+
