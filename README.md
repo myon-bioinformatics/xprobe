@@ -370,6 +370,8 @@ same findings as `hidden_text` (kind, severity, code-point offsets, code points,
 `decoded`, `word`, `odd`); only `detail` writes a code point (`U+206A`) where Python
 spells a Unicode character name. `tests/test_xprobe_cjs_twin.py` runs both on a shared
 corpus of the hidden-text cases and compares them, including `stripHidden`.
+`xprobe.d.cts` declares its types for TypeScript and editors (`HiddenFinding`,
+`HiddenKind`, `HiddenTextOptions`); the module itself stays plain JavaScript.
 
 Unicode classification is embedded at Unicode 15.0 (CPython 3.12); IDNA uses
 Python's IDNA2003/legacy stringprep and round-trip checks, rather than the

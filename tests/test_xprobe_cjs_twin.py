@@ -68,3 +68,13 @@ def test_node_twin_rules_options_and_cli(tmp_path):
     strip = subprocess.run(["node", str(ROOT / "xprobe.cjs"), "--strip-hidden", "-"], input="a\u200bb",
                            capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert strip.returncode == 0 and strip.stdout == "ab"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_declarations_match_exports():
+    import re
+    script = "process.stdout.write(JSON.stringify(Object.keys(require(process.argv[1]))))"
+    names = json.loads(subprocess.run(["node", "-e", script, str(ROOT / "xprobe.cjs")], capture_output=True,
+                                      text=True, timeout=60, check=True).stdout)
+    declared = re.findall(r"^export (?:function|const) (\w+)", (ROOT / "xprobe.d.cts").read_text(encoding="utf-8"), re.M)
+    assert sorted(set(declared)) == sorted(names)
