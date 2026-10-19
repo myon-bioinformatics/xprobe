@@ -95,3 +95,32 @@ def test_search_files_and_cli(tmp_path, capsys):
     (tmp_path / "bin.dat").write_bytes(b"\x00x")
     assert xprobe.main(["--root", str(tmp_path), "--search", "boom", "--brief", "--max-matches", "1"]) == 2
     assert "skipped: bin.dat (binary)" in capsys.readouterr().out
+
+
+def test_cli_factor_cases(tmp_path, capsys):
+    import json
+    from scripts import xprobe_cli
+
+    # Test default --factor-cases run
+    assert xprobe_cli.main(["--factor-cases"]) == 0
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert data["schema"] == "xprobe.factor-generation.v1"
+    assert len(data["cases"]) == 20
+
+    # Test custom seed, count, and json format
+    assert xprobe_cli.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "json"]) == 0
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert len(data["cases"]) == 5
+
+    # Test jsonl format
+    assert xprobe_cli.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "jsonl"]) == 0
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert len(data["cases"]) == 5
+
+    # Test error when passing search pattern with --factor-cases
+    with pytest.raises(SystemExit):
+        xprobe_cli.main(["pattern", "--factor-cases"])
+    capsys.readouterr()

@@ -23,6 +23,7 @@ def main(argv=None):
     modes.add_argument("--scan-config", action="store_true")
     modes.add_argument("--env-report", action="store_true")
     modes.add_argument("--corpus", action="store_true")
+    modes.add_argument("--factor-cases", action="store_true")
     modes.add_argument("--junit", help="Read a bounded local JUnit report")
     parser.add_argument("--root", dest="root_option")
     parser.add_argument("--include", action="append")
@@ -36,7 +37,7 @@ def main(argv=None):
     parser.add_argument("--format", choices=("json", "jsonl", "text"), default="json")
     args = parser.parse_args(argv)
     root = args.root_option or args.root
-    if args.pattern and (args.scan_config or args.env_report or args.corpus or args.junit):
+    if args.pattern and (args.scan_config or args.env_report or args.corpus or args.junit or args.factor_cases):
         parser.error("discovery/corpus modes take --root, not a search pattern")
     try:
         if args.junit:
@@ -57,7 +58,11 @@ def main(argv=None):
                      if args.count is not None else xprobe.known_bad_cases(args.category))
             print(xprobe.corpus_to_json(cases, jsonl=args.format == "jsonl"), end="")
             return 0
-        if args.env_report:
+        if args.factor_cases:
+            count = 20 if args.count is None else args.count
+            report = xprobe.generate_factor_cases(seed=args.seed, count=count)
+            found, errors = True, False
+        elif args.env_report:
             report = {"environment": xprobe.inspect_environment(os.environ)}
             found, errors = bool(report["environment"]), False
         elif args.scan_config:
