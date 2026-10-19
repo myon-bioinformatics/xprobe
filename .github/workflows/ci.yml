@@ -97,11 +97,7 @@ jobs:
         shell: bash
         run: |
           uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            echo "$PWD/.venv/Scripts" >> "$GITHUB_PATH"
-          else
-            echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          fi
+          python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
       - name: Install JS readers for load_toml/load_yaml (tests only)
         run: npm ci --prefix tests/js --no-audit --no-fund
       - name: Compile artifact and CLI
