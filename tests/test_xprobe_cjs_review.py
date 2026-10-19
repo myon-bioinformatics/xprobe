@@ -52,6 +52,10 @@ def test_unicode_boundaries_positions_emoji_and_controls():
               0x1f3f4, 0x1f3fb, 0x1f600, 0xdffff, 0xe0000, 0xe001f, 0xe0020,
               0xe007e, 0xe007f, 0xe0080, 0xe00ff, 0xe0100, 0xe01ef, 0xe01f0,
               0xeffff, 0xf0000, 0xffffd, 0xffffe, 0xfffff, 0x100000, 0x10fffd, 0x10ffff]
+    if not ud.name("\ufdff", ""):
+        # U+FDFF became a visible symbol in Unicode 14 (Python 3.11).
+        # Its Unicode-15 boundary is covered by the exhaustive baseline test.
+        points.remove(0xfdff)
     texts = [prefix + chr(p) + suffix for p in points
              for prefix, suffix in [("", "\ufe00"), ("\U0001f642a", "\u202ex\u202c"), ("\u0430", "a")]]
     texts += ["a\u0374", "\u0430\u00aa", "\u00aa\u200db", "\u3300\u200db",
@@ -86,7 +90,10 @@ def test_idna2003_roundtrip_and_python_whitespace():
     # Encode raw Punycode so invalid IDNA2003 round trips are also exercised.
     labels += ["xn--" + t.encode("punycode").decode("ascii") for t in
                ["p\u0430y", "\u00df", "\u03c2", "a\u200db", "\u00a0", "\ufeff", "\u202e", "\ud800",
-                "\u05d0a", "\u05d0", "\U0002f868", "\U0001f600", "a\u00adb", "\u0130", "\u212a"]]
+                "\u05d0a", "\u05d0", "\U0002f868", "\U0001f600", "a\u00adb", "\u0130", "\u212a",
+                "\u1b05\u1b35", "\u1100\u1161\u11a8", "\u1d2c\u0301"]]
+    if ud.unidata_version == "15.0.0":
+        labels += ["xn--qye-xzgcrklktnqvg6qtp", "xn--" + "\u0898\u089b".encode("punycode").decode("ascii")]
     texts = [f"\U0001f642 https://{label}.p\u0430y.com/path" for label in labels]
     texts += [f"https://{label}\uff0ecom" for label in labels]
     texts += [f"https://p\u0430y{chr(c)}.com" for c in [0, 1, 9, 0x1c, 0x1f, 0x85, 0xa0, 0x200b, 0x202e, 0xfeff]]
@@ -137,3 +144,32 @@ def test_unicode15_category_boundaries():
               "https://p\u0430y" + chr(n) + ".com"]]
     for i in range(0, len(texts), 5000):
         compare(texts[i:i + 5000])
+
+
+def test_unicode15_legacy_normalization():
+    if ud.unidata_version != "15.0.0":
+        pytest.skip("legacy normalization follows CPython 3.12 combining classes")
+    texts = [chr(n) for n in range(0x110000) if ud.decomposition(chr(n)) or ud.combining(chr(n))]
+    texts += ["".join(chr(int(h, 16)) for h in ud.decomposition(chr(n)).split())
+              for n in range(0x110000) if ud.decomposition(chr(n)) and not ud.decomposition(chr(n)).startswith("<")]
+    marks = [chr(n) for n in range(0x110000) if ud.combining(chr(n))]
+    rng = random.Random(23)
+    texts += [rng.choice(["a", "\u1d2c", "\u1b05", "\u1100", "\U0002f868", ""]) +
+              "".join(rng.choices(marks, k=6)) for _ in range(2000)]
+    texts += ["\u1100\u1161\u11a8", "\uac00\u11a8", "\u0898\u089b", "\u1b05\u1b35"]
+    # Test internal normalization directly so a later IDNA rejection cannot
+    # conceal a wrong intermediate result. The public module exports stay small.
+    script = """
+const fs = require('node:fs'), vm = require('node:vm');
+const context = {module: {exports: {}}, require};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8') +
+  ';module.exports.normalize32 = normalize32;', context);
+const texts = JSON.parse(fs.readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(texts.map(context.module.exports.normalize32)));
+"""
+    run = subprocess.run([NODE, "-e", script, str(ROOT / "xprobe.cjs")], input=json.dumps(texts),
+                         capture_output=True, text=True, encoding="utf-8", timeout=120, check=True)
+    results = json.loads(run.stdout)
+    assert len(results) == len(texts)
+    for text, result in zip(texts, results):
+        assert result == ud.ucd_3_2_0.normalize("NFKC", text), ascii(text)

@@ -25,8 +25,8 @@ def generate():
     names = "LATIN CYRILLIC GREEK ARMENIAN CHEROKEE CJK HIRAGANA KATAKANA HANGUL DIGIT".split()
     groups = {name: [] for name in names}
     categories = {k: [] for k in ("LETTER", "LETTER_MARK", "WORD", "ALNUM", "NONBASE", "FORMAT", "PRIVATE", "NONPRINT")}
-    tables = {k: [] for k in ("B1", "PROHIBITED", "RANDAL", "LCAT", "UNASSIGNED32")}
-    mapping, corrections = {}, {}
+    tables = {k: [] for k in ("B1", "PROHIBITED", "RANDAL", "LCAT")}
+    mapping, decomposition, combining, composition = {}, {}, {}, {}
     for n in range(0x110000):
         c = chr(n)
         category = ud.category(c)
@@ -54,10 +54,18 @@ def generate():
             tables["RANDAL"].append(n)
         if sp.in_table_d2(c):
             tables["LCAT"].append(n)
-        if ud.ucd_3_2_0.category(c) == "Cn":
-            tables["UNASSIGNED32"].append(n)
-        elif ud.normalize("NFKC", c) != ud.ucd_3_2_0.normalize("NFKC", c):
-            corrections[f"{n:x}"] = ud.ucd_3_2_0.normalize("NFKC", c)
+        # CPython's legacy normalizer mixes old decomposition mappings with
+        # current CCC/composition tables. Capture behavior, not assumed UCD3.2.
+        d = ud.ucd_3_2_0.normalize("NFKD", c)
+        if d != c and not 0xac00 <= n <= 0xd7a3:
+            decomposition[f"{n:x}"] = d
+        if ud.combining(c):
+            combining[f"{n:x}"] = ud.combining(c)
+        raw = ud.decomposition(c)
+        if raw and not raw.startswith("<"):
+            pair = "".join(chr(int(h, 16)) for h in raw.split())
+            if len(pair) == 2 and ud.ucd_3_2_0.normalize("NFC", pair) == c:
+                composition["-".join(f"{ord(ch):x}" for ch in pair)] = c
     dump = lambda v: json.dumps(v, ensure_ascii=True, separators=(",", ":"))
     lines = ["// BEGIN GENERATED UNICODE TABLES (scripts/generate_hidden_unicode.py)",
              "const NAME_SCRIPTS = {"]
@@ -65,7 +73,10 @@ def generate():
     lines += ["};"]
     lines += [f"const CAT_{name} = rangeRE({dump(ranges(points))});" for name, points in categories.items()]
     lines += [f"const IDNA_{name} = rangeRE({dump(ranges(points))});" for name, points in tables.items()]
-    lines += ["const IDNA_B2 = " + dump(mapping) + ";", "const NFKC32_CORRECTIONS = " + dump(corrections) + ";",
+    lines += ["const IDNA_B2 = " + dump(mapping) + ";",
+              "const NFKD32 = " + dump(decomposition) + ";",
+              "const CCC = " + dump(combining) + ";",
+              "const COMPOSE32 = " + dump(composition) + ";",
               "// END GENERATED UNICODE TABLES"]
     return "\n".join(lines)
 
