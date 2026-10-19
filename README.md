@@ -352,3 +352,44 @@ words are reported, not rewritten); keep the `hidden_text` report alongside, sin
 stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
+
+### From Node (`xprobe.cjs`)
+
+```sh
+node xprobe.cjs --hidden-text untrusted.txt     # JSON findings, ASCII-escaped; exit 1 if any
+node xprobe.cjs --strip-hidden - < untrusted.txt
+```
+
+```js
+const {hiddenText, stripHidden, hiddenTextRules} = require("./xprobe.cjs");
+```
+
+`xprobe.cjs` is a standard-library CommonJS twin of the hidden-text rules for Node 18+
+pipelines, Playwright tests and anything that should not spawn Python. It reports the
+same findings as `hidden_text` (kind, severity, code-point offsets, code points,
+`decoded`, `word`, `odd`); only `detail` writes a code point (`U+206A`) where Python
+spells a Unicode character name. `tests/test_xprobe_cjs_twin.py` runs both on a shared
+corpus of the hidden-text cases and compares them, including `stripHidden`.
+
+Unicode classification is embedded at Unicode 15.0 (CPython 3.12); IDNA uses
+Python's IDNA2003/legacy stringprep and round-trip checks, rather than the
+WHATWG URL decoder. Its normalizer preserves CPython's old Unicode 3.2
+decompositions with Unicode 15 combining classes and composition behavior.
+`scripts/generate_hidden_unicode.py` regenerates the tables
+with CPython 3.12. Python itself follows its interpreter's Unicode database, so
+characters added or reclassified in other database versions can differ. The CI
+compares stable cases across Python versions and exhaustively checks the Unicode
+15 name-classification boundaries and relevant letters/numbers on Python 3.12.
+
+Offsets count Unicode code points, including astral emoji and lone surrogates
+in the in-memory API. A Python string containing separate adjacent high/low
+surrogate code points cannot be distinguished from its corresponding scalar
+after JSON/JavaScript UTF-16 interchange; compare Unicode scalar strings (or
+isolated surrogates) across runtimes. CLI input must be valid UTF-8. Invalid
+UTF-8, missing files and invalid arguments produce stderr and status 2; extra
+arguments are rejected. A leading BOM is preserved by `--strip-hidden`.
+
+Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
+`tests/test_xprobe_cjs_review.py` also checks control combinations, UTF-8 selector
+payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
+
