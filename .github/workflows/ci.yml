@@ -26,7 +26,7 @@ jobs:
             node: 24
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
       - run: node --test tests/xprobe_cli.test.cjs
@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Fetch pinned shared vendor tool
@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         include:
           - os: windows-latest
             python: "3.12"
@@ -84,14 +84,24 @@ jobs:
             python: "3.12"
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
-          cache: pip
           cache-dependency-path: tests/requirements.txt
       - name: Install test dependencies
-        run: python -m pip install -r tests/requirements.txt
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+      - name: Sync locked development environment
+        shell: bash
+        run: |
+          uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            echo "$PWD/.venv/Scripts" >> "$GITHUB_PATH"
+          else
+            echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          fi
       - name: Install JS readers for load_toml/load_yaml (tests only)
         run: npm ci --prefix tests/js --no-audit --no-fund
       - name: Compile artifact and CLI
