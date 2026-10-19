@@ -42,7 +42,9 @@ def test_node_twin_matches_python_on_the_corpus():
     run = subprocess.run(["node", "-e", script, str(ROOT / "xprobe.cjs")], input=json.dumps(texts),
                          capture_output=True, text=True, encoding="utf-8", timeout=120)
     assert run.returncode == 0, run.stderr
-    for text, (node_rows, node_stripped) in zip(texts, json.loads(run.stdout)):
+    results = json.loads(run.stdout)
+    assert len(results) == len(texts)
+    for text, (node_rows, node_stripped) in zip(texts, results):
         py_rows = xprobe.hidden_text(text)
         project = lambda rows: [{k: r.get(k) for k in FIELDS} for r in rows]
         assert project(node_rows) == project(py_rows), ascii(text)
