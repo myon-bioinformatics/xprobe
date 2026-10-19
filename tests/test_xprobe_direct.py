@@ -43,6 +43,14 @@ def test_existing_corpus(capsys):
     assert capsys.readouterr().out == xprobe.corpus_to_json(xprobe.known_bad_cases())
 
 
+def test_factor_cases_direct(capsys):
+    assert xprobe.main(["--factor-cases", "--seed", "7", "--count", "5"]) == 0
+    out = capsys.readouterr().out
+    report = json.loads(out)
+    assert report["schema"] == "xprobe.factor-generation.v1"
+    assert len(report["cases"]) == 5
+
+
 @pytest.mark.parametrize("field", ["errors", "skipped", "truncated"])
 def test_partial(monkeypatch, capsys, field):
     report = {"findings": [], "errors": [], "skipped": [], "truncated": False}

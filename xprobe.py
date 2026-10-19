@@ -1805,6 +1805,9 @@ def main(argv=None):
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
+    modes.add_argument("--factor-cases", action="store_true", help="Generate factor combination test cases")
+    parser.add_argument("--seed", type=int, default=0, help="Seed for factor case generation")
+    parser.add_argument("--count", type=int, help="Count limit for factor cases or corpus sampling")
     modes.add_argument("--annotate-junit", metavar="FILE", help="Print ::error workflow commands for failed JUnit testcases")
     modes.add_argument("--emoji", action="store_true", help="Emoji used under --root: counts, spellings, files")
     modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
@@ -1905,7 +1908,14 @@ def main(argv=None):
             print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
             return 0
         if args.corpus:
-            print(corpus_to_json(known_bad_cases()), end="")
+            cases = (generate_cases(seed=args.seed, count=args.count)
+                     if args.count is not None else known_bad_cases())
+            print(corpus_to_json(cases), end="")
+            return 0
+        if args.factor_cases:
+            count = 20 if args.count is None else args.count
+            report = generate_factor_cases(seed=args.seed, count=count)
+            print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
         if args.presets:
             for name, item in pattern_presets().items():
