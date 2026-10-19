@@ -5,3 +5,14 @@ htmlcov/
 .venv/
 reports/
 node_modules/
+
+# --- common ignores (shared) ---
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.coverage.*
+*.egg-info/
+venv/
+.DS_Store
+Thumbs.db
+# --- end common ignores ---
