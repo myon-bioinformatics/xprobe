@@ -5,6 +5,7 @@ htmlcov/
 .venv/
 reports/
 node_modules/
+build/
 
 # --- common ignores (shared) ---
 *.py[cod]

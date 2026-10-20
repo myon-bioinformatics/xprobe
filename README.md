@@ -370,6 +370,8 @@ same findings as `hidden_text` (kind, severity, code-point offsets, code points,
 `decoded`, `word`, `odd`); only `detail` writes a code point (`U+206A`) where Python
 spells a Unicode character name. `tests/test_xprobe_cjs_twin.py` runs both on a shared
 corpus of the hidden-text cases and compares them, including `stripHidden`.
+`xprobe.d.cts` declares its types for TypeScript and editors (`HiddenFinding`,
+`HiddenKind`, `HiddenTextOptions`); the module itself stays plain JavaScript.
 
 Unicode classification is embedded at Unicode 15.0 (CPython 3.12); IDNA uses
 Python's IDNA2003/legacy stringprep and round-trip checks, rather than the
@@ -393,3 +395,23 @@ Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
 `tests/test_xprobe_cjs_review.py` also checks control combinations, UTF-8 selector
 payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
 
+
+## Runtime and development Python policy
+
+The standard-library runtime supports Python 3.9+; this change preserves the
+existing runtime floor. The separate `runtime-compatibility` CI lane executes
+behavior tests with `python -S`, without installing pytest or any third-party
+package. Development/test environments use Python 3.11+ and a committed uv lock:
+
+```sh
+uv sync --locked --python 3.11
+uv run --locked python -m pytest
+python -S -m unittest discover -s tests -p test_xprobe.py -v
+```
+
+`pyproject.toml` is the canonical development dependency definition; legacy
+requirements files remain for downstream callers. Runtime metadata does not
+raise the source/vendoring floor to the development floor. CI pins setup-python
+checkout v7.0.1, setup-node v7.1.0, setup-python v7.0.0, setup-uv v10.3.0, and
+upload-artifact v7.0.2 by full commit SHA, and uses uv 0.13.3. Setup actions using
+Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
