@@ -59,7 +59,10 @@ def test_invalid_limit(capsys):
 def test_standalone_copy(tmp_path):
     script = tmp_path / "tool.py"
     script.write_bytes((Path(__file__).parents[1] / "xprobe.py").read_bytes())
+    scope = tmp_path / "inputs"
+    scope.mkdir()
+    (scope / "sample.env").write_text("API_URL=https://example.test\n", encoding="utf-8")
     result = subprocess.run([sys.executable, "-S", str(script)],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=10)
+                            cwd=scope, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     assert "findings" in json.loads(result.stdout)

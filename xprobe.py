@@ -5,6 +5,7 @@ callables, and are not a sandbox or a timeout mechanism.
 """
 
 import ast
+import codecs
 import fnmatch
 import importlib
 import json
@@ -25,7 +26,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
            "load_toml", "load_yaml", "junit_annotations", "portability_findings",
            "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory",
-           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan"]
+           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan",
+           "mojibake_text", "restore_mojibake", "mojibake_scan", "decode_text", "readable_text"]
 
 
 def _limit(value, name):
@@ -81,116 +83,370 @@ def _steps(normalize):
     return steps
 
 
-# Mojibake detection & restoration constants and patterns
+def decode_text(data):
+    """Read common Japanese text encodings without caller configuration.
+
+    Return text, encoding, source, status, warnings and candidate metadata.
+    BOMs take precedence; supported HTML/XML declarations are useful hints.
+    A broken declared reading can yield to a more readable finite candidate;
+    strong mojibake evidence can also favor valid UTF-8 over a legacy hint.
+    Undecodable bytes become visible ``\\xHH`` escapes, never disappear. This
+    is a reading view, not proof of the original encoding or a format parser.
+    Keep the original bytes when exact reconstruction matters.
+    """
+    if not isinstance(data, (bytes, bytearray, memoryview)):
+        raise TypeError("data must be bytes-like")
+    data = bytes(data)
+    warnings = []
+
+    def candidate(raw, encoding):
+        try:
+            text = raw.decode(encoding)
+            partial = False
+        except UnicodeDecodeError:
+            text = raw.decode(encoding, errors="backslashreplace")
+            partial = True
+        roundtrip = not partial and text.encode(encoding) == raw
+        return {"encoding": encoding, "text": text, "partial": partial,
+                "roundtrip": roundtrip}
+
+    def finish(chosen, source, candidates):
+        if chosen["partial"]:
+            warnings.append("undecodable bytes are shown as \\xHH escapes")
+        if "\ufffd" in chosen["text"]:
+            warnings.append("input already contains Unicode replacement characters")
+        if not chosen["partial"] and not chosen["roundtrip"]:
+            warnings.append("codec has noncanonical byte mappings; original bytes retained in source_hex")
+        return {"text": chosen["text"], "encoding": chosen["encoding"],
+                "source": source,
+                "source_hex": data.hex(), "roundtrip": chosen["roundtrip"],
+                "status": "partial" if chosen["partial"] or "\ufffd" in chosen["text"] else "decoded",
+                "warnings": warnings,
+                "candidates": [{k: v for k, v in item.items() if k != "text"}
+                               for item in candidates]}
+
+    def score(encoding, penalize_errors=True):
+        view = data.decode(encoding, errors="replace")
+        value = 0
+        for char in view:
+            if "\u3041" <= char <= "\u3096" or "\u30a1" <= char <= "\u30fa":
+                value += 4
+            elif "\u4e00" <= char <= "\u9fff":
+                value += 2
+            elif "\uff61" <= char <= "\uff9f":
+                value += 1
+            elif char == "\ufffd":
+                value -= 8 if penalize_errors else 0
+            elif unicodedata.category(char) in ("Co", "Cs"):
+                value -= 12
+            elif unicodedata.category(char) == "Cc" and char not in "\t\n\r":
+                value -= 12
+        return value
+
+    def utf8_alternative(item):
+        alternate = candidate(data, "utf-8")
+        if alternate["partial"] or not any(ord(c) >= 128 for c in alternate["text"]):
+            return None
+        suspicious = any("\uff61" <= c <= "\uff9f" or
+                         unicodedata.category(c) == "Co" for c in item["text"])
+        old_count = max(1, sum(ord(c) >= 128 for c in item["text"]))
+        new_count = max(1, sum(ord(c) >= 128 for c in alternate["text"]))
+        better = score("utf-8") * old_count > score(item["encoding"]) * new_count
+        return alternate if item["partial"] or (suspicious and better) else None
+
+    # Four-byte BOMs must precede their two-byte prefixes.
+    for bom, encoding in ((b"\xff\xfe\x00\x00", "utf-32-le"),
+                          (b"\x00\x00\xfe\xff", "utf-32-be"),
+                          (b"\xef\xbb\xbf", "utf-8"),
+                          (b"\xff\xfe", "utf-16-le"),
+                          (b"\xfe\xff", "utf-16-be")):
+        if data.startswith(bom):
+            item = candidate(data[len(bom):], encoding)
+            return finish(item, "bom", [item])
+    if data.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08",
+                        b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")) or b"\x00" in data:
+        raise ValueError("binary/container data needs its own format parser")
+
+    # Inspect only declaration-shaped tags, with a fixed sniffing budget.
+    allowed = {"utf-8", "ascii", "cp932", "shift_jis", "euc_jp", "iso2022_jp", "cp1252"}
+    for tag in re.finditer(br"<(?:meta\b|\?xml\b)[^>]{0,1024}>", data[:4096], re.I):
+        match = re.search(br"(?:charset|encoding)\s*=\s*['\"]?\s*([A-Za-z0-9._-]+)",
+                          tag.group(), re.I)
+        if match is None:
+            continue
+        label = match.group(1).decode("ascii")
+        try:
+            encoding = codecs.lookup(label).name
+        except LookupError:
+            encoding = None
+        if label.lower().replace("_", "-") in ("windows-31j", "ms932"):
+            encoding = "cp932"
+        if encoding not in allowed:
+            warnings.append("unsupported encoding declaration: " + label)
+            continue
+        if encoding == "shift_jis":
+            encoding = "cp932"
+        item = candidate(data, encoding)
+        alternate = utf8_alternative(item) if encoding != "utf-8" else None
+        if alternate is not None:
+            warnings.append("encoding declaration conflicts with a more plausible UTF-8 reading: " + label)
+            return finish(alternate, "fallback", [item, alternate])
+        candidates = [item]
+        if item["partial"]:
+            # Compare retained readable text, without letting invalid-byte
+            # penalties alone outweigh a useful partial declared decoding.
+            retained_score = max(0, score(encoding, penalize_errors=False))
+            better = []
+            for other in ("utf-8", "cp932", "euc_jp"):
+                if other == encoding:
+                    continue
+                trial = candidate(data, other)
+                trial["score"] = score(other)
+                candidates.append(trial)
+                if not trial["partial"] and trial["score"] > retained_score:
+                    better.append(trial)
+            if better:
+                alternate = max(better, key=lambda trial: trial["score"])
+                warnings.append("encoding declaration conflicts with a more readable candidate: " + label)
+                return finish(alternate, "fallback", candidates)
+        return finish(item, "declared", candidates)
+
+    if any(escape in data for escape in (b"\x1b$B", b"\x1b$@", b"\x1b(J")):
+        item = candidate(data, "iso2022_jp")
+        alternate = utf8_alternative(item) if item["partial"] else None
+        if alternate is not None:
+            warnings.append("ISO-2022-JP escape hint conflicts with valid UTF-8; used UTF-8")
+            return finish(alternate, "fallback", [item, alternate])
+        return finish(item, "heuristic", [item])
+    utf8 = candidate(data, "utf-8")
+    if not utf8["partial"]:
+        return finish(utf8, "heuristic", [utf8])
+
+    # Keep largely valid UTF-8 readable even with one corrupt/truncated suffix.
+    # This is evidence for a candidate, not a probability or a language verdict.
+    preview = data.decode("utf-8", errors="replace")
+    high_bytes = sum(byte >= 128 for byte in data)
+    good_utf8 = sum(len(char.encode("utf-8")) for char in preview
+                    if ord(char) >= 128 and char != "\ufffd")
+    if good_utf8 >= 3 and good_utf8 * 4 >= high_bytes * 3:
+        warnings.append("selected UTF-8 from predominantly valid multibyte sequences")
+        return finish(utf8, "fallback", [utf8])
+
+    candidates = [utf8, candidate(data, "cp932"), candidate(data, "euc_jp")]
+    for item in candidates:
+        item["score"] = score(item["encoding"])
+    chosen = max(candidates, key=lambda item: item["score"])
+    # With no positive language evidence, preserve ASCII and expose bad bytes.
+    if chosen["score"] <= 0:
+        chosen = utf8
+    warnings.append("encoding selected heuristically; candidate scores are not probabilities")
+    if sum(item["score"] == chosen["score"] for item in candidates) > 1:
+        warnings.append("encoding candidates are tied; stable preference order was used")
+    return finish(chosen, "fallback" if chosen["partial"] else "heuristic", candidates)
+
+
+# Japanese mojibake candidates. These are reading heuristics, not language proofs.
 _JP_HIRAGANA, _JP_KATAKANA, _JP_KANJI, _JP_HW_KATAKANA, _JP_ANY = (
     re.compile(r"[\u3040-\u309f]"), re.compile(r"[\u30a0-\u30ff]"),
     re.compile(r"[\u4e00-\u9fff]"), re.compile(r"[\uff65-\uff9f]"),
     re.compile(r"[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\uff65-\uff9f\u3000-\u303f\uff01-\uff5e]")
 )
-_CP1252_CHARS = r"\x80-\xff\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178"
+_CP1252_CHARS = r"\x80-\xff\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178"
 _SJIS_LEAD = r"\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178\x81-\x9f\xe0-\xea"
 _SJIS_TRAIL = r"\x40-\x7e\x80-\xff"
-_RE_CP932_1252 = re.compile(rf"(?:[{_SJIS_LEAD}][{_SJIS_TRAIL}][{_SJIS_LEAD}{_SJIS_TRAIL}]*)")
-_RE_UTF8_1252 = re.compile(rf"(?:ã[{_CP1252_CHARS}]+|æ[{_CP1252_CHARS}]+|ç[{_CP1252_CHARS}]+|ï[½¾][{_CP1252_CHARS}]+)+")
+_RE_CP932_1252 = re.compile(rf"[{_SJIS_LEAD}][{_SJIS_TRAIL}][{_SJIS_LEAD}{_SJIS_TRAIL}]*")
+_RE_UTF8_1252 = re.compile(rf"[\xc2-\xf4][{_CP1252_CHARS}]+")
 _RE_UTF8_CP932 = re.compile(r"(?:[\u7e3a\u7e5d\u7e67][\u4e00-\u9fff\u3000-\u303f\uff00-\uffef\u3040-\u30ff\u2460-\u24ff]+|譌[\x00-\xff]+|繧[\x00-\xff]+)+")
-_CP1252_REV = {bytes([i]).decode("cp1252"): i for i in range(256) if i not in (0x81, 0x8d, 0x8f, 0x90, 0x9d)}
+_CP1252_REV = {bytes([i]).decode("cp1252"): i for i in range(256)
+               if i not in (0x81, 0x8d, 0x8f, 0x90, 0x9d)}
 
 
-def _cp1252_compat_encode(s):
-    res = bytearray()
-    for ch in s:
-        if ch in _CP1252_REV:
-            res.append(_CP1252_REV[ch])
-        elif ord(ch) < 256:
-            res.append(ord(ch))
-        else:
+def _cp1252_compat_encode(text):
+    """Accept either CP1252 glyphs or raw Latin-1/C1 byte spellings, strictly."""
+    result = bytearray()
+    for i, char in enumerate(text):
+        value = _CP1252_REV.get(char, ord(char))
+        if value > 255:
+            raise UnicodeEncodeError("cp1252", text, i, i + 1, "not a byte spelling")
+        result.append(value)
+    return bytes(result)
+
+
+def _classify_mojibake_hint(text):
+    counts = [len(pattern.findall(text)) for pattern in
+              (_JP_HIRAGANA, _JP_KATAKANA, _JP_KANJI, _JP_HW_KATAKANA)]
+    return ("hiragana", "katakana", "kanji", "halfwidth_katakana")[counts.index(max(counts))]
+
+
+def _mojibake_segments(chunk, source, target):
+    """Yield reversible runs at both source-character and target-byte boundaries.
+
+    A fixed-state incremental decoder visits each source character at most twice.
+    Failed/pending units are left in the original text; no ignored bytes.
+    """
+    decoder = codecs.getincrementaldecoder(target)(errors="strict")
+    run, start, end = [], 0, 0
+    unit, raw, decoded = 0, bytearray(), []
+    for i, char in enumerate(chunk):
+        try:
+            encoded = char.encode(source) if source == "cp932" else _cp1252_compat_encode(char)
+        except UnicodeEncodeError:
+            if run:
+                yield start, end, "".join(run)
+            run, raw, decoded = [], bytearray(), []
+            decoder.reset()
+            unit = i + 1
+            continue
+        for attempt in range(2):
             try:
-                res.extend(ch.encode("cp1252"))
-            except Exception:
-                res.append(0x3f)
-    return bytes(res)
-
-
-def _classify_mojibake_hint(restored):
-    h, k, kj, hw = len(_JP_HIRAGANA.findall(restored)), len(_JP_KATAKANA.findall(restored)), len(_JP_KANJI.findall(restored)), len(_JP_HW_KATAKANA.findall(restored))
-    m = max(h, k, kj, hw)
-    if m == 0 or m == kj:
-        return "kanji"
-    if m == h:
-        return "hiragana"
-    if m == k:
-        return "katakana"
-    return "halfwidth_katakana"
+                part = decoder.decode(encoded, final=False)
+            except UnicodeDecodeError:
+                retry = bool(raw) and attempt == 0
+                if run:
+                    yield start, end, "".join(run)
+                run, raw, decoded = [], bytearray(), []
+                decoder.reset()
+                unit = i if retry else i + 1
+                if retry:
+                    continue
+                break
+            raw.extend(encoded)
+            decoded.append(part)
+            if not decoder.getstate()[0]:
+                original, restored = chunk[unit:i + 1], "".join(decoded)
+                valid = restored.encode(target) == raw
+                if source == "cp932":
+                    valid = valid and raw.decode(source) == original
+                if target == "cp932" and restored != original:
+                    valid = valid and any(0x80 <= _CP1252_REV.get(c, ord(c)) <= 0x9f
+                                          for c in original)
+                if target == "utf-8":
+                    # Normal adjacent Japanese must not turn into Latin fragments.
+                    valid = valid and all(ord(c) < 128 or _JP_ANY.fullmatch(c) or
+                                          ord(c) >= 0x10000 for c in restored)
+                    valid = valid and ("".join(c for c in original if ord(c) < 128) ==
+                                       "".join(c for c in restored if ord(c) < 128))
+                if valid:
+                    if not run:
+                        start = unit
+                    run.append(restored)
+                    end = i + 1
+                else:
+                    if run:
+                        yield start, end, "".join(run)
+                    run = []
+                raw, decoded, unit = bytearray(), [], i + 1
+            break
+    if run:
+        yield start, end, "".join(run)
 
 
 def mojibake_text(text):
-    """Smartly detect Japanese mojibake sequences in ``text``.
+    """Return non-overlapping repair candidates and unresolved replacement chars.
 
-    Returns a list of finding dicts with ``kind`` (``utf8_as_cp932``,
-    ``utf8_as_cp1252``, ``cp932_as_cp1252``, ``replacement_char``), ``hint``
-    (``hiragana``, ``katakana``, ``kanji``, ``halfwidth_katakana``, ``replacement``),
-    ``start``, ``end``, original garbled ``text``, and ``restored`` Japanese string.
+    ``text`` and offsets retain the input; ``restored`` is a reading candidate.
+    ``status=repaired`` means a byte-reversible conversion, not proof of intent.
+    U+FFFD is kept with ``status=unrecoverable``. Unknown sequences stay untouched.
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    findings = []
-    for m in re.finditer(r"\ufffd+", text):
-        findings.append({"kind": "replacement_char", "hint": "replacement", "start": m.start(), "end": m.end(), "text": m.group(), "restored": "?" * len(m.group())})
-
-    def try_add(start, end, chunk, kind_name, decode_fn):
-        try:
-            restored = decode_fn(chunk)
-            if restored and restored != chunk and len(_JP_ANY.findall(restored)) > 0:
-                findings.append({"kind": kind_name, "hint": _classify_mojibake_hint(restored), "start": start, "end": end, "text": chunk, "restored": restored})
-                return True
-        except Exception:
-            pass
-        return False
-
-    for m in _RE_CP932_1252.finditer(text):
-        try_add(m.start(), m.end(), m.group(), "cp932_as_cp1252", lambda s: _cp1252_compat_encode(s).decode("cp932"))
-    for m in _RE_UTF8_1252.finditer(text):
-        try_add(m.start(), m.end(), m.group(), "utf8_as_cp1252", lambda s: _cp1252_compat_encode(s).decode("utf-8"))
-    for m in _RE_UTF8_CP932.finditer(text):
-        def _dec_cp932(s):
-            b = bytearray()
-            for ch in s:
-                if ch not in ("\ufffd", ""):
-                    try:
-                        b.extend(ch.encode("cp932"))
-                    except UnicodeEncodeError:
-                        pass
-            return bytes(b).decode("utf-8", errors="ignore")
-        try_add(m.start(), m.end(), m.group(), "utf8_as_cp932", _dec_cp932)
-
-    findings.sort(key=lambda x: x["start"])
-    return findings
+    findings, covered = [], set()
+    # Prefer a valid UTF-8 interpretation over interpreting the same bytes as CP932.
+    routes = ((_RE_UTF8_1252, "cp1252", "utf-8", "utf8_as_cp1252"),
+              (_RE_UTF8_CP932, "cp932", "utf-8", "utf8_as_cp932"),
+              (_RE_CP932_1252, "cp1252", "cp932", "cp932_as_cp1252"))
+    for pattern, source, target, kind in routes:
+        for match in pattern.finditer(text):
+            chunk = match.group()
+            for left, right, restored in _mojibake_segments(chunk, source, target):
+                original = chunk[left:right]
+                if restored == original or not _JP_ANY.search(restored):
+                    continue
+                if target == "cp932" and not any(
+                        0x80 <= _CP1252_REV.get(c, ord(c)) <= 0x9f for c in original):
+                    continue  # Latin words alone are ambiguous, e.g. "etude" with accents.
+                start, end = match.start() + left, match.start() + right
+                if any(i in covered for i in range(start, end)):
+                    continue
+                covered.update(range(start, end))
+                findings.append({"kind": kind, "hint": _classify_mojibake_hint(restored),
+                                 "start": start, "end": end, "text": original,
+                                 "restored": restored, "status": "repaired", "roundtrip": True})
+    # Within a recognized, partly repaired run, retain and identify strong
+    # residual markers. Unknown text outside such runs is not called broken.
+    unresolved_spans = set()
+    for pattern, source, target, kind in routes:
+        for match in pattern.finditer(text):
+            if not any(i in covered for i in range(match.start(), match.end())):
+                continue
+            start = match.start()
+            for end in range(start, match.end() + 1):
+                if end == match.end() or end in covered:
+                    if start < end and (text[start] in "ãäåæçèï縺繝繧" or
+                                        any(0x80 <= ord(c) <= 0x9f for c in text[start:end])):
+                        unresolved_spans.add((start, end))
+                    start = end + 1
+    retained = set()
+    for start, end in sorted(unresolved_spans):
+        if any(i in retained for i in range(start, end)):
+            continue
+        retained.update(range(start, end))
+        original = text[start:end]
+        findings.append({"kind": "unresolved_candidate", "hint": "uncertain",
+                         "start": start, "end": end, "text": original,
+                         "restored": original, "status": "unresolved", "roundtrip": False})
+    for match in re.finditer(r"\ufffd+", text):
+        findings.append({"kind": "replacement_char", "hint": "replacement",
+                         "start": match.start(), "end": match.end(), "text": match.group(),
+                         "restored": match.group(), "status": "unrecoverable", "roundtrip": False})
+    return sorted(findings, key=lambda row: row["start"])
 
 
 def restore_mojibake(text):
-    """Convert garbled mojibake sequences in ``text`` back into readable Japanese characters."""
+    """Return a readable view, repairing known spans and preserving all other text."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    finds = mojibake_text(text)
-    if not finds:
-        return text
-    res, last = [], 0
-    for f in finds:
-        if f["start"] >= last:
-            res.append(text[last:f["start"]])
-            res.append(f["restored"])
-            last = f["end"]
-    res.append(text[last:])
-    return "".join(res)
+    result, last = [], 0
+    for finding in mojibake_text(text):
+        result.extend((text[last:finding["start"]], finding["restored"]))
+        last = finding["end"]
+    result.append(text[last:])
+    return "".join(result)
+
+
+def readable_text(data):
+    """Decode bytes automatically, then repair known mojibake; retain the evidence."""
+    report = decode_text(data)
+    original = report["text"]
+    report["decoded_text"] = original
+    report["findings"] = mojibake_text(original)
+    report["decoding_status"] = report["status"]
+    unresolved = any(row["status"] in ("unresolved", "unrecoverable") for row in report["findings"])
+    repaired = any(row["status"] == "repaired" for row in report["findings"])
+    report["restoration_status"] = "partial" if unresolved else ("candidates_applied" if repaired else "unchanged")
+    if unresolved:
+        report["status"] = "partial"
+        report["warnings"].append("unresolved mojibake candidates retained; see findings for original spans")
+    parts, last = [], 0
+    for finding in report["findings"]:
+        parts.extend((original[last:finding["start"]], finding["restored"]))
+        last = finding["end"]
+    parts.append(original[last:])
+    report["text"] = "".join(parts)
+    if any(row["status"] == "repaired" for row in report["findings"]):
+        report["warnings"].append("applied reversible mojibake candidates; decoded_text preserves the original view")
+    return {"schema": "xprobe.readable-text.v1", **report}
 
 
 def mojibake_scan(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_findings=1000):
-    """Scan UTF-8 files under ``roots`` for Japanese mojibake findings."""
+    """Auto-decode text files, then report mojibake with decoding diagnostics."""
     if isinstance(roots, (str, os.PathLike)):
         roots = [roots]
+    roots = list(roots)
     for value, label in ((max_files, "max_files"), (max_bytes, "max_bytes"), (max_findings, "max_findings")):
         _limit(value, label)
     findings, counts, scanned, skipped, truncated = [], {}, 0, 0, False
+    decodings = []
     for root in roots:
         base = Path(root)
         paths = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file() and not any(part in _EMOJI_SKIP for part in p.relative_to(base).parts))
@@ -204,13 +460,15 @@ def mojibake_scan(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_find
             try:
                 with path.open("rb") as stream:
                     data = stream.read(max_bytes + 1)
-                if len(data) > max_bytes or b"\0" in data[:4096]:
+                if len(data) > max_bytes:
                     raise ValueError
-                text = data.decode("utf-8")
+                decoding = decode_text(data)
+                text = decoding.pop("text")
             except (OSError, ValueError):
                 skipped += 1
                 continue
             scanned += 1
+            decodings.append({"path": label, **decoding})
             for number, line in enumerate(text.split("\n"), 1):
                 for row in mojibake_text(line):
                     counts[row["kind"]] = counts.get(row["kind"], 0) + 1
@@ -220,7 +478,8 @@ def mojibake_scan(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_find
                     row = {"path": label, "line": number, "column": row.pop("start") + 1, **row}
                     row.pop("end")
                     findings.append(row)
-    return {"schema": "xprobe.mojibake.v1", "files": scanned, "skipped": skipped, "truncated": truncated, "counts": counts, "findings": findings}
+    return {"schema": "xprobe.mojibake.v1", "files": scanned, "skipped": skipped,
+            "truncated": truncated, "counts": counts, "findings": findings, "decodings": decodings}
 
 
 def _combining(char):
@@ -324,7 +583,7 @@ def search_text(text, pattern=None, *, regex=False, ignore_case=False,
     end_column is exclusive. Literal search is the default. Empty patterns
     are rejected; regex syntax errors propagate as re.error. preset names a
     built-in regex (see pattern_presets) instead of pattern. normalize steps
-    (ansi, nfkc, casefold, spaces, vs16) search a normalized view of each line
+    (ansi, nfkc, casefold, spaces, vs16, mojibake) search a normalized view of each line
     but report original coordinates and text; "normalized" holds the matched
     view. Literal patterns get the same steps; regexes are written for the view.
     """
@@ -343,7 +602,7 @@ def search_text(text, pattern=None, *, regex=False, ignore_case=False,
 
 def search_files(root, pattern=None, *, regex=False, ignore_case=False,
                  include_hidden=False, max_bytes=1_000_000,
-                 max_matches=1000, encoding="utf-8", include=("*",),
+                 max_matches=1000, encoding=None, include=("*",),
                  exclude_dirs=(), normalize=(), preset=None):
     """Search a file or directory, returning matches, skipped files and errors.
 
@@ -352,20 +611,27 @@ def search_files(root, pattern=None, *, regex=False, ignore_case=False,
     Read/walk errors are reported, not interpreted as no matches. No gitignore
     interpretation; hidden entries are excluded by default. Root path errors
     raise OSError. Ordinary concurrent filesystem changes are not isolated.
-    normalize and preset behave as in search_text.
+    normalize and preset behave as in search_text. With encoding omitted, the
+    mojibake normalization step also auto-detects common text encodings. Other
+    searches keep the UTF-8 default. Explicit encoding="auto" returns decoding
+    diagnostics; an explicit codec retains strict decoding and skip behavior.
     """
     _limit(max_bytes, "max_bytes")
     _limit(max_matches, "max_matches")
     include, exclude_dirs = _globs(include), _globs(exclude_dirs)
     steps = _steps(normalize)
     compiled = _pattern(pattern, regex, ignore_case, preset, steps)
+    encoding = encoding if encoding is not None else ("auto" if "mojibake" in steps else "utf-8")
     # Validate codec even when no files are encountered.
-    "".encode(encoding)
+    if encoding != "auto":
+        "".encode(encoding)
     root = Path(root)
     mode = root.lstat().st_mode
     if stat.S_ISLNK(mode) or not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
         raise ValueError("root must be a regular file or directory, not a symlink")
     report = {"matches": [], "skipped": [], "errors": [], "truncated": False}
+    if encoding == "auto":
+        report["decodings"] = []
 
     def label(path):
         return path.relative_to(root).as_posix() if root.is_dir() else path.name
@@ -403,7 +669,7 @@ def search_files(root, pattern=None, *, regex=False, ignore_case=False,
                 data = stream.read(max_bytes + 1)
             if len(data) > max_bytes:
                 reason = "too_large"
-            elif b"\x00" in data:
+            elif encoding != "auto" and b"\x00" in data:
                 reason = "binary"
             else:
                 reason = None
@@ -411,9 +677,17 @@ def search_files(root, pattern=None, *, regex=False, ignore_case=False,
                 report["skipped"].append({"path": name, "reason": reason})
                 continue
             try:
-                text = data.decode(encoding)
+                if encoding == "auto":
+                    decoding = decode_text(data)
+                    text = decoding.pop("text")
+                    report["decodings"].append({"path": name, **decoding})
+                else:
+                    text = data.decode(encoding)
             except UnicodeError:
                 report["skipped"].append({"path": name, "reason": "decode_error"})
+                continue
+            except ValueError:
+                report["skipped"].append({"path": name, "reason": "binary"})
                 continue
             for match in _matches(text, compiled, steps):
                 # Look one match ahead, so exactly max_matches is not truncated.
@@ -1971,7 +2245,10 @@ def main(argv=None):
     modes.add_argument("--emoji-explain", metavar="TEXT", help="Split TEXT into emoji sequences with names and code points")
     parser.add_argument("--emoji-names", metavar="FILE", help="Names table for --emoji/--emoji-explain (QueRyu emoji_names.json)")
     modes.add_argument("--mojibake", action="store_true", help="Scan --root for Japanese mojibake findings; 1 if any")
-    modes.add_argument("--restore-mojibake", metavar="FILE", help="Print FILE ('-' = stdin) with mojibake restored to Japanese text")
+    modes.add_argument("--read-text", "--restore-mojibake", dest="restore_mojibake", metavar="FILE",
+                       help="Auto-decode FILE ('-' = stdin), repair known mojibake, and print readable UTF-8")
+    parser.add_argument("--text-report", action="store_true",
+                        help="With --read-text, return JSON with text, original decoded view and diagnostics")
     modes.add_argument("--hidden-text", action="store_true",
                        help="Invisible/deceptive characters under --root (tag text, bidi, zero-width, homoglyphs); 1 if any")
     modes.add_argument("--hidden-rules", action="store_true", help="List the --hidden-text rules and severities")
@@ -1992,6 +2269,8 @@ def main(argv=None):
     parser.add_argument("--skip", action="append", default=[], help="Field not used as a condition")
     parser.add_argument("--top", type=int, default=5)
     args = parser.parse_args(argv)
+    if args.text_report and args.restore_mojibake is None:
+        parser.error("--text-report requires --read-text or --restore-mojibake")
     roots = args.root or ["."]
     try:
         if args.annotate_junit is not None:
@@ -2020,8 +2299,24 @@ def main(argv=None):
                 print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
         if args.restore_mojibake is not None:
-            raw = sys.stdin.buffer.read() if args.restore_mojibake == "-" else Path(args.restore_mojibake).read_bytes()
-            sys.stdout.buffer.write(restore_mojibake(raw.decode("utf-8")).encode("utf-8"))
+            _limit(args.max_bytes, "max_bytes")
+            if args.restore_mojibake == "-":
+                raw = sys.stdin.buffer.read(args.max_bytes + 1)
+            else:
+                with Path(args.restore_mojibake).open("rb") as stream:
+                    raw = stream.read(args.max_bytes + 1)
+            if len(raw) > args.max_bytes:
+                print("input exceeds --max-bytes", file=sys.stderr)
+                return 2
+            reading = readable_text(raw)
+            if args.text_report:
+                print(json.dumps(reading, ensure_ascii=True, indent=2))
+            else:
+                sys.stdout.buffer.write(reading["text"].encode("utf-8"))
+                if reading["warnings"]:
+                    print("xprobe: " + reading["encoding"] + " / " + reading["status"] + "; " +
+                          "; ".join(reading["warnings"]), file=sys.stderr)
+            # A partial reading is usable; diagnostics, not failure, carry uncertainty.
             return 0
         if args.mojibake:
             mb_rep = mojibake_scan(roots, max_bytes=args.max_bytes, max_findings=args.max_matches)
@@ -2029,6 +2324,10 @@ def main(argv=None):
                 for f in mb_rep["findings"]:
                     print(f"{f['path']}:{f['line']}:{f['column']}: {f['kind']} ({f['hint']}) {ascii(f['text'])} -> {f['restored']}")
                 print(f"mojibake: {sum(mb_rep['counts'].values())} finding(s) in {mb_rep['files']} file(s)" + ("; truncated" if mb_rep["truncated"] else ""))
+                for row in mb_rep["decodings"]:
+                    if row["warnings"]:
+                        print(f"decode: {row['path']}: {row['encoding']} / {row['status']}; " +
+                              "; ".join(row["warnings"]))
             else:
                 print(json.dumps(mb_rep, ensure_ascii=False, indent=2))
             return 1 if mb_rep["counts"] else 0
@@ -2103,6 +2402,10 @@ def main(argv=None):
                         if len(roots) > 1:
                             row["path"] = f"{root.rstrip('/')}/{row['path']}"
                         report[key].append(row)
+                for row in part.get("decodings", []):
+                    if len(roots) > 1:
+                        row["path"] = f"{root.rstrip('/')}/{row['path']}"
+                    report.setdefault("decodings", []).append(row)
                 report["truncated"] = report["truncated"] or part["truncated"]
         else:
             report = scan_config(roots[0], max_bytes=args.max_bytes,
@@ -2116,6 +2419,10 @@ def main(argv=None):
         for key in ("skipped", "errors"):
             if report[key]:
                 print(f"{key}: " + ", ".join(f"{e['path']} ({e['reason']})" for e in report[key]))
+        for row in report.get("decodings", []):
+            if row["warnings"]:
+                print(f"decode: {row['path']}: {row['encoding']} / {row['status']}; " +
+                      "; ".join(row["warnings"]))
         if report["truncated"]:
             print("truncated: raise --max-matches")
     else:
