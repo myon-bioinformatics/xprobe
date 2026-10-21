@@ -483,6 +483,24 @@ Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
 payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
 
 
+## Convention-driven file and Python discovery
+
+`discover_files(root, include=("*.yml", "*.json"))` lists files by injected naming
+rules. `discover_python(root, patterns=("load_*", "validate_*"))` finds Python
+definitions across a directory. `python_symbols(source, pattern="*")` handles
+in-memory source. These use stdlib `fnmatchcase` and `ast`; no test naming rule
+is built in and targets are not imported. Multiple patterns are ORed.
+
+```sh
+python xprobe.py --symbols xprobe.py --symbol-pattern '*search*' --brief
+python xprobe.py --symbols . --exclude-dir tests --exclude-dir vendor --symbol-pattern 'load_*' --symbol-pattern 'validate_*' --brief
+python xprobe.py --discover --root . --include '*.yml' --include '*.toml' --include-hidden --brief
+```
+
+Definition results include paths, lexical dotted names and line numbers. Use
+`--symbol-kind class` (or `function`/`async_function`) to narrow by kind.
+See [cross-repository recipes, trial results and limits](docs/stdlib-discovery.md).
+
 ## Runtime and development Python policy
 
 The standard-library runtime supports Python 3.9+; this change preserves the
