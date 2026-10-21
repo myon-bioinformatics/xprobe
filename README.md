@@ -396,20 +396,23 @@ Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
 payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
 
 
-## Python definition discovery with stdlib
+## Convention-driven file and Python discovery
 
-`python_symbols(source, pattern="*")` extracts class/function/async-function names
-with `ast`, then filters them with `fnmatchcase`, the name-matching primitive also
-used by unittest. Source files are parsed without importing or executing them.
+`discover_files(root, include=("*.yml", "*.json"))` lists files by injected naming
+rules. `discover_python(root, patterns=("load_*", "validate_*"))` finds Python
+definitions across a directory. `python_symbols(source, pattern="*")` handles
+in-memory source. These use stdlib `fnmatchcase` and `ast`; no test naming rule
+is built in and targets are not imported. Multiple patterns are ORed.
 
 ```sh
 python xprobe.py --symbols xprobe.py --symbol-pattern '*search*' --brief
-python xprobe.py --symbols tests/test_xprobe.py --symbol-pattern '*Tests.test_*' --brief
+python xprobe.py --symbols . --exclude-dir tests --exclude-dir vendor --symbol-pattern 'load_*' --symbol-pattern 'validate_*' --brief
+python xprobe.py --discover --root . --include '*.yml' --include '*.toml' --include-hidden --brief
 ```
 
-Results include lexical dotted names and line numbers. This inventories source
-definitions; it does not collect inherited/dynamic tests or pytest expansions.
-See [the trial, limits and reusable one-liners](docs/stdlib-discovery.md).
+Definition results include paths, lexical dotted names and line numbers. Use
+`--symbol-kind class` (or `function`/`async_function`) to narrow by kind.
+See [cross-repository recipes, trial results and limits](docs/stdlib-discovery.md).
 
 ## Runtime and development Python policy
 

@@ -1,0 +1,522 @@
+{
+  "observed_date": "2026-10-21",
+  "source_mode": "static; no target imports or test execution",
+  "recipes": [
+    {
+      "repository": "myon-bioinformatics/search_seq_including_spaces",
+      "commit": "725a3602327b083e60263a1eabc83a82436b84c3",
+      "options": {
+        "include": [
+          "sequence_readers.py",
+          "structured_readers.py",
+          "protein/*.py"
+        ],
+        "patterns": [
+          "read_*",
+          "*validate*"
+        ],
+        "exclude_dirs": [
+          ".git",
+          ".venv",
+          "venv",
+          "node_modules",
+          "__pycache__",
+          "build",
+          "dist"
+        ]
+      },
+      "source_sha256": {
+        "sequence_readers.py": "65c991dd6495bb0d38ca023fc1dbdcdbc7fb68eabe8aef19d077be49b0008027",
+        "structured_readers.py": "05ffa411e8b9c58c5777874c6d82a320558af726567fda33f6be42769aad1bdd",
+        "protein/__init__.py": "ad97e871d204e1f500eea419fd4178cfc014ccb13af8c507ca46df514d9a0276",
+        "protein/features.py": "eb362422b5f056c46c3209fdab319e508be1783aad4c3f262ed36ba38f860bff",
+        "protein/parse.py": "2a7443134e31bd11d45eaa2de012a1d826547eb3cd9a26512efa068419f04db5",
+        "protein/provenance.py": "3733116f4e78acda71355a2d7b7ab9aec3ea371479e596a8b9bcf62e6070ef80",
+        "protein/residues.py": "c8fbb47fa0efa6afeab9ed6cb36559e5a1d537d937ac2f5ca1b4586abf66de52",
+        "protein/roi.py": "1884119828c741afd9ceca64fbbd4d349faca3b7288428f6aececb0d40dc38db",
+        "protein/search_seq_including_spaces_render.py": "06e62ae29043dcef6c037fcf12cc0f9f7e55c1c183b6d01f91a65bb0f2feaedc"
+      },
+      "files": 9,
+      "symbol_count": 6,
+      "symbols": [
+        {
+          "path": "sequence_readers.py",
+          "name": "read_sequences",
+          "qualname": "read_sequences",
+          "kind": "function",
+          "line": 88
+        },
+        {
+          "path": "structured_readers.py",
+          "name": "read_genbank",
+          "qualname": "read_genbank",
+          "kind": "function",
+          "line": 98
+        },
+        {
+          "path": "structured_readers.py",
+          "name": "read_json",
+          "qualname": "read_json",
+          "kind": "function",
+          "line": 41
+        },
+        {
+          "path": "structured_readers.py",
+          "name": "objects",
+          "qualname": "read_json.objects",
+          "kind": "function",
+          "line": 48
+        },
+        {
+          "path": "structured_readers.py",
+          "name": "objects",
+          "qualname": "read_json.objects",
+          "kind": "function",
+          "line": 66
+        },
+        {
+          "path": "protein/parse.py",
+          "name": "read_fasta",
+          "qualname": "read_fasta",
+          "kind": "function",
+          "line": 57
+        }
+      ],
+      "errors": [],
+      "skipped": [],
+      "truncated": false,
+      "cli_exit_code": 0,
+      "cli_output_lines": 6
+    },
+    {
+      "repository": "myon-bioinformatics/Ironmate",
+      "commit": "68898410f540ee25187f278e4a81e0b8fc0ef191",
+      "options": {
+        "include": [
+          "*.py"
+        ],
+        "patterns": [
+          "*transform*",
+          "*export*",
+          "*render*"
+        ],
+        "exclude_dirs": [
+          ".git",
+          ".venv",
+          "venv",
+          "node_modules",
+          "__pycache__",
+          "build",
+          "dist",
+          "tests",
+          "vendor"
+        ]
+      },
+      "source_sha256": {
+        "browser_matrix.py": "83a80b409b0c90a86cce6cabd4ea40fd73f5740556a252481ddf06e6cb0fcd9e",
+        "flow_export.py": "c8910ce604969d24860b000279d48380d00583f63592da69bd9af62e59a3416a",
+        "flow_workspace.py": "f901f0b8330a5a7655310767693eea2a47ef31df2309006e21915c4668ab9e49",
+        "grid_output.py": "1047e105caf439c2864edaa4c2f7b0dbc3d57c861802c59892c1d30899355a88",
+        "grid_png.py": "c6e82a90fe74f62e9d98c96e712f0b3df83976f38ca5145cd71e3127677b4bd0",
+        "grid_preview.py": "163f5674e8b50f95ecbf5d099a5c67ab705e19516479941c62221468c41fe052",
+        "grid_svg.py": "28717db7838a3d85a5a57dad0c805664fd4148b6e21261ccdfcbacaeb1ac9d99",
+        "grid_tools.py": "cbd80dd81bac0e20e34caafd5d2a5a37204ef388a75eacbdcc65b8e1994bc21c",
+        "image_compare.py": "4488b79fc2f37b83e762bfe0ddecc44b0edee498f14af28643ca4d8245c85ab3",
+        "image_digest.py": "07740dd6c1fc7e33f8261a0e41346673c853958fc4f5e0f880000cd32267c192",
+        "image_studio.py": "d2781d4a041479c021b674a4c56d4e7be89014ebb79632c835ab70ec83c829a4",
+        "ironmate_image.py": "813d914db6d147e66b1a6666abf4b892a9d166c6e237c90a91d1dbbfe5b1fc2a",
+        "mermaid_svg.py": "b5224dd76519064a7321292ec195c3f72985308f251cfa18233fc55dfcf31239",
+        "photo_grid.py": "356a36ae3ddf8222bbac9f320c9cd2f6f89deeb28ab370cdda585dba77f10322",
+        "pixel_arcade_engine.py": "9bbb92a09281cff1e18967880257a2c6730e235ce6543cf77a85afa0880cabe4",
+        "pixel_grid.py": "ebbeac89cd1df36207e5e879e195317c842390f22eedc3ed2cd02c0fe82a8d86",
+        "pptx_inspect.py": "a85463f6c79b2f447844d06e413ae4e46edf1300a556d4ad8fa40b333bfdac60",
+        "pptx_layout.py": "0c994fb4376f379ba5d2628cb432d31f2d78ecba680ce4592dd62fa8b14f58a5",
+        "pptx_mapping.py": "a565a5a4cbd4674732a474cf3361acffbb0f0c20489d3e3de64eb809b2a277d4",
+        "pptx_ooxml.py": "cb601adbe7b5d8f690e80f82540e0722796744ab3433c43d135a3de50b9baa67",
+        "pptx_pipeline.py": "7cbc5730c650f55ba59fd837089cdf1d64a65348d5d7025c7cfcf29372b697ca",
+        "pptx_preview.py": "ee735ae0a65b18f9587baa5368eb50f8bf3453638b40f287aa9e7f61551f8e16",
+        "pptx_render.py": "3840c6ef641ac68f0b115f85782ac1d7039e39b824499b58ad8fe5d8b37bf043",
+        "pptx_replace.py": "30f843856db7358dcfa22d862a46db57ff2a521f067ade1aef61717d95938155",
+        "pptx_spec.py": "998e7cefa51965636b1b824b356235ed0d6f3923e6b04627a1ec46e368262b3e",
+        "pptx_xml.py": "0850aa4a34298d0bf57af37ad1dd881e745c41bcc492736441d0f5a256a0f080",
+        "size_estimate.py": "d109c2f53f318a0e22490fbce8b14abcc141d92579c1cd1a889d2bc08d9eb635",
+        "studio_alignment.py": "04790461e68c2eb771e3fa7bf45b3512baf2b022ce41f4b8e8ffa386e1b5e96c",
+        "studio_candidate_selection.py": "e7ce717acb669a515785668f09645d3ad32dfdd7a4cb2304631381df730149b9",
+        "studio_image_quality.py": "f5a829651200ba58b6f6c0592047e0e2cd78c5fa04e286bfb01e493e33dcc71b",
+        "studio_ingress.py": "bd666931450bcd6cfc6729da3d2480ce0df56947e86d353ec58f3596323ef6bc",
+        "studio_shape_metrics.py": "52ed5d1ba65266799d17000cc1829d0d75bab7b84715cbfd332df255fe63f315",
+        "svg_raster.py": "79b257ef920fca155b073cd4ac49bfb7797e7b57216b376a35d6626c0cfccba3",
+        "xlsx_csv.py": "d4ecc5d4f232f2ca85b0fa8149592cc5ac3a7d737a3c8e444d2b6c378ead378d",
+        "xlsx_ooxml.py": "bb63882cf947d19b997f05833215066076a879e269e5b848ea2fc24037b70fda",
+        "xlsx_render.py": "7f0af8f6ef8af196bd1035a9cfd2aee98d7049527019a9a98121e27f1ff20f06",
+        "xlsx_spec.py": "7712d1a1492d19b24510e662e1781162609a882c192e60a8254219411a53f33a",
+        "pptx/__init__.py": "b0304609385e5357a65ec6746476b84c6a99803fa1dd8029bc81e8ff3da51af2",
+        "pptx/presentation.py": "625667cb34e89d86024402d7febb4c72d80cd07d68a90bab07c37dd372871251",
+        "pptx/util.py": "34cff346b528f3b895a894e01b797f0b85fd6c5fe22ed9b6a7459aa0c8ba68d8",
+        "pptx/dml/__init__.py": "cea326b28f30da9dd1780899183b1c5ef69b0ddfd32040a1909ca64391874b18",
+        "pptx/dml/color.py": "d4962d50fe4239f7c6a44b5204ffc2ec9638877b2fb3baea553bf6c4c75756fa",
+        "pptx/enum/__init__.py": "adc6dea8d163a56e62b27ec30dd5ee2a818e745a4b86fcf7d8baab246373be62",
+        "pptx/enum/dml.py": "2dc218b102b88d248133e857a87b32d41d81f4872d2d78b0f7e8758472a5bdb7",
+        "pptx/enum/shapes.py": "ce3751b864f945c51f5f144ddc478669506b9bf7d31edd446a6682fb4c5c5eb5",
+        "pptx/enum/text.py": "520f122a0461c9a0f8066858be8d409b9a68c13425b0827013358dc3d4fe16d8",
+        "scripts/build_slide_shell.py": "e555553c0842b63af25ee7ecf36577db79323dd565b05015cefc4defe3e951a1",
+        "scripts/cdn_pypdf_pages.py": "66d998e395b7ef6533d138751e1695ea290767ade4c7eec556e73a36cbe99084",
+        "scripts/fetch_module.py": "2770a46838187fb2a09e67bf58310db3f52bd7dc109d75ea5f10205ae12e2340",
+        "scripts/littlebit_jev_3way_survey.py": "b39984a0fa3bcce7216adaabc1381997a22efe622726b61269b1892aadfde6c7",
+        "scripts/pages_catalog.py": "e26c42cd0c25991b632012a3528fbc00ef162def0182eaeeef6c4109ea9d81e6",
+        "scripts/quality_experiment.py": "c7614ceb46bab9e6f161a8a8e63e0fe157b7e1ddabc44cd12572e85dc4e189e2",
+        "scripts/quality_selection_experiment.py": "64e6fded791bcf3db33c0d28f37cf231386f42926ee3880e3579bcbef634fae8",
+        "scripts/survey_holdout.py": "ce694f1e80deaf5b8b97600f5c8bc62d892e1644bd6a2857db4bb8fa92c91334",
+        "scripts/vendor_enrollment_audit.py": "658830abee6a8d8e1f870f1c10002e0b4b4ea01e8bf751e9df19d5a5367bcf86"
+      },
+      "files": 55,
+      "symbol_count": 11,
+      "symbols": [
+        {
+          "path": "flow_export.py",
+          "name": "render_flow",
+          "qualname": "render_flow",
+          "kind": "function",
+          "line": 61
+        },
+        {
+          "path": "flow_workspace.py",
+          "name": "patch_and_render",
+          "qualname": "patch_and_render",
+          "kind": "function",
+          "line": 84
+        },
+        {
+          "path": "flow_workspace.py",
+          "name": "render_workspace",
+          "qualname": "render_workspace",
+          "kind": "function",
+          "line": 80
+        },
+        {
+          "path": "image_studio.py",
+          "name": "render_scene",
+          "qualname": "render_scene",
+          "kind": "function",
+          "line": 216
+        },
+        {
+          "path": "mermaid_svg.py",
+          "name": "render_mermaid",
+          "qualname": "render_mermaid",
+          "kind": "function",
+          "line": 14
+        },
+        {
+          "path": "pixel_grid.py",
+          "name": "render",
+          "qualname": "render",
+          "kind": "function",
+          "line": 284
+        },
+        {
+          "path": "pptx_preview.py",
+          "name": "render_preview_html",
+          "qualname": "render_preview_html",
+          "kind": "function",
+          "line": 9
+        },
+        {
+          "path": "pptx_render.py",
+          "name": "_renderer",
+          "qualname": "_renderer",
+          "kind": "function",
+          "line": 20
+        },
+        {
+          "path": "pptx_render.py",
+          "name": "render_bytes",
+          "qualname": "render_bytes",
+          "kind": "function",
+          "line": 68
+        },
+        {
+          "path": "pptx_replace.py",
+          "name": "transform",
+          "qualname": "transform",
+          "kind": "function",
+          "line": 23
+        },
+        {
+          "path": "scripts/littlebit_jev_3way_survey.py",
+          "name": "render_svg",
+          "qualname": "render_svg",
+          "kind": "function",
+          "line": 481
+        }
+      ],
+      "errors": [],
+      "skipped": [],
+      "truncated": false,
+      "cli_exit_code": 0,
+      "cli_output_lines": 11
+    },
+    {
+      "repository": "myon-bioinformatics/browser-test-kit",
+      "commit": "75d736d26f6752ff7bc1436ae414f6578e321f43",
+      "options": {
+        "include": [
+          "scripts/*.py"
+        ],
+        "patterns": [
+          "*probe*",
+          "*capture*",
+          "*validate*"
+        ],
+        "exclude_dirs": [
+          ".git",
+          ".venv",
+          "venv",
+          "node_modules",
+          "__pycache__",
+          "build",
+          "dist"
+        ]
+      },
+      "source_sha256": {
+        "scripts/app_comparison.py": "cbff6693a54ea56174b060d85a9e13d469f9deb7432f06b7fbd160a49bdc0742",
+        "scripts/app_digest.py": "281d9ac8607babbbbf5f15ab0f7fea870a0f7fbe93920c4a93988a54434fad41",
+        "scripts/app_digest_comment.py": "7a5b9fbfa458716446fffa936b9d4837137233ec39320bf7d18e7c59bafdb39e",
+        "scripts/btk_events.py": "d091638495799eb41c31dbe326530236096f3ea2976b7fb36867ad19785f7311",
+        "scripts/check_capture_evidence.py": "b9192edeb72ee856de10127c56ce0dfbe24596708f0ec49d34eb4dcd0f6692d3",
+        "scripts/check_evidence.py": "60dc86b7f9053a7add2ca6fe9b8054265cd488160275d65a0e1c5850f4afcf22",
+        "scripts/check_png.py": "12d5c7c0189b53540649ea26d57aeca827588b9118050d10b100b185845a2ad6",
+        "scripts/evidence_board.py": "6d2c443aec99753e9e1efb698b2fab1ccebfcdc0848cf8972c365cef6b1e1f2c",
+        "scripts/gh_identity.py": "fa560589b132893d2bab4859aee14b781e54aa170b53092d28ab3554abc550c1",
+        "scripts/gh_ops.py": "3f9be2015bdfa86daec100b9595db8b6f78511d83f1e8b3f48b8fed60e594dba",
+        "scripts/git_commit.py": "01046af6d78c1c7dbafe0b23d96f251cd6a6911bf3c351edd9d7a6cdcdc7536e",
+        "scripts/hit_probe.py": "4622c00481f40eb6ecc59ad247a78b4fc21ddd41f826bdd4935ed4f738b09c6e",
+        "scripts/html_builder.py": "8aedfbc64ba35691aa4ed3bc6cfd11116b9e684f32ae99b75d4328c6abc22046",
+        "scripts/image_diff.py": "7f07e413df52578571643e720d8ee356118b521b2dccd9b8d3c188103e6fd15a",
+        "scripts/interaction.py": "875c57386704ba0124999a233d2ddc7f771f30f592631fe40aa4d74353618484",
+        "scripts/jsonl_digest.py": "b02c4880336c3fce5427b818bfe19175c13f0acb8bf1204c6208ac85bb20f730",
+        "scripts/mirror_check.py": "0d221194e58dbbef1bd456602195f5c898534caecd8c5dcf2f0720a857c33015",
+        "scripts/page_text.py": "e87c106d76eb20077c9565bbdaa420daa2a803c6be2b0a48eb2c3fe2db1ee964",
+        "scripts/platform_adapter.py": "62a72bfc0898e9f2ae3037d5177672d6191f78046880e29b47c096a8789fe395",
+        "scripts/platform_probe.py": "a8ad1eeb784dc22637c3f05d5d188d09c675f71335c294a264af42a3ba6284c3",
+        "scripts/probe_capture_rejections.py": "7551b2fcd58d12d0e8ea8304b6e8facd74e8169ca85aaf3a15d4b4cb6a4968ff",
+        "scripts/publish_check.py": "5066433baf033395fff2af3e74dce7cc2e0ffd021ce8b5e63e0482d14a8c886f",
+        "scripts/pw_install_plan.py": "49e46471b0036979b2f8c9c04c6877444ca8f7b8fd707cc04f3a64044799a2e8",
+        "scripts/py_matrix.py": "3741ccec48fe746f182d314b9b50c6191d0e7587cfa38fc5938a4d06a8e3e87c",
+        "scripts/pytest_brief.py": "bf035fca0943e691fd11b51f32849e393b132bf56a944ee27cbeb244fcbbc9a3",
+        "scripts/pytest_btk_events.py": "873b07fbc6c3e836f6d05acf0cf461661c18cec9f5fbc5aeb15a1f877d7f8ab3",
+        "scripts/repo_overview.py": "8238d905807f7e1ea7014a388a7f9450f1a57b24094f78b42878bcd8ecae4032",
+        "scripts/route_trail.py": "0e722cf3701457161456c5725c1cc2cb7f68f6171524a276cabb876fd5e5fd76",
+        "scripts/terminal_browser.py": "0718b4687eb6c3f5e5975fc64d6e637a70699bd08802e0f6f277193999bd6b44",
+        "scripts/twin_parity.py": "436ceb8d4b739c2295b346dec523b03181db908456287ae5f5c7db8b6b8f9383",
+        "scripts/write_capture_evidence.py": "59905c0b6f8d9ad71ca0f1338beefa764a4bfc1f79a6893f2e5f705380fc740d"
+      },
+      "files": 31,
+      "symbol_count": 7,
+      "symbols": [
+        {
+          "path": "scripts/btk_events.py",
+          "name": "validate",
+          "qualname": "validate",
+          "kind": "function",
+          "line": 53
+        },
+        {
+          "path": "scripts/gh_identity.py",
+          "name": "validate_repository_metadata_v1",
+          "qualname": "validate_repository_metadata_v1",
+          "kind": "function",
+          "line": 2931
+        },
+        {
+          "path": "scripts/gh_ops.py",
+          "name": "_validate_branch_name",
+          "qualname": "_validate_branch_name",
+          "kind": "function",
+          "line": 259
+        },
+        {
+          "path": "scripts/gh_ops.py",
+          "name": "_validate_branch_segment",
+          "qualname": "_validate_branch_segment",
+          "kind": "function",
+          "line": 244
+        },
+        {
+          "path": "scripts/platform_adapter.py",
+          "name": "validate_url",
+          "qualname": "validate_url",
+          "kind": "function",
+          "line": 84
+        },
+        {
+          "path": "scripts/platform_probe.py",
+          "name": "capture",
+          "qualname": "_collect.capture",
+          "kind": "function",
+          "line": 208
+        },
+        {
+          "path": "scripts/route_trail.py",
+          "name": "validate_steps",
+          "qualname": "validate_steps",
+          "kind": "function",
+          "line": 189
+        }
+      ],
+      "errors": [],
+      "skipped": [],
+      "truncated": false,
+      "cli_exit_code": 0,
+      "cli_output_lines": 7
+    },
+    {
+      "repository": "myon-bioinformatics/myon-bioinformatics",
+      "commit": "2192ff22acafdd09e80ac722df91ee937aaedd5e",
+      "options": {
+        "include": [
+          "vendor_sync.py",
+          "tools/*.py"
+        ],
+        "patterns": [
+          "validate*",
+          "verify*",
+          "collect*"
+        ],
+        "exclude_dirs": [
+          ".git",
+          ".venv",
+          "venv",
+          "node_modules",
+          "__pycache__",
+          "build",
+          "dist"
+        ]
+      },
+      "source_sha256": {
+        "vendor_sync.py": "df9312da9cf134b5616e8d2c8fc3cbf7329c3e8f57d1fa792baff9728fc6efcc",
+        "tools/__init__.py": "162fac70fc94ac6788bc3098c65bf5c80e7f7891016b939b558c6c8b3113b0e2",
+        "tools/minpy.py": "1acd095a6c3aea0449defc2673129834c61dc52fa8e93307fa3828c10ec98395",
+        "tools/parent_pin_check.py": "67c5266684e18240b1a40dd9a50439e6505f2422192c019b3233a125d4e1adf5"
+      },
+      "files": 4,
+      "symbol_count": 12,
+      "symbols": [
+        {
+          "path": "vendor_sync.py",
+          "name": "collect_lock_pins",
+          "qualname": "collect_lock_pins",
+          "kind": "function",
+          "line": 2081
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "collect_workflow_pins",
+          "qualname": "collect_workflow_pins",
+          "kind": "function",
+          "line": 2122
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "validate",
+          "qualname": "validate",
+          "kind": "function",
+          "line": 151
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "validate_child_heads",
+          "qualname": "validate_child_heads",
+          "kind": "function",
+          "line": 1298
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "validate_minpy_bundle",
+          "qualname": "validate_minpy_bundle",
+          "kind": "function",
+          "line": 104
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "validate_parent_pr_ref",
+          "qualname": "validate_parent_pr_ref",
+          "kind": "function",
+          "line": 1317
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "verify_child_lock_against_parent",
+          "qualname": "verify_child_lock_against_parent",
+          "kind": "function",
+          "line": 895
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "verify_reference_identity",
+          "qualname": "verify_reference_identity",
+          "kind": "function",
+          "line": 1359
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "verify_repository_id_identity",
+          "qualname": "verify_repository_id_identity",
+          "kind": "function",
+          "line": 1346
+        },
+        {
+          "path": "vendor_sync.py",
+          "name": "verify_workflow_template_copy",
+          "qualname": "verify_workflow_template_copy",
+          "kind": "function",
+          "line": 863
+        },
+        {
+          "path": "tools/parent_pin_check.py",
+          "name": "collect_text_pins",
+          "qualname": "collect_text_pins",
+          "kind": "function",
+          "line": 360
+        },
+        {
+          "path": "tools/parent_pin_check.py",
+          "name": "collect_workflow_pins",
+          "qualname": "collect_workflow_pins",
+          "kind": "function",
+          "line": 328
+        }
+      ],
+      "errors": [],
+      "skipped": [],
+      "truncated": false,
+      "cli_exit_code": 0,
+      "cli_output_lines": 12
+    }
+  ],
+  "non_python_trial": {
+    "repository": "myon-bioinformatics/browser-test-kit",
+    "include": [
+      "*.yml",
+      "*.yaml"
+    ],
+    "include_hidden": true,
+    "files": [
+      ".github/dependabot.yml",
+      ".github/workflows/actionlint.yml",
+      ".github/workflows/platform-apps.yml",
+      ".github/workflows/platform-matrix.yml",
+      ".github/workflows/playwright.yml",
+      ".github/workflows/python-support.yml"
+    ]
+  },
+  "implementation_sha256": "8ea9fa6c9327fee6e50b88ed47f3f6d4cd420e454a67137caeec58fe0657ba27",
+  "validation": {
+    "python": "3.12.14",
+    "node": "24.19.0",
+    "pytest_passed": 505,
+    "coverage_percent": 99.06,
+    "focused_cases": 30,
+    "runner": "pytest with scripts.xprobe_pytest; no duplicate unittest runner"
+  }
+}

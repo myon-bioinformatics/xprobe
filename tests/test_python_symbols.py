@@ -97,14 +97,13 @@ def test_cli_json_brief_empty_exact_limit_and_truncation(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["symbols"] == []
 
 
-def test_cli_rejects_bad_missing_directory_and_oversized_inputs(tmp_path, capsys):
+def test_cli_rejects_bad_missing_and_oversized_inputs(tmp_path, capsys):
     path = tmp_path / "bad.py"
     path.write_text("def sentinel_secret(\n", encoding="utf-8")
     for args, reason in [
         (["--symbols", str(path)], "SyntaxError"),
         (["--symbols", str(path), "--max-bytes", "1"], "ValueError"),
         (["--symbols", str(path), "--max-matches", "0"], "ValueError"),
-        (["--symbols", str(tmp_path)], "ValueError"),
         (["--symbols", str(tmp_path / "missing.py")], "FileNotFoundError"),
     ]:
         assert xprobe.main(args) == 2
