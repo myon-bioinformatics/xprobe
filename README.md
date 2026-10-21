@@ -151,8 +151,8 @@ working directory is the default scope.
 
 The main is only an entry/formatting layer: default calls existing
 `scan_config(".")`, --search calls `search_files`, and --corpus calls
-`known_bad_cases` + `corpus_to_json`. No main-specific analysis engine,
-automatic repair, test run or report interpretation has been added.
+`known_bad_cases` + `corpus_to_json`. Discovery does not repair files, run tests,
+or interpret reports. Explicit reading modes below can repair a text view.
 Existing API scope, exclusions, limits and safety caveats apply.
 
 Default discovery shows existing redacted key/location evidence and explicit
@@ -204,6 +204,7 @@ line/column and text (`normalized` holds the view):
 | `casefold` | full case folding (`ß`→`ss`) | case-insensitive across scripts |
 | `spaces` | drop whitespace inside a line | sequences or tokens split by spaces |
 | `vs16` | drop U+FE0E/U+FE0F/ZWJ | emoji identifiers |
+| `mojibake` | repair recognized, byte-reversible Japanese mojibake spans | garbled text and legacy CSV exports |
 
 Literal patterns are normalized with the same steps; regexes are written for the view.
 `preset=` (or `--preset`) uses a named regex instead of a pattern; `pattern_presets()`
@@ -218,6 +219,92 @@ python xprobe.py --presets
 ```
 
 `--brief` prints one `path:line:column: 'match'` line per match instead of JSON.
+
+## Read legacy text without choosing an encoding
+
+```sh
+python -S xprobe.py --read-text excel-export.csv
+python -S xprobe.py --read-text saved-page.html --text-report
+python -S xprobe.py --read-text - < old-log.txt
+python -S xprobe.py --search 'こんにちは' --normalize mojibake --root exports --brief
+python -S xprobe.py --mojibake --root exports
+```
+
+`--restore-mojibake FILE` remains an alias for `--read-text FILE`. The reading
+mode automatically tries common encodings and repairs recognized mojibake.
+It prints a UTF-8 reading view without changing the input file. The default
+read limit is 1,000,000 bytes, adjustable with `--max-bytes` and also enforced
+for stdin. A partial reading still exits 0 so a viewer can show the useful
+content; warnings go to stderr. `--text-report` returns the text and diagnostics
+as JSON instead. Missing/oversized files and recognized binary/container input
+exit 2. The separate `--mojibake` scanner retains exit 1 for detected findings.
+
+```python
+from pathlib import Path
+import xprobe
+
+report = xprobe.readable_text(Path("excel-export.csv").read_bytes())
+print(report["text"])
+report["encoding"]       # e.g. "cp932"
+report["source"]         # "bom", "declared", "heuristic" or "fallback"
+report["status"]         # "partial" if byte decoding or recognized repair is incomplete
+report["decoding_status"] # "decoded" or "partial" at the byte-decoding stage
+report["restoration_status"] # "unchanged", "candidates_applied" or "partial"
+report["source_hex"]     # exact original bytes, including BOM and invalid bytes
+report["decoded_text"]   # decoded view before any mojibake repair
+report["findings"]       # original spans, candidate replacements and round-trip evidence
+```
+
+`decode_text(bytes)` provides just the decoding stage. Both APIs are pure,
+standard-library functions: callers can pass downloaded HTML bytes or CSV
+bytes directly, without selecting a codec or installing a detector.
+
+| Evidence | Reading strategy |
+| --- | --- |
+| UTF-8 / UTF-16 / UTF-32 BOM | Use the indicated encoding and remove the signature |
+| HTML meta / XML declaration in the first 4 KiB | Try the supported hint; try finite alternatives when it conflicts with a more readable decoding |
+| ISO-2022-JP escape signature | Try ISO-2022-JP, with a UTF-8 fallback for a conflicting hint |
+| Valid UTF-8 | Preserve the decoded Unicode text, including other languages and emoji |
+| Otherwise | Compare UTF-8, CP932 and EUC-JP using explicit Japanese-character heuristics |
+| Invalid bytes in the selected reading | Show literal `\xHH` escapes and mark the result `partial` |
+
+Candidate scores are disclosed in `candidates`; they are not probabilities.
+Short or mixed-encoding inputs can remain ambiguous. The declaration sniff is
+a bounded hint reader, not a complete browser encoding algorithm. BOM-less
+UTF-16/32 is not guessed. ZIP/OLE containers, including `.xlsx`/`.xls`, require
+their format parser; this feature covers text and CSV exports, not workbook
+layout, formulas, browser rendering or URL fetching.
+
+`mojibake_text(str)` and `restore_mojibake(str)` operate on already decoded
+strings. They recognize common UTF-8-as-CP932/CP1252 and CP932-as-CP1252 patterns.
+An incremental decoder accepts only whole source-character / target-byte
+boundaries and checks the reverse byte conversion. A failed unit is retained
+while other units can still be repaired. For example, a garbled greeting
+followed by normal Japanese or French keeps that normal suffix. U+FFFD stays
+U+FFFD with `status="unrecoverable"`; missing original information is not invented.
+The same non-overlapping candidate selection feeds restoration and search.
+
+Reversibility does not prove the author's intended language. `status="repaired"`
+on a finding denotes a reversible candidate. `decoding_status` describes byte
+decoding; `restoration_status` reports incomplete recognized runs separately.
+Residual markers in a partly repaired run are retained as `unresolved_candidate`
+findings. Unknown mojibake can remain; `unchanged` does not prove clean input.
+`source_hex` retains the exact original bytes for reconstruction: the display's literal
+`\xHH` escapes can also occur naturally in the source. `decoded_text` and each
+finding's original `text` retain the pre-repair view and source coordinates.
+Decoding candidates expose `roundtrip`; noncanonical codec byte mappings are
+reported explicitly and the original bytes remain in `source_hex`.
+
+`mojibake_scan()` includes per-file `decodings` diagnostics. `search_files()`
+automatically enables decoding when `normalize="mojibake"` and no encoding
+is supplied; `encoding="auto"` also enables it explicitly. An explicit codec
+keeps strict decoding, and searches without the mojibake step keep their UTF-8
+default. Search coordinates refer to the original decoded text, not byte offsets.
+
+The implementation uses a fixed candidate set and incremental state instead
+of unbounded brute-force transforms or model calls. The regression cases check
+known transformations, neighboring clean text, partial byte input and search
+coordinates; all runtime code remains in the vendorable `xprobe.py`.
 
 ## Loading TOML and YAML without pip (0.4)
 
