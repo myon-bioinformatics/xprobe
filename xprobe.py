@@ -25,7 +25,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
            "load_toml", "load_yaml", "junit_annotations", "portability_findings",
            "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory",
-           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan"]
+           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan",
+           "python_symbols"]
 
 
 def _limit(value, name):
@@ -264,6 +265,41 @@ def search_files(root, pattern=None, *, regex=False, ignore_case=False,
         except OSError as error:
             report["errors"].append({"path": name, "reason": type(error).__name__})
     return report
+
+
+def python_symbols(source, *, pattern="*"):
+    """Find Python definitions by shell-style name pattern, without importing.
+
+    ``source`` is str or Python source bytes (encoding cookies/BOM supported).
+    Match either the short name or lexical dotted name, case-sensitively on
+    every OS. Return classes, functions and async functions sorted by qualified
+    name, then line. Nested/conditional definitions are included, but imports,
+    inherited/dynamically attached members and lambdas are not. This is source
+    discovery, not unittest/pytest collection. SyntaxError is left to the caller;
+    parsing follows the running interpreter's grammar and is not a sandbox.
+    """
+    if not isinstance(source, (str, bytes)):
+        raise TypeError("source must be str or bytes")
+    if not isinstance(pattern, str):
+        raise TypeError("pattern must be str")
+    if not pattern:
+        raise ValueError("pattern must not be empty")
+    definitions = {ast.ClassDef: "class", ast.FunctionDef: "function",
+                   ast.AsyncFunctionDef: "async_function"}
+    rows = []
+    pending = [(ast.parse(source), "")]
+    while pending:
+        node, scope = pending.pop()
+        kind = definitions.get(type(node))
+        if kind is not None:
+            qualified = scope + node.name
+            if (fnmatch.fnmatchcase(node.name, pattern) or
+                    fnmatch.fnmatchcase(qualified, pattern)):
+                rows.append({"name": node.name, "qualname": qualified,
+                             "kind": kind, "line": node.lineno})
+            scope = qualified + "."
+        pending.extend((child, scope) for child in ast.iter_child_nodes(node))
+    return sorted(rows, key=lambda row: (row["qualname"], row["line"]))
 
 
 def boundary_cases(kind="text"):
@@ -1800,6 +1836,9 @@ def main(argv=None):
     modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
     modes.add_argument("--preset", metavar="NAME", help="Search with a named built-in regex (--presets lists them)")
     modes.add_argument("--presets", action="store_true", help="List the named regexes")
+    modes.add_argument("--symbols", metavar="FILE", help="Find Python definitions without importing FILE")
+    parser.add_argument("--symbol-pattern", default="*", metavar="GLOB",
+                        help="--symbols: case-sensitive short or lexical dotted name (e.g. 'Test*.test_*')")
     parser.add_argument("--regex", action="store_true", help="--search TEXT is a regular expression")
     parser.add_argument("--normalize", metavar="STEPS", default="",
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
@@ -1832,6 +1871,27 @@ def main(argv=None):
     args = parser.parse_args(argv)
     roots = args.root or ["."]
     try:
+        if args.symbols is not None:
+            _limit(args.max_bytes, "max_bytes")
+            _limit(args.max_matches, "max_matches")
+            path = Path(args.symbols)
+            if not stat.S_ISREG(path.lstat().st_mode):
+                raise ValueError("symbols input must be a regular file")
+            with path.open("rb") as stream:
+                source = stream.read(args.max_bytes + 1)
+            if len(source) > args.max_bytes:
+                raise ValueError("symbols input exceeds byte limit")
+            rows = python_symbols(source, pattern=args.symbol_pattern)
+            report = {"path": str(path), "symbols": rows[:args.max_matches],
+                      "truncated": len(rows) > args.max_matches}
+            if args.brief:
+                for row in report["symbols"]:
+                    print(f"{path}:{row['line']}: {row['kind']} {row['qualname']}")
+                if report["truncated"]:
+                    print("truncated: raise --max-matches")
+            else:
+                print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+            return 2 if report["truncated"] else (0 if rows else 1)
         if args.annotate_junit is not None:
             for line in junit_annotations(Path(args.annotate_junit).read_text(encoding="utf-8")):
                 print(line)
@@ -1932,7 +1992,7 @@ def main(argv=None):
         else:
             report = scan_config(roots[0], max_bytes=args.max_bytes,
                                  max_findings=args.max_matches)
-    except (OSError, ValueError, LookupError, RuntimeError) as error:
+    except (OSError, ValueError, LookupError, RuntimeError, SyntaxError) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
     if args.brief and searching:

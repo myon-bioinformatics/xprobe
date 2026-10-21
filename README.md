@@ -396,6 +396,21 @@ Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
 payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
 
 
+## Python definition discovery with stdlib
+
+`python_symbols(source, pattern="*")` extracts class/function/async-function names
+with `ast`, then filters them with `fnmatchcase`, the name-matching primitive also
+used by unittest. Source files are parsed without importing or executing them.
+
+```sh
+python xprobe.py --symbols xprobe.py --symbol-pattern '*search*' --brief
+python xprobe.py --symbols tests/test_xprobe.py --symbol-pattern '*Tests.test_*' --brief
+```
+
+Results include lexical dotted names and line numbers. This inventories source
+definitions; it does not collect inherited/dynamic tests or pytest expansions.
+See [the trial, limits and reusable one-liners](docs/stdlib-discovery.md).
+
 ## Runtime and development Python policy
 
 The standard-library runtime supports Python 3.9+; this change preserves the
