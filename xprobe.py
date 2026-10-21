@@ -62,7 +62,7 @@ _PRESETS = {
              r'|\x1b\][^\x07\x1b\n]*(?:\x07|\x1b\\)?|\x1b[@-Z\\-_]', 'terminal escape sequence'),
 }
 _ANSI = re.compile(_PRESETS['ansi'][0])
-NORMALIZE_STEPS = ('ansi', 'nfkc', 'casefold', 'spaces', 'vs16')
+NORMALIZE_STEPS = ('ansi', 'nfkc', 'casefold', 'spaces', 'vs16', 'mojibake')
 _INVISIBLE = '\ufe0e\ufe0f\u200d'  # VS15, VS16, ZWJ (escaped: keep the source cp1252-readable)
 
 
@@ -81,6 +81,148 @@ def _steps(normalize):
     return steps
 
 
+# Mojibake detection & restoration constants and patterns
+_JP_HIRAGANA, _JP_KATAKANA, _JP_KANJI, _JP_HW_KATAKANA, _JP_ANY = (
+    re.compile(r"[\u3040-\u309f]"), re.compile(r"[\u30a0-\u30ff]"),
+    re.compile(r"[\u4e00-\u9fff]"), re.compile(r"[\uff65-\uff9f]"),
+    re.compile(r"[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\uff65-\uff9f\u3000-\u303f\uff01-\uff5e]")
+)
+_CP1252_CHARS = r"\x80-\xff\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178"
+_SJIS_LEAD = r"\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178\x81-\x9f\xe0-\xea"
+_SJIS_TRAIL = r"\x40-\x7e\x80-\xff"
+_RE_CP932_1252 = re.compile(rf"(?:[{_SJIS_LEAD}][{_SJIS_TRAIL}][{_SJIS_LEAD}{_SJIS_TRAIL}]*)")
+_RE_UTF8_1252 = re.compile(rf"(?:ã[{_CP1252_CHARS}]+|æ[{_CP1252_CHARS}]+|ç[{_CP1252_CHARS}]+|ï[½¾][{_CP1252_CHARS}]+)+")
+_RE_UTF8_CP932 = re.compile(r"(?:[\u7e3a\u7e5d\u7e67][\u4e00-\u9fff\u3000-\u303f\uff00-\uffef\u3040-\u30ff\u2460-\u24ff]+|譌[\x00-\xff]+|繧[\x00-\xff]+)+")
+_CP1252_REV = {bytes([i]).decode("cp1252"): i for i in range(256) if i not in (0x81, 0x8d, 0x8f, 0x90, 0x9d)}
+
+
+def _cp1252_compat_encode(s):
+    res = bytearray()
+    for ch in s:
+        if ch in _CP1252_REV:
+            res.append(_CP1252_REV[ch])
+        elif ord(ch) < 256:
+            res.append(ord(ch))
+        else:
+            try:
+                res.extend(ch.encode("cp1252"))
+            except Exception:
+                res.append(0x3f)
+    return bytes(res)
+
+
+def _classify_mojibake_hint(restored):
+    h, k, kj, hw = len(_JP_HIRAGANA.findall(restored)), len(_JP_KATAKANA.findall(restored)), len(_JP_KANJI.findall(restored)), len(_JP_HW_KATAKANA.findall(restored))
+    m = max(h, k, kj, hw)
+    if m == 0 or m == kj:
+        return "kanji"
+    if m == h:
+        return "hiragana"
+    if m == k:
+        return "katakana"
+    return "halfwidth_katakana"
+
+
+def mojibake_text(text):
+    """Smartly detect Japanese mojibake sequences in ``text``.
+
+    Returns a list of finding dicts with ``kind`` (``utf8_as_cp932``,
+    ``utf8_as_cp1252``, ``cp932_as_cp1252``, ``replacement_char``), ``hint``
+    (``hiragana``, ``katakana``, ``kanji``, ``halfwidth_katakana``, ``replacement``),
+    ``start``, ``end``, original garbled ``text``, and ``restored`` Japanese string.
+    """
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    findings = []
+    for m in re.finditer(r"\ufffd+", text):
+        findings.append({"kind": "replacement_char", "hint": "replacement", "start": m.start(), "end": m.end(), "text": m.group(), "restored": "?" * len(m.group())})
+
+    def try_add(start, end, chunk, kind_name, decode_fn):
+        try:
+            restored = decode_fn(chunk)
+            if restored and restored != chunk and len(_JP_ANY.findall(restored)) > 0:
+                findings.append({"kind": kind_name, "hint": _classify_mojibake_hint(restored), "start": start, "end": end, "text": chunk, "restored": restored})
+                return True
+        except Exception:
+            pass
+        return False
+
+    for m in _RE_CP932_1252.finditer(text):
+        try_add(m.start(), m.end(), m.group(), "cp932_as_cp1252", lambda s: _cp1252_compat_encode(s).decode("cp932"))
+    for m in _RE_UTF8_1252.finditer(text):
+        try_add(m.start(), m.end(), m.group(), "utf8_as_cp1252", lambda s: _cp1252_compat_encode(s).decode("utf-8"))
+    for m in _RE_UTF8_CP932.finditer(text):
+        def _dec_cp932(s):
+            b = bytearray()
+            for ch in s:
+                if ch not in ("\ufffd", ""):
+                    try:
+                        b.extend(ch.encode("cp932"))
+                    except UnicodeEncodeError:
+                        pass
+            return bytes(b).decode("utf-8", errors="ignore")
+        try_add(m.start(), m.end(), m.group(), "utf8_as_cp932", _dec_cp932)
+
+    findings.sort(key=lambda x: x["start"])
+    return findings
+
+
+def restore_mojibake(text):
+    """Convert garbled mojibake sequences in ``text`` back into readable Japanese characters."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    finds = mojibake_text(text)
+    if not finds:
+        return text
+    res, last = [], 0
+    for f in finds:
+        if f["start"] >= last:
+            res.append(text[last:f["start"]])
+            res.append(f["restored"])
+            last = f["end"]
+    res.append(text[last:])
+    return "".join(res)
+
+
+def mojibake_scan(roots=(".",), *, max_files=5000, max_bytes=1_000_000, max_findings=1000):
+    """Scan UTF-8 files under ``roots`` for Japanese mojibake findings."""
+    if isinstance(roots, (str, os.PathLike)):
+        roots = [roots]
+    for value, label in ((max_files, "max_files"), (max_bytes, "max_bytes"), (max_findings, "max_findings")):
+        _limit(value, label)
+    findings, counts, scanned, skipped, truncated = [], {}, 0, 0, False
+    for root in roots:
+        base = Path(root)
+        paths = [base] if base.is_file() else sorted(p for p in base.rglob("*") if p.is_file() and not any(part in _EMOJI_SKIP for part in p.relative_to(base).parts))
+        for path in paths:
+            if scanned == max_files:
+                truncated = True
+                break
+            label = path.name if base.is_file() else path.relative_to(base).as_posix()
+            if len(roots) > 1:
+                label = os.fspath(root).rstrip("/") + "/" + label
+            try:
+                with path.open("rb") as stream:
+                    data = stream.read(max_bytes + 1)
+                if len(data) > max_bytes or b"\0" in data[:4096]:
+                    raise ValueError
+                text = data.decode("utf-8")
+            except (OSError, ValueError):
+                skipped += 1
+                continue
+            scanned += 1
+            for number, line in enumerate(text.split("\n"), 1):
+                for row in mojibake_text(line):
+                    counts[row["kind"]] = counts.get(row["kind"], 0) + 1
+                    if len(findings) == max_findings:
+                        truncated = True
+                        continue
+                    row = {"path": label, "line": number, "column": row.pop("start") + 1, **row}
+                    row.pop("end")
+                    findings.append(row)
+    return {"schema": "xprobe.mojibake.v1", "files": scanned, "skipped": skipped, "truncated": truncated, "counts": counts, "findings": findings}
+
+
 def _combining(char):
     return unicodedata.combining(unicodedata.normalize('NFKC', char)[:1] or 'x')
 
@@ -91,10 +233,28 @@ def _normalized_line(line, steps):
     if 'ansi' in steps:
         for match in _ANSI.finditer(line):
             removed.update(range(match.start(), match.end()))
+    moji_spans = {}
+    if 'mojibake' in steps:
+        for row in mojibake_text(line):
+            moji_spans[row['start']] = row
     out, spans, i, n = [], [], 0, len(line)
     while i < n:
         if i in removed:
             i += 1
+            continue
+        if i in moji_spans:
+            f = moji_spans[i]
+            restored = f['restored']
+            if 'nfkc' in steps:
+                restored = unicodedata.normalize('NFKC', restored)
+            if 'casefold' in steps:
+                restored = restored.casefold()
+            for char in restored:
+                if ('spaces' in steps and char.isspace()) or ('vs16' in steps and char in _INVISIBLE):
+                    continue
+                out.append(char)
+                spans.append((f['start'], f['end']))
+            i = f['end']
             continue
         j = i + 1
         if 'nfkc' in steps:
@@ -1810,6 +1970,8 @@ def main(argv=None):
     modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
     modes.add_argument("--emoji-explain", metavar="TEXT", help="Split TEXT into emoji sequences with names and code points")
     parser.add_argument("--emoji-names", metavar="FILE", help="Names table for --emoji/--emoji-explain (QueRyu emoji_names.json)")
+    modes.add_argument("--mojibake", action="store_true", help="Scan --root for Japanese mojibake findings; 1 if any")
+    modes.add_argument("--restore-mojibake", metavar="FILE", help="Print FILE ('-' = stdin) with mojibake restored to Japanese text")
     modes.add_argument("--hidden-text", action="store_true",
                        help="Invisible/deceptive characters under --root (tag text, bidi, zero-width, homoglyphs); 1 if any")
     modes.add_argument("--hidden-rules", action="store_true", help="List the --hidden-text rules and severities")
@@ -1857,6 +2019,19 @@ def main(argv=None):
             else:
                 print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
+        if args.restore_mojibake is not None:
+            raw = sys.stdin.buffer.read() if args.restore_mojibake == "-" else Path(args.restore_mojibake).read_bytes()
+            sys.stdout.buffer.write(restore_mojibake(raw.decode("utf-8")).encode("utf-8"))
+            return 0
+        if args.mojibake:
+            mb_rep = mojibake_scan(roots, max_bytes=args.max_bytes, max_findings=args.max_matches)
+            if args.brief:
+                for f in mb_rep["findings"]:
+                    print(f"{f['path']}:{f['line']}:{f['column']}: {f['kind']} ({f['hint']}) {ascii(f['text'])} -> {f['restored']}")
+                print(f"mojibake: {sum(mb_rep['counts'].values())} finding(s) in {mb_rep['files']} file(s)" + ("; truncated" if mb_rep["truncated"] else ""))
+            else:
+                print(json.dumps(mb_rep, ensure_ascii=False, indent=2))
+            return 1 if mb_rep["counts"] else 0
         if args.hidden_rules:
             for kind, rule in hidden_text_rules().items():
                 print(f"{kind}\t{rule['severity']}\t{rule['about']}")
