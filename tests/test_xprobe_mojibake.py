@@ -125,11 +125,11 @@ def test_cli_mojibake_modes(tmp_path, capsys, monkeypatch):
     # Mode 3: --restore-mojibake file
     code3 = xprobe.main(["--restore-mojibake", str(p)])
     assert code3 == 0
-    out3 = capsys.readouterr().out
+    out3 = capsys.readouterr().out.replace("\r\n", "\n")
     assert out3 == "Status: こんにちは OK\n"
 
     # Mode 4: --search --normalize mojibake --brief
     code4 = xprobe.main(["--search", "こんにちは", "--normalize", "mojibake", "--brief", "--root", str(tmp_path)])
     assert code4 == 0
-    out4 = capsys.readouterr().out
+    out4 = capsys.readouterr().out.replace("\r\n", "\n")
     assert "data.txt:1:9: '縺薙ｓ縺ｫ縺｡縺ｯ'" in out4
