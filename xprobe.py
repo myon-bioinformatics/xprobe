@@ -25,7 +25,8 @@ __all__ = ["search_text", "search_files", "boundary_cases", "run_cases",
            "explain_outcome", "pattern_presets", "normalize_text",
            "load_toml", "load_yaml", "junit_annotations", "portability_findings",
            "emoji_sequences", "emoji_identity", "emoji_name", "emoji_find", "emoji_inventory",
-           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan"]
+           "load_emoji_names", "hidden_text", "hidden_text_rules", "strip_hidden", "hidden_text_scan",
+           "python_symbols", "discover_files", "discover_python"]
 
 
 def _limit(value, name):
@@ -266,6 +267,43 @@ def search_files(root, pattern=None, *, regex=False, ignore_case=False,
     return report
 
 
+def python_symbols(source, *, pattern="*", kinds=()):
+    """Find Python definitions by shell-style name pattern, without importing.
+
+    ``source`` is str or Python source bytes (encoding cookies/BOM supported).
+    ``pattern`` is a glob or sequence of globs (OR); optional ``kinds`` narrows
+    to class/function/async_function. Match short or lexical dotted names on
+    every OS. Return classes, functions and async functions sorted by qualified
+    name, then line. Nested/conditional definitions are included, but imports,
+    inherited/dynamically attached members and lambdas are not. This is source
+    discovery, not unittest/pytest collection. SyntaxError is left to the caller;
+    parsing follows the running interpreter's grammar and is not a sandbox.
+    """
+    if not isinstance(source, (str, bytes)):
+        raise TypeError("source must be str or bytes")
+    patterns = _globs((pattern,) if isinstance(pattern, str) else pattern)
+    kinds = _globs(kinds)
+    if any(kind not in ("class", "function", "async_function") for kind in kinds):
+        raise ValueError("unknown symbol kind")
+    definitions = {ast.ClassDef: "class", ast.FunctionDef: "function",
+                   ast.AsyncFunctionDef: "async_function"}
+    rows = []
+    pending = [(ast.parse(source), "")]
+    while pending:
+        node, scope = pending.pop()
+        kind = definitions.get(type(node))
+        if kind is not None:
+            qualified = scope + node.name
+            if (not kinds or kind in kinds) and any(
+                    fnmatch.fnmatchcase(node.name, glob) or fnmatch.fnmatchcase(qualified, glob)
+                    for glob in patterns):
+                rows.append({"name": node.name, "qualname": qualified,
+                             "kind": kind, "line": node.lineno})
+            scope = qualified + "."
+        pending.extend((child, scope) for child in ast.iter_child_nodes(node))
+    return sorted(rows, key=lambda row: (row["qualname"], row["line"]))
+
+
 def boundary_cases(kind="text"):
     """Return fresh named input values; no target function is inferred.
 
@@ -354,6 +392,101 @@ def _globs(values):
     if any(not isinstance(v, str) or not v for v in values):
         raise ValueError('patterns must be non-empty strings')
     return values
+
+
+def discover_files(root=".", *, include=("*",), exclude_dirs=_DEFAULT_EXCLUDE,
+                   include_hidden=False, max_files=5000):
+    """Discover regular files using caller-supplied filename/path conventions.
+
+    Patterns match basenames OR root-relative POSIX paths, case-sensitively;
+    '*' spans '/' (fnmatch rules, not gitignore). Hidden entries are opt-in.
+    Sorted traversal, no source imports or file-content reads, no symlink roots
+    or deliberately followed symlinks. Filesystem races are not isolated.
+    Errors/skips and exact-limit truncation remain visible in the report.
+    """
+    include, exclude_dirs = _globs(include), _globs(exclude_dirs)
+    _limit(max_files, "max_files")
+    root = Path(root)
+    mode = root.lstat().st_mode
+    if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+        raise ValueError("root must be a regular file or directory")
+    directory_root = stat.S_ISDIR(mode)
+    report = {"path": str(root), "files": [], "skipped": [], "errors": [], "truncated": False}
+
+    def candidates():
+        if not directory_root:
+            yield root
+            return
+        def onerror(error):
+            report["errors"].append({"path": str(error.filename), "reason": type(error).__name__})
+        for directory, dirs, files in os.walk(root, followlinks=False, onerror=onerror):
+            dirs[:] = sorted(d for d in dirs if (include_hidden or not d.startswith("."))
+                             and not (Path(directory) / d).is_symlink()
+                             and not any(fnmatch.fnmatchcase(d, g) or fnmatch.fnmatchcase(
+                                 (Path(directory) / d).relative_to(root).as_posix(), g) for g in exclude_dirs))
+            for name in sorted(files):
+                if include_hidden or not name.startswith("."):
+                    yield Path(directory) / name
+
+    for path in candidates():
+        label = path.relative_to(root).as_posix() if directory_root else path.name
+        if not any(fnmatch.fnmatchcase(label, g) or fnmatch.fnmatchcase(path.name, g) for g in include):
+            continue
+        try:
+            if not stat.S_ISREG(path.lstat().st_mode):
+                report["skipped"].append({"path": label, "reason": "non_regular"})
+                continue
+        except OSError as error:
+            report["errors"].append({"path": label, "reason": type(error).__name__})
+            continue
+        if len(report["files"]) == max_files:
+            report["truncated"] = True
+            break
+        report["files"].append(label)
+    return report
+
+
+def discover_python(root=".", *, include=("*.py",), patterns=("*",), kinds=(),
+                    exclude_dirs=_DEFAULT_EXCLUDE, include_hidden=False,
+                    max_files=5000, max_bytes=1_000_000, max_symbols=1000):
+    """Find Python definitions across files using injected filename/name rules.
+
+    No test naming convention is built in. Multiple patterns are ORed; kinds
+    further narrow matches. Unreadable, oversized and unparsable sources remain
+    visible. Byte limits are per file; symbol/file limits cover the whole root.
+    """
+    _limit(max_bytes, "max_bytes")
+    _limit(max_symbols, "max_symbols")
+    # Validate filters even for empty roots; retain generator inputs once.
+    patterns, kinds = _globs(patterns), _globs(kinds)
+    python_symbols("", pattern=patterns, kinds=kinds)
+    found = discover_files(root, include=include, exclude_dirs=exclude_dirs,
+                           include_hidden=include_hidden, max_files=max_files)
+    report = {**found, "symbols": [], "scanned": 0}
+    base = Path(root)
+    directory_root = base.is_dir()
+    for label in found["files"]:
+        path = base / label if directory_root else base
+        try:
+            if not stat.S_ISREG(path.lstat().st_mode):
+                report["skipped"].append({"path": label, "reason": "non_regular"})
+                continue
+            with path.open("rb") as stream:
+                source = stream.read(max_bytes + 1)
+            if len(source) > max_bytes:
+                report["skipped"].append({"path": label, "reason": "too_large"})
+                continue
+            rows = python_symbols(source, pattern=patterns, kinds=kinds)
+        except (OSError, SyntaxError, ValueError, UnicodeError, RecursionError) as error:
+            report["errors"].append({"path": label, "reason": type(error).__name__})
+            continue
+        report["scanned"] += 1
+        for row in rows:
+            if len(report["symbols"]) == max_symbols:
+                report["truncated"] = True
+                return report
+            report["symbols"].append({"path": label, **row})
+    return report
 
 
 def _key_category(key):
@@ -1800,6 +1933,15 @@ def main(argv=None):
     modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
     modes.add_argument("--preset", metavar="NAME", help="Search with a named built-in regex (--presets lists them)")
     modes.add_argument("--presets", action="store_true", help="List the named regexes")
+    modes.add_argument("--symbols", metavar="PATH", help="Find Python definitions in a file or directory")
+    modes.add_argument("--discover", action="store_true", help="Discover files under --root using --include conventions")
+    parser.add_argument("--symbol-pattern", action="append", metavar="GLOB",
+                        help="--symbols: short or lexical dotted name; repeat for OR, default '*'")
+    parser.add_argument("--symbol-kind", action="append", choices=("class", "function", "async_function"))
+    parser.add_argument("--include", action="append", metavar="GLOB", help="Discovery filename/path rule; repeat for OR")
+    parser.add_argument("--exclude-dir", action="append", metavar="GLOB", help="Additional directory exclusion")
+    parser.add_argument("--include-hidden", action="store_true")
+    parser.add_argument("--max-files", type=int, default=5000)
     parser.add_argument("--regex", action="store_true", help="--search TEXT is a regular expression")
     parser.add_argument("--normalize", metavar="STEPS", default="",
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
@@ -1832,6 +1974,49 @@ def main(argv=None):
     args = parser.parse_args(argv)
     roots = args.root or ["."]
     try:
+        if args.discover or (args.symbols is not None and Path(args.symbols).is_dir()):
+            if args.discover and len(roots) != 1:
+                raise ValueError("file discovery takes one root")
+            root = roots[0] if args.discover else args.symbols
+            options = {"include": args.include if args.include is not None else (("*",) if args.discover else ("*.py",)),
+                       "exclude_dirs": _DEFAULT_EXCLUDE + tuple(args.exclude_dir or ()),
+                       "include_hidden": args.include_hidden, "max_files": args.max_files}
+            report = (discover_files(root, **options) if args.discover else
+                      discover_python(root, patterns=args.symbol_pattern or ("*",), kinds=args.symbol_kind or (),
+                                      max_bytes=args.max_bytes, max_symbols=args.max_matches, **options))
+            rows = report["files"] if args.discover else report["symbols"]
+            if args.brief:
+                for row in rows:
+                    print(row if args.discover else f"{row['path']}:{row['line']}: {row['kind']} {row['qualname']}")
+                for key in ("errors", "skipped"):
+                    for row in report[key]:
+                        print(f"{key}: {row['path']} ({row['reason']})", file=sys.stderr)
+                if report["truncated"]:
+                    print("truncated: raise --max-files/--max-matches", file=sys.stderr)
+            else:
+                print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+            return 2 if report["errors"] or report["skipped"] or report["truncated"] else (0 if rows else 1)
+        if args.symbols is not None:
+            _limit(args.max_bytes, "max_bytes")
+            _limit(args.max_matches, "max_matches")
+            path = Path(args.symbols)
+            if not stat.S_ISREG(path.lstat().st_mode):
+                raise ValueError("symbols input must be a regular file")
+            with path.open("rb") as stream:
+                source = stream.read(args.max_bytes + 1)
+            if len(source) > args.max_bytes:
+                raise ValueError("symbols input exceeds byte limit")
+            rows = python_symbols(source, pattern=args.symbol_pattern or ("*",), kinds=args.symbol_kind or ())
+            report = {"path": str(path), "symbols": rows[:args.max_matches],
+                      "truncated": len(rows) > args.max_matches}
+            if args.brief:
+                for row in report["symbols"]:
+                    print(f"{path}:{row['line']}: {row['kind']} {row['qualname']}")
+                if report["truncated"]:
+                    print("truncated: raise --max-matches")
+            else:
+                print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+            return 2 if report["truncated"] else (0 if rows else 1)
         if args.annotate_junit is not None:
             for line in junit_annotations(Path(args.annotate_junit).read_text(encoding="utf-8")):
                 print(line)
@@ -1932,7 +2117,7 @@ def main(argv=None):
         else:
             report = scan_config(roots[0], max_bytes=args.max_bytes,
                                  max_findings=args.max_matches)
-    except (OSError, ValueError, LookupError, RuntimeError) as error:
+    except (OSError, ValueError, LookupError, RuntimeError, SyntaxError) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
     if args.brief and searching:

@@ -59,7 +59,13 @@ def test_invalid_limit(capsys):
 def test_standalone_copy(tmp_path):
     script = tmp_path / "tool.py"
     script.write_bytes((Path(__file__).parents[1] / "xprobe.py").read_bytes())
-    result = subprocess.run([sys.executable, "-S", str(script)],
+    # Inspect a fixed input: scanning the copied tool itself couples this smoke
+    # check to its source size and can legitimately hit the candidate limit.
+    fixture = tmp_path / "config.env"
+    fixture.write_text("PORT=8080\n", encoding="utf-8")
+    result = subprocess.run([sys.executable, "-S", str(script), "--root", str(fixture)],
                             cwd=tmp_path, capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
-    assert "findings" in json.loads(result.stdout)
+    report = json.loads(result.stdout)
+    assert [row["key"] for row in report["findings"]] == ["PORT"]
+    assert not report["truncated"]
