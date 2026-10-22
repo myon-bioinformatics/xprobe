@@ -13,11 +13,13 @@ def select_lines(stdout="", stderr="", *, pattern=DEFAULT_PATTERN, limit=20, fla
     if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
         raise ValueError("limit must be a nonnegative integer")
     expression = re.compile(pattern, flags)
-    matched = (line for line in (stdout + "\n" + stderr).splitlines() if expression.search(line))
+    out = [line for line in stdout.splitlines() if expression.search(line)]
+    err = [line for line in stderr.splitlines() if expression.search(line)]
     if limit == 0:
-        return list(matched)
-    from itertools import islice
-    return list(islice(matched, limit))
+        return out + err
+    if len(out) >= limit and err:
+        return out[:limit - 1] + err[:1]
+    return (out + err)[:limit]
 
 def result_receipt(exit_code, stdout="", stderr="", *, timed_out=False, pattern=DEFAULT_PATTERN, limit=20):
     """Produce a JSON-serializable receipt; no subprocess side effects."""
