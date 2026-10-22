@@ -12,6 +12,12 @@ class PortableOutputTests(unittest.TestCase):
     def test_limit(self):
         self.assertEqual(module.select_lines("1 passed\n2 passed", limit=1), ["1 passed"])
         self.assertEqual(module.select_lines("1 passed\n2 passed", limit=0), ["1 passed", "2 passed"])
+    def test_stderr_not_starved_by_stdout(self):
+        self.assertEqual(module.select_lines("1 passed\\n2 passed", "Error: root cause", limit=2),
+                         ["1 passed", "Error: root cause"])
+        self.assertEqual(module.select_lines("1 passed\\n2 passed", "Error: root cause", limit=1),
+                         ["Error: root cause"])
+
     def test_exit_code(self):
         self.assertEqual(module.result_receipt(7, "1 failed")["exit_code"], 7)
     def test_invalid(self):
