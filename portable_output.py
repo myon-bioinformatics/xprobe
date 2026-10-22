@@ -1,0 +1,45 @@
+"""Pure, stdlib-only output selection for Python/Node process runners.
+
+Does not execute subprocesses or interpret test success; caller preserves exit status.
+"""
+import re
+
+DEFAULT_PATTERN = r"passed|failed|skipped|^\s+\d+\) |Error:"
+_DIAGNOSTIC_PATTERN = re.compile(r"Error:|^\s+\d+\) ", re.IGNORECASE)
+_FAILURE_PATTERN = re.compile(r"\bfailed\b", re.IGNORECASE)
+
+def select_lines(stdout="", stderr="", *, pattern=DEFAULT_PATTERN, limit=20, flags=0):
+    """Return matched lines in stream order, prioritizing diagnostics when bounded."""
+    if not isinstance(stdout, str) or not isinstance(stderr, str):
+        raise TypeError("stdout and stderr must be strings")
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
+        raise ValueError("limit must be a nonnegative integer")
+    expression = re.compile(pattern, flags)
+    out = [line for line in stdout.splitlines() if expression.search(line)]
+    err = [line for line in stderr.splitlines() if expression.search(line)]
+    lines = out + err
+    if limit == 0 or len(lines) <= limit:
+        return lines
+
+    selected = set()
+    for severity in (_DIAGNOSTIC_PATTERN, _FAILURE_PATTERN):
+        for index, line in enumerate(lines):
+            if len(selected) == limit:
+                break
+            if severity.search(line):
+                selected.add(index)
+    # Keep a stderr slot when it does not displace a higher-severity line.
+    if err and len(selected) < limit and all(index < len(out) for index in selected):
+        selected.add(len(out))
+    for index in range(len(lines)):
+        if len(selected) == limit:
+            break
+        selected.add(index)
+    return [line for index, line in enumerate(lines) if index in selected]
+
+def result_receipt(exit_code, stdout="", stderr="", *, timed_out=False, pattern=DEFAULT_PATTERN, limit=20):
+    """Produce a JSON-serializable receipt; no subprocess side effects."""
+    if isinstance(exit_code, bool) or not isinstance(exit_code, int):
+        raise TypeError("exit_code must be an integer")
+    return {"exit_code": exit_code, "timed_out": bool(timed_out),
+            "lines": select_lines(stdout, stderr, pattern=pattern, limit=limit)}
