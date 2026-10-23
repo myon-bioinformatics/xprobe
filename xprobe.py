@@ -1387,8 +1387,9 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
 # --- structured config loading (TOML / YAML) -------------------------------
 # tomllib when the interpreter has it (3.11+); otherwise, and always for YAML,
 # Node 24+ with smol-toml / js-yaml resolved through NODE_PATH or the current
-# directory. Spawning uses vendored ``vendor/node_launch.py``. Text goes through
-# stdin; the script is fixed; no input is evaluated.
+# directory. A sibling ``vendor/node_launch.py`` is used when that file is
+# present; a copied ``xprobe.py`` falls back to the stdlib launcher below.
+# Text goes through stdin; the script is fixed; no input is evaluated.
 _NODE_LOADER = r"""
 const kind = process.argv[1];
 let text = '';
@@ -1450,17 +1451,242 @@ def _from_node_toml(value):
 
 
 _NODE_LAUNCH = None
+_MIN_NODE_MAJOR = 24
+
+
+def _sibling_node_launch_path():
+    return Path(__file__).resolve().parent / "vendor" / "node_launch.py"
 
 
 def _node_launch_module():
+    """Vendored launcher when it sits beside this file; otherwise stdlib.
+
+    Import and non-Node commands never call this. Only TOML-without-tomllib
+    and YAML need a launcher, and only those fail when Node itself is missing.
+    """
     global _NODE_LAUNCH
     if _NODE_LAUNCH is None:
-        path = Path(__file__).resolve().parent / "vendor" / "node_launch.py"
-        spec = importlib.util.spec_from_file_location("_vendored_node_launch", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _NODE_LAUNCH = module
+        path = _sibling_node_launch_path()
+        if path.is_file():
+            spec = importlib.util.spec_from_file_location("_vendored_node_launch", path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            _NODE_LAUNCH = module
+        else:
+            _NODE_LAUNCH = _stdlib_node_launch()
     return _NODE_LAUNCH
+
+
+def _stdlib_node_launch():
+    """Minimal Node 24+ spawn used when ``vendor/node_launch.py`` is absent.
+
+    Resolves like the vendored helper with ``env_var=None`` (PATH via
+    ``shutil.which``, not the ``NODE`` environment variable). Version misses
+    and launch failures use the same ``NodeNotFoundError`` / ``LaunchError``
+    shape ``_node_backend_error`` and ``_map_node_launch_error`` already map.
+    """
+    import shutil
+    import subprocess
+    import threading
+    import types
+
+    class NodeNotFoundError(FileNotFoundError):
+        pass
+
+    class LaunchError(RuntimeError):
+        def __init__(self, message, *, code="ELAUNCHFAILURE", status=None, stdout=b"", stderr=b""):
+            super().__init__(message)
+            self.code = code
+            self.status = status
+            self.stdout = stdout
+            self.stderr = stderr
+
+    version_re = re.compile(r"(?:^|\s)v?(?P<major>\d+)(?:\.\d+)*", re.IGNORECASE)
+    probed = {}
+
+    def clear_probe_cache():
+        probed.clear()
+
+    def _reject_batch(path):
+        lowered = path.lower()
+        if lowered.endswith(".cmd") or lowered.endswith(".bat"):
+            raise NodeNotFoundError(
+                "node_launch: node batch wrappers (.cmd/.bat) are not supported: " + path
+            )
+
+    def _probe(path, probe_timeout):
+        cached = probed.get(path)
+        if cached is not None:
+            return cached
+        _reject_batch(path)
+        try:
+            completed = subprocess.run(
+                (path, "--version"),
+                capture_output=True,
+                timeout=probe_timeout,
+                shell=False,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise NodeNotFoundError("node_launch: node executable not found: " + path) from exc
+        except subprocess.TimeoutExpired as exc:
+            raise NodeNotFoundError("node_launch: node version probe timed out: " + path) from exc
+        except OSError as exc:
+            raise NodeNotFoundError("node_launch: node version probe failed: " + path) from exc
+        output = _decode_node_process_bytes(completed.stdout) + _decode_node_process_bytes(completed.stderr)
+        match = version_re.search(output)
+        if completed.returncode != 0 or match is None:
+            raise NodeNotFoundError("node_launch: node version probe failed: " + path)
+        major = int(match.group("major"))
+        if major < _MIN_NODE_MAJOR:
+            raise NodeNotFoundError(
+                f"node_launch: node version must be {_MIN_NODE_MAJOR} or newer (found {major}): " + path
+            )
+        probed[path] = path
+        return path
+
+    def resolve_node(node=None, *, env_var=None, probe=True, probe_timeout=5.0):
+        if node is None and env_var and env_var in os.environ:
+            node = os.environ[env_var]
+        if node is not None:
+            path = os.fspath(node)
+            _reject_batch(path)
+            return _probe(path, probe_timeout) if probe else path
+        discovered = shutil.which("node")
+        if not discovered:
+            raise NodeNotFoundError("node_launch: node executable not found")
+        _reject_batch(discovered)
+        return _probe(discovered, probe_timeout) if probe else discovered
+
+    def node_command(target, *args, node=None, env_var=None, probe=True, probe_timeout=5.0, **_ignored):
+        executable = resolve_node(node=node, env_var=env_var, probe=probe, probe_timeout=probe_timeout)
+        return [executable, os.fspath(target), *[os.fspath(value) for value in args]]
+
+    def run(target, *args, timeout=30, node=None, probe=False, env_var=None, input=None, check=False, **_ignored):
+        command = node_command(target, *args, node=node, env_var=env_var, probe=probe)
+        if input is None:
+            payload = None
+        elif isinstance(input, str):
+            payload = input.encode("utf-8")
+        else:
+            payload = input
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=False,
+            )
+        except OSError as exc:
+            raise LaunchError(f"node_launch: Node process failed: {exc}", code="ELAUNCHFAILURE") from exc
+
+        stdout_chunks = []
+        stderr_chunks = []
+        stdin_closed = []
+        stdin_error = []
+
+        def read_stream(stream, sink):
+            try:
+                while True:
+                    chunk = stream.read(65536)
+                    if not chunk:
+                        break
+                    sink.append(chunk)
+            finally:
+                stream.close()
+
+        def write_stdin():
+            stream = proc.stdin
+            if stream is None:
+                return
+            try:
+                if payload:
+                    offset = 0
+                    while offset < len(payload):
+                        stream.write(payload[offset:offset + 65536])
+                        offset += 65536
+                    stream.flush()
+                stream.close()
+            except BrokenPipeError:
+                stdin_closed.append(True)
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+            except OSError as exc:
+                stdin_error.append(exc)
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+
+        threads = [
+            threading.Thread(target=read_stream, args=(proc.stdout, stdout_chunks), daemon=True),
+            threading.Thread(target=read_stream, args=(proc.stderr, stderr_chunks), daemon=True),
+            threading.Thread(target=write_stdin, daemon=True),
+        ]
+        for thread in threads:
+            thread.start()
+        timed_out = False
+        returncode = None
+        try:
+            returncode = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            try:
+                proc.kill()
+            except OSError:
+                pass
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            returncode = proc.returncode if proc.returncode is not None else -1
+        finally:
+            for thread in threads:
+                thread.join()
+        stdout = b"".join(stdout_chunks)
+        stderr = b"".join(stderr_chunks)
+        if returncode is None:
+            returncode = -1
+        if stdin_error:
+            raise LaunchError(
+                f"node_launch: Node process failed: {stdin_error[0]}",
+                code="ELAUNCHFAILURE",
+                stdout=stdout,
+                stderr=stderr,
+            ) from stdin_error[0]
+        if timed_out:
+            raise LaunchError(
+                "node_launch: Node process timed out",
+                code="ELAUNCHFAILURE",
+                stdout=stdout,
+                stderr=stderr,
+            )
+        if stdin_closed:
+            raise LaunchError(
+                "node_launch: Node stdin pipe closed unexpectedly",
+                code="ELAUNCHSTDINCLOSED",
+                status=returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        if check and returncode:
+            message = _decode_node_process_bytes(stderr).strip() or "Node script failed"
+            raise LaunchError(message, code="ELAUNCHFAILURE", status=returncode, stdout=stdout, stderr=stderr)
+        return subprocess.CompletedProcess(command, returncode, stdout, stderr)
+
+    return types.SimpleNamespace(
+        NodeNotFoundError=NodeNotFoundError,
+        LaunchError=LaunchError,
+        resolve_node=resolve_node,
+        node_command=node_command,
+        run=run,
+        clear_probe_cache=clear_probe_cache,
+        subprocess=subprocess,
+        MIN_NODE_MAJOR=_MIN_NODE_MAJOR,
+    )
 
 
 def _decode_node_process_bytes(data):
@@ -2490,7 +2716,7 @@ def main(argv=None):
     parser.add_argument("--windows-locale", action="store_true",
                         help="With --portability, also list I/O without encoding= and non-cp1252 bytes (hints; exit unaffected)")
     modes.add_argument("--load", nargs=2, metavar=("KIND", "FILE"),
-                       help="Print a toml|yaml|yaml-core file as JSON (tomllib, else Node smol-toml/js-yaml)")
+                       help="Print a toml|yaml|yaml-core file as JSON (tomllib, else Node 24+ smol-toml/js-yaml)")
     modes.add_argument("--explain", metavar="FILE", help="Rank conditions explaining --target in a JSON array/JSONL file ('-' = stdin)")
     parser.add_argument("--target", metavar="FIELD=VALUE", help="Outcome for --explain; VALUE is a JSON literal")
     parser.add_argument("--target-differs", metavar="A,B", help="Outcome for --explain: fields A and B differ")
@@ -2647,7 +2873,13 @@ def main(argv=None):
             if kind not in ("toml", "yaml", "yaml-core"):
                 parser.error("--load KIND must be toml, yaml or yaml-core")
             text = Path(path).read_text(encoding="utf-8")
-            value = load_toml(text) if kind == "toml" else load_yaml(text, schema="core" if kind == "yaml-core" else "failsafe")
+            try:
+                value = load_toml(text) if kind == "toml" else load_yaml(text, schema="core" if kind == "yaml-core" else "failsafe")
+            except RuntimeError as error:
+                # Node is required only for this mode. Name the missing piece;
+                # other commands keep their existing type-only stderr.
+                print(error, file=sys.stderr)
+                return 2
             print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
             return 0
         if args.corpus:
