@@ -477,8 +477,12 @@ def test_stdin_closed_zero_exit_returns_result_with_large_input(tmp_path, monkey
 def test_load_yaml_under_python_I_subprocess():
     env = os.environ.copy()
     env["NODE_PATH"] = str(JS)
-    env["PYTHONPATH"] = str(ROOT)
-    code = "import xprobe; print(xprobe.load_yaml('a: 1\\n'))"
+    code = (
+        "import pathlib, sys; "
+        f"sys.path.insert(0, {str(ROOT)!r}); "
+        "import xprobe; "
+        "print(xprobe.load_yaml('a: 1\\n'))"
+    )
     done = subprocess.run(
         [sys.executable, "-I", "-c", code],
         cwd=str(ROOT),
