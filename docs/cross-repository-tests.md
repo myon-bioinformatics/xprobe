@@ -58,6 +58,18 @@ python scripts/xprobe_cli.py --junit reports/junit.xml \
   --report-id linux-py310-shard1-attempt1
 ```
 
+Importer status: 0 means the report was read completely (failed tests inside it
+are still 0). 2 means usage or an unreadable/invalid report; stderr is one JSON
+object and stdout is empty. 3 means the case limit truncated the import; stdout
+is the partial report (`truncated` true) and stderr JSON uses code `truncated`.
+Do not treat 3 as an argparse usage error. This repository's CI publishes
+`failures.json` only after exit 0.
+
+Checked on 2026-10-23: this repository is the only workflow that runs the
+importer. `yourself` and `nvd_nist_known_vulns` document search commands and do
+not check this status. No downstream repository asserts exit 2 for a truncated
+JUnit import. `xprobe.cjs` does not import JUnit and does not use exit 3.
+
 Do not invent replay inputs from JUnit. To reproduce a failure, record the
 original input explicitly in a separate explained case, and keep its expected
 value/exception in the target's regression test. A failure corpus does not run

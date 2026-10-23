@@ -121,6 +121,8 @@ def test_cli_factor_cases(tmp_path, capsys):
     assert len(data["cases"]) == 5
 
     # Test error when passing search pattern with --factor-cases
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as raised:
         xprobe_cli.main(["pattern", "--factor-cases"])
-    capsys.readouterr()
+    assert raised.value.code == 2
+    failure = json.loads(capsys.readouterr().err)
+    assert failure["ok"] is False and failure["code"] == "usage" and failure["exit"] == 2

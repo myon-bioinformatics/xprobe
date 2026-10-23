@@ -115,7 +115,19 @@ jobs:
       - name: Collect failure identities with the shared importer
         if: always()
         shell: bash
-        run: python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json.tmp && mv reports/failures.json.tmp reports/failures.json
+        run: |
+          set +e
+          python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json.tmp
+          status=$?
+          set -e
+          # 0 publishes failures.json. 2 is usage or invalid input (JSON on stderr).
+          # 3 is a truncated JUnit report and must not be published as complete.
+          if [ "$status" -eq 0 ]; then
+            mv reports/failures.json.tmp reports/failures.json
+          else
+            echo "xprobe JUnit import exited ${status}; failures.json was not published" >&2
+            exit "$status"
+          fi
       - name: Preserve test report (including failed tests)
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

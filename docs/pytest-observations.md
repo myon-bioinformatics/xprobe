@@ -20,7 +20,7 @@ that display as a universal join key or deduplicate the two failures.
 Green, collection-error and abrupt-exit subprocess regressions preserve statuses
 0, 2 and 17 with/without JUnit. Abrupt exit leaves partial native evidence and no
 XML; a passing XML cannot certify a truncated native receipt. CLI regressions
-reject missing/malformed XML and return nonzero on case-limit truncation.
+reject missing/malformed XML with exit 2 and return exit 3 on case-limit truncation.
 Collector exit 0 means import completed, including imports of failed tests:
 it does not replace the child or outer pytest exit status.
 
@@ -37,8 +37,11 @@ An injected identity mismatch regression verifies that all four files survive
 an assertion failure. Both JUnit modes assert the same complete phase counts.
 The collector publishes `failures.json` only after successful import, using a
 temporary file and rename. Failed imports may leave a `.tmp` diagnostic file;
-it is not a completed report. Missing/malformed input produces stderr and no
-JSON; case-limit truncation produces JSON with `truncated: true` and exit 2.
+it is not a completed report. Missing/malformed input produces one JSON object
+on stderr and no report JSON (exit 2, the same status as argparse usage).
+Case-limit truncation produces report JSON with `truncated: true` and exit 3,
+so callers do not treat a partial import as a usage error. Exit 3 is not
+published as `failures.json`.
 
 These reports are Actions-only (14 days), never Pages. Public-repository
 Actions artifacts can be downloaded by signed-in users; controlled raw evidence

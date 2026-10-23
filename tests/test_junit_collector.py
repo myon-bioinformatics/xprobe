@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
     (None, [], 2),
     ('<testsuites>', [], 2),
     ('<testsuite><testcase name="one"><failure/></testcase>'
-     '<testcase name="two"><error/></testcase></testsuite>', ['--max-matches=1'], 2),
+     '<testcase name="two"><error/></testcase></testsuite>', ['--max-matches=1'], 3),
     ('<testsuite><testcase name="ok"/></testsuite>', [], 0),
     ('<testsuite><testcase name="bad"><failure/></testcase></testsuite>', [], 0),
 ])
@@ -26,10 +26,17 @@ def test_collector_does_not_hide_invalid_or_truncated_reports(tmp_path, source, 
          '--repository=owner/repo', '--report-id=sample', *options],
         capture_output=True, text=True, timeout=30)
     assert result.returncode == status
-    if source is None or source == '<testsuites>':
-        assert not result.stdout  # No empty success report synthesized on error.
-        assert result.stderr.strip()
+    if status == 2:
+        assert result.stdout == ''  # No empty success report synthesized on error.
+        failure = json.loads(result.stderr)
+        assert failure['ok'] is False and failure['exit'] == 2
+        assert failure['code'] in {'io_error', 'invalid_input'}
+    elif status == 3:
+        imported = json.loads(result.stdout)
+        assert imported['truncated'] is True
+        assert json.loads(result.stderr)['code'] == 'truncated'
+        assert all(row['context']['commit_sha'] is None for row in imported['cases'])
     else:
         imported = json.loads(result.stdout)
-        assert imported['truncated'] is bool(options)
+        assert imported['truncated'] is False and result.stderr == ''
         assert all(row['context']['commit_sha'] is None for row in imported['cases'])
