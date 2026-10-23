@@ -203,6 +203,8 @@ def test_junit_cli_invalid_xml_reports_no_contents(tmp_path):
     proc = subprocess.run([sys.executable, str(ROOT / 'scripts/xprobe_cli.py'), '--junit', str(path)],
                           capture_output=True, text=True, timeout=20)
     assert proc.returncode == 2 and proc.stdout == ''
+    failure = json.loads(proc.stderr)
+    assert failure['ok'] is False and failure['code'] == 'invalid_input' and failure['exit'] == 2
     assert 'sentinel-secret' not in proc.stderr
 
 
