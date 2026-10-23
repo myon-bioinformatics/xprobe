@@ -457,6 +457,22 @@ def test_node_not_on_path_raises_runtime_error(monkeypatch):
         xprobe._node_load("yaml-failsafe", "a: 1\n", None, 30)
 
 
+def test_node_env_var_does_not_override_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("NODE", str(tmp_path / "nonexistent-x"))
+    script = _write_fake_node(
+        tmp_path,
+        version="v24.0.0",
+        on_eval="import json, sys; sys.stdout.write(json.dumps({'via': 'path'}))",
+    )
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda name, **kw: str(script) if name == "node" else None,
+    )
+    xprobe._node_launch_module().clear_probe_cache()
+    assert xprobe._node_load("yaml-failsafe", "a: 1\n", None, 30) == {"via": "path"}
+
+
 def test_stdin_closed_zero_exit_returns_result_with_large_input(tmp_path, monkeypatch):
     payload = json.dumps({"ok": True}).encode()
     script = _write_fake_node(
@@ -496,45 +512,22 @@ def test_load_yaml_under_python_I_subprocess():
     assert ast.literal_eval(done.stdout.strip()) == {"a": "1"}
 
 
-def _broken_xprobe_node_run_no_stdin_zero(target, *args, **kwargs):
-    """Simulates removing the ELAUNCHSTDINCLOSED status==0 branch in production."""
-    import subprocess
-
+def test_unmapped_launch_error_propagates(tmp_path, monkeypatch):
+    script = _write_fake_node(tmp_path, version="v24.0.0", on_eval="pass")
     node_launch = xprobe._node_launch_module()
-    run_kwargs = dict(kwargs)
-    node = run_kwargs.pop("node", None)
-    env_var = run_kwargs.pop("env_var", node_launch.DEFAULT_ENV_VAR)
-    run_kwargs.pop("probe", None)
-    timeout = run_kwargs.pop("timeout", 30)
-    executable = node_launch.resolve_node(node=node, env_var=env_var)
-    command = node_launch.node_command(
-        target, *args, node=executable, probe=False, env_var=env_var
-    )
-    try:
-        return node_launch.run(
-            target,
-            *args,
-            timeout=timeout,
-            node=executable,
-            probe=False,
-            **run_kwargs,
+
+    def launch_weird(*args, **kwargs):
+        raise node_launch.LaunchError(
+            "node_launch: unexpected child failure",
+            code="EUNMAPPED",
+            status=2,
+            stdout=b"",
+            stderr=b"",
         )
-    except node_launch.LaunchError as exc:
-        if exc.code == "ELAUNCHSTDINCLOSED":
-            status = exc.status if exc.status is not None else -1
-            if status != 0:
-                return subprocess.CompletedProcess(
-                    command, status, exc.stdout, exc.stderr
-                )
-            raise
-        if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
-            raise subprocess.TimeoutExpired(
-                cmd=command,
-                timeout=timeout,
-                output=exc.stdout,
-                stderr=exc.stderr,
-            ) from exc
-        raise
+
+    monkeypatch.setattr(node_launch, "run", launch_weird)
+    with pytest.raises(node_launch.LaunchError, match="unexpected child failure"):
+        xprobe._node_load("toml", "a = 1\n", str(script), 30)
 
 
 def test_mutation_stdin_zero_mapping_required(tmp_path, monkeypatch):
@@ -549,27 +542,16 @@ def test_mutation_stdin_zero_mapping_required(tmp_path, monkeypatch):
     monkeypatch.setenv("NODE_PATH", str(JS))
     assert xprobe._node_load("yaml-failsafe", _LARGE_INPUT, str(script), 30) == {"z": 1}
     node_launch = xprobe._node_launch_module()
-    monkeypatch.setattr(xprobe, "_xprobe_node_run", _broken_xprobe_node_run_no_stdin_zero)
+    real_map = xprobe._map_node_launch_error
+
+    def map_without_stdin_zero_success(exc, command, timeout):
+        if exc.code == "ELAUNCHSTDINCLOSED" and (exc.status if exc.status is not None else -1) == 0:
+            raise exc
+        return real_map(exc, command, timeout)
+
+    monkeypatch.setattr(xprobe, "_map_node_launch_error", map_without_stdin_zero_success)
     with pytest.raises(node_launch.LaunchError, match="stdin pipe closed"):
         xprobe._node_load("yaml-failsafe", _LARGE_INPUT, str(script), 30)
-
-
-def _broken_xprobe_node_run_no_timeout(target, *args, **kwargs):
-    node_launch = xprobe._node_launch_module()
-    run_kwargs = dict(kwargs)
-    node = run_kwargs.pop("node", None)
-    env_var = run_kwargs.pop("env_var", node_launch.DEFAULT_ENV_VAR)
-    run_kwargs.pop("probe", None)
-    timeout = run_kwargs.pop("timeout", 30)
-    executable = node_launch.resolve_node(node=node, env_var=env_var)
-    return node_launch.run(
-        target,
-        *args,
-        timeout=timeout,
-        node=executable,
-        probe=False,
-        **run_kwargs,
-    )
 
 
 def test_mutation_timeout_mapping_required(tmp_path, monkeypatch):
@@ -588,7 +570,14 @@ def test_mutation_timeout_mapping_required(tmp_path, monkeypatch):
     with pytest.raises(subprocess.TimeoutExpired):
         xprobe._node_load("toml", "a = 1\n", str(script), 9)
 
-    monkeypatch.setattr(xprobe, "_xprobe_node_run", _broken_xprobe_node_run_no_timeout)
+    real_map = xprobe._map_node_launch_error
+
+    def map_without_timeout(exc, command, timeout):
+        if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
+            raise exc
+        return real_map(exc, command, timeout)
+
+    monkeypatch.setattr(xprobe, "_map_node_launch_error", map_without_timeout)
     with pytest.raises(node_launch.LaunchError, match="timed out"):
         xprobe._node_load("toml", "a = 1\n", str(script), 9)
 

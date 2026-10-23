@@ -1488,13 +1488,28 @@ def _node_backend_error(exc, package, node):
     ) from exc
 
 
-def _xprobe_node_run(target, *args, timeout=30, **kwargs):
+def _map_node_launch_error(exc, command, timeout):
+    """Map vendored ``LaunchError`` to legacy ``load_*`` subprocess shapes."""
     import subprocess
 
+    if exc.code == "ELAUNCHSTDINCLOSED":
+        status = exc.status if exc.status is not None else -1
+        return subprocess.CompletedProcess(command, status, exc.stdout, exc.stderr)
+    if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
+        raise subprocess.TimeoutExpired(
+            cmd=command,
+            timeout=timeout,
+            output=exc.stdout,
+            stderr=exc.stderr,
+        ) from exc
+    raise exc
+
+
+def _xprobe_node_run(target, *args, timeout=30, **kwargs):
     node_launch = _node_launch_module()
     run_kwargs = dict(kwargs)
     node = run_kwargs.pop("node", None)
-    env_var = run_kwargs.pop("env_var", node_launch.DEFAULT_ENV_VAR)
+    env_var = run_kwargs.pop("env_var", None)
     run_kwargs.pop("probe", None)
     executable = node_launch.resolve_node(node=node, env_var=env_var)
     command = node_launch.node_command(
@@ -1507,26 +1522,11 @@ def _xprobe_node_run(target, *args, timeout=30, **kwargs):
             timeout=timeout,
             node=executable,
             probe=False,
+            env_var=env_var,
             **run_kwargs,
         )
     except node_launch.LaunchError as exc:
-        # from: cursor (GitHubヘルプbot) — preserve legacy subprocess shapes for load_* callers.
-        if exc.code == "ELAUNCHSTDINCLOSED":
-            status = exc.status if exc.status is not None else -1
-            if status == 0:
-                return subprocess.CompletedProcess(command, 0, exc.stdout, exc.stderr)
-            if status != 0:
-                return subprocess.CompletedProcess(
-                    command, status, exc.stdout, exc.stderr
-                )
-        if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
-            raise subprocess.TimeoutExpired(
-                cmd=command,
-                timeout=timeout,
-                output=exc.stdout,
-                stderr=exc.stderr,
-            ) from exc
-        raise
+        return _map_node_launch_error(exc, command, timeout)
 
 
 def _node_load(kind, text, node, timeout):
