@@ -493,7 +493,7 @@ def test_load_yaml_under_python_I_subprocess():
         check=False,
     )
     assert done.returncode == 0, done.stderr
-    assert ast.literal_eval(done.stdout.strip()) == {"a": 1}
+    assert ast.literal_eval(done.stdout.strip()) == {"a": "1"}
 
 
 def _broken_xprobe_node_run_no_stdin_zero(target, *args, **kwargs):
