@@ -90,7 +90,8 @@ def test_invalid_regex_json_does_not_echo_the_pattern(tmp_path):
     assert proc.returncode == 2
     payload = error_json(proc)
     assert payload["code"] == "regex"
-    assert payload["error"] == "error"
+    # 3.12 and earlier spell this re.error; 3.13+ spell it re.PatternError.
+    assert payload["error"] in {"error", "PatternError"}
     assert "message" not in payload
     assert "secret-pattern" not in proc.stderr
 
