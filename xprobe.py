@@ -8,6 +8,8 @@ import ast
 import codecs
 import fnmatch
 import importlib
+import importlib.util
+import errno
 import json
 import os
 import random
@@ -1384,8 +1386,9 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
 
 # --- structured config loading (TOML / YAML) -------------------------------
 # tomllib when the interpreter has it (3.11+); otherwise, and always for YAML,
-# Node with smol-toml / js-yaml resolved through NODE_PATH or the current
-# directory. Text goes through stdin; the script is fixed; no input is evaluated.
+# Node 24+ with smol-toml / js-yaml resolved through NODE_PATH or the current
+# directory. Spawning uses vendored ``vendor/node_launch.py``. Text goes through
+# stdin; the script is fixed; no input is evaluated.
 _NODE_LOADER = r"""
 const kind = process.argv[1];
 let text = '';
@@ -1446,27 +1449,111 @@ def _from_node_toml(value):
     return value
 
 
-def _node_load(kind, text, node, timeout):
-    import shutil
+_NODE_LAUNCH = None
+
+
+def _node_launch_module():
+    global _NODE_LAUNCH
+    if _NODE_LAUNCH is None:
+        path = Path(__file__).resolve().parent / "vendor" / "node_launch.py"
+        spec = importlib.util.spec_from_file_location("_vendored_node_launch", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _NODE_LAUNCH = module
+    return _NODE_LAUNCH
+
+
+def _decode_node_process_bytes(data):
+    if isinstance(data, str):
+        return data
+    if not data:
+        return ""
+    return data.decode("utf-8", errors="replace")
+
+
+def _node_backend_error(exc, package, node):
+    """Map vendored ``NodeNotFoundError`` to legacy ``load_*`` exception types."""
+    message = str(exc)
+    if node is not None and "node executable not found: " in message:
+        path = os.fspath(node)
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path) from exc
+    version = re.search(r"must be 24 or newer \(found (\d+)\)", message)
+    if version is not None:
+        raise RuntimeError(
+            f"needs Node 24+ with {package} (npm i --no-save {package}); "
+            f"found Node {version.group(1)}"
+        ) from exc
+    raise RuntimeError(
+        f"needs Node 24+ with {package} (npm i --no-save {package}); node not found"
+    ) from exc
+
+
+def _map_node_launch_error(exc, command, timeout):
+    """Map vendored ``LaunchError`` to legacy ``load_*`` subprocess shapes."""
     import subprocess
+
+    if exc.code == "ELAUNCHSTDINCLOSED":
+        status = exc.status if exc.status is not None else -1
+        return subprocess.CompletedProcess(command, status, exc.stdout, exc.stderr)
+    if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
+        raise subprocess.TimeoutExpired(
+            cmd=command,
+            timeout=timeout,
+            output=exc.stdout,
+            stderr=exc.stderr,
+        ) from exc
+    raise exc
+
+
+def _xprobe_node_run(target, *args, timeout=30, **kwargs):
+    node_launch = _node_launch_module()
+    run_kwargs = dict(kwargs)
+    node = run_kwargs.pop("node", None)
+    env_var = run_kwargs.pop("env_var", None)
+    run_kwargs.pop("probe", None)
+    executable = node_launch.resolve_node(node=node, env_var=env_var)
+    command = node_launch.node_command(
+        target, *args, node=executable, probe=False, env_var=env_var
+    )
+    try:
+        return node_launch.run(
+            target,
+            *args,
+            timeout=timeout,
+            node=executable,
+            probe=False,
+            env_var=env_var,
+            **run_kwargs,
+        )
+    except node_launch.LaunchError as exc:
+        return _map_node_launch_error(exc, command, timeout)
+
+
+def _node_load(kind, text, node, timeout):
     if not isinstance(text, str):
         raise TypeError("text must be a string")
-    executable = node or shutil.which("node")
     package = "smol-toml" if kind == "toml" else "js-yaml"
-    if executable is None:
-        raise RuntimeError(f"needs Node with {package} (npm i --no-save {package}); node not found")
-    done = subprocess.run([executable, "-e", _NODE_LOADER, kind], input=text, capture_output=True,
-                          text=True, encoding="utf-8", timeout=timeout)
+    node_launch = _node_launch_module()
+    try:
+        done = _xprobe_node_run(
+            "-e", _NODE_LOADER, kind, input=text, node=node, timeout=timeout, check=False
+        )
+    except node_launch.NodeNotFoundError as exc:
+        _node_backend_error(exc, package, node)
     if done.returncode:
-        reason = done.stderr.strip()
+        reason = _decode_node_process_bytes(done.stderr).strip()
         if reason.startswith("missing:"):
-            raise RuntimeError(f"needs Node with {package} (npm i --no-save {package}): {reason[8:][:200]}")
-        raise ValueError(f"invalid {kind.split('-')[0].upper()}: {reason.removeprefix('parse:')[:300]}")
-    return json.loads(done.stdout)
+            raise RuntimeError(
+                f"needs Node 24+ with {package} (npm i --no-save {package}): {reason[8:][:200]}"
+            )
+        raise ValueError(
+            f"invalid {kind.split('-')[0].upper()}: {reason.removeprefix('parse:')[:300]}"
+        )
+    return json.loads(_decode_node_process_bytes(done.stdout))
 
 
 def load_toml(text, *, node=None, timeout=30):
-    """Parse TOML: ``tomllib`` on Python 3.11+, else Node + ``smol-toml``.
+    """Parse TOML: ``tomllib`` on Python 3.11+, else Node 24+ + ``smol-toml``.
 
     Integers are lossless, including signed 64-bit values. Dates and times
     come back as ``datetime`` objects either way. Raises
@@ -1485,7 +1572,7 @@ def load_toml(text, *, node=None, timeout=30):
 
 
 def load_yaml(text, *, schema="failsafe", node=None, timeout=30):
-    """Parse YAML with Node + ``js-yaml`` (no PyYAML needed).
+    """Parse YAML with Node 24+ + ``js-yaml`` (no PyYAML needed).
 
     ``schema="failsafe"`` returns only strings, lists and dicts, like PyYAML's
     ``BaseLoader`` (keys such as ``on`` stay ``"on"``); ``schema="core"`` types

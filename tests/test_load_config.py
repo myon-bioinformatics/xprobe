@@ -1,6 +1,7 @@
 """load_toml / load_yaml: tomllib or Node (smol-toml / js-yaml), mirrored against tomllib and PyYAML."""
 import datetime
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,8 +13,23 @@ import xprobe
 
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "tests" / "js" / "node_modules"
-node_ready = pytest.mark.skipif(shutil.which("node") is None or not JS.is_dir(),
-                                reason="run `npm ci --prefix tests/js` (CI does) to enable the Node readers")
+
+
+def _node_reader_ready() -> bool:
+    if shutil.which("node") is None or not JS.is_dir():
+        return False
+    try:
+        done = subprocess.run(["node", "--version"], capture_output=True, text=True, timeout=5, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    match = re.search(r"v?(\d+)", (done.stdout or "") + (done.stderr or ""))
+    return bool(match and int(match.group(1)) >= 24)
+
+
+node_ready = pytest.mark.skipif(
+    not _node_reader_ready(),
+    reason="run `npm ci --prefix tests/js` and use Node 24+ (CI does) to enable the Node readers",
+)
 
 TOML = """title = "x"
 [owner]
@@ -130,7 +146,7 @@ def test_backend_errors_name_the_missing_piece(tmp_path, monkeypatch):
         with pytest.raises(RuntimeError, match="npm i --no-save js-yaml"):
             xprobe.load_yaml("a: 1", node=real)
     monkeypatch.setattr(shutil, "which", lambda name, **kw: None)
-    with pytest.raises(RuntimeError, match="node not found"):
+    with pytest.raises(RuntimeError, match=r"Node 24\+.*node not found"):
         xprobe.load_yaml("a: 1")
 
 
