@@ -522,7 +522,9 @@ python -S -m unittest discover -s tests -p test_xprobe.py -v
 
 `pyproject.toml` is the canonical development dependency definition; legacy
 requirements files remain for downstream callers. Runtime metadata does not
-raise the source/vendoring floor to the development floor. CI pins setup-python
-checkout v7.0.1, setup-node v7.1.0, setup-python v7.0.0, setup-uv v10.3.0, and
-upload-artifact v7.0.2 by full commit SHA, and uses uv 0.13.3. Setup actions using
-Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
+raise the source/vendoring floor to the development floor. CI pins checkout v7.0.1,
+setup-node v7.1.0, setup-python v7.1.0, setup-uv v10.3.2, and upload-artifact v7
+by full commit SHA (or major tag for upload-artifact), and uses uv 0.13.3.
+``load_toml`` / ``load_yaml`` Node fallbacks require Node 24+ via vendored
+``vendor/node_launch.py``. Setup actions using Node 24 require runner 2.327.1 or
+newer (GitHub-hosted runners are used).

@@ -17,13 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        node: [18, 20, 22, 24, 26]
-        include:
-          - os: windows-latest
-            node: 26
-          - os: macos-latest
-            node: 26
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['24', latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -31,7 +26,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: node --test tests/xprobe_cli.test.cjs
       - name: Type-check xprobe.d.cts (TypeScript is fetched here only, not a repo dependency)
-        if: matrix.os == 'ubuntu-latest' && matrix.node == 26
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
         run: |
           npm install --prefix build/types --no-save --ignore-scripts --package-lock=false --no-audit --no-fund typescript@7.0.2 @types/node@26.6.5
           build/types/node_modules/.bin/tsc --noEmit --strict --module nodenext --typeRoots build/types/node_modules/@types --types node xprobe.d.cts
@@ -44,7 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
       - name: Fetch pinned shared vendor tool
@@ -89,13 +84,13 @@ jobs:
             python: "3.12"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
           cache-dependency-path: tests/requirements.txt
       - name: Install test dependencies
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: "0.13.3"
       - name: Sync locked development environment
@@ -103,6 +98,9 @@ jobs:
         run: |
           uv sync --locked --python "$(python -c 'import sys; print(sys.executable)')"
           python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
       - name: Install JS readers for load_toml/load_yaml (tests only)
         run: npm ci --prefix tests/js --no-audit --no-fund
       - name: Compile artifact and CLI
@@ -111,7 +109,7 @@ jobs:
         env:
           XPROBE_FAILURE_EVIDENCE: reports/controlled-failure
           NODE_PATH: ${{ github.workspace }}/tests/js/node_modules
-        run: python -m pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
+        run: uv run pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
       - name: Collect failure identities with the shared importer
         if: always()
         shell: bash
@@ -130,7 +128,7 @@ jobs:
           fi
       - name: Preserve test report (including failed tests)
         if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: actions/upload-artifact@v7
         with:
           name: test-report-${{ matrix.os }}-py${{ matrix.python }}
           path: reports/
