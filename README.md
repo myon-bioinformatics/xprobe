@@ -1,5 +1,11 @@
 # xprobe
 
+<p align="center">
+  <img src="docs/brand/icon.png" alt="xprobe icon" width="160" />
+</p>
+
+[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)
+
 For native pytest outcomes (including xfail/xpass and execution phases), see
 [pytest observations and exploration](docs/pytest-observations.md). The opt-in
 test adapter emits JSONL readable by the existing corpus and search helpers.

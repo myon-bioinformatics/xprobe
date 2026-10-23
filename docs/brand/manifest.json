@@ -1,0 +1,27 @@
+{
+  "source": "User-supplied project artwork sheet, 2026-10-23",
+  "source_dimensions": [
+    1536,
+    1024
+  ],
+  "coordinate_convention": "left, top, right-exclusive, bottom-exclusive",
+  "project": {
+    "label": "xprobe",
+    "icon": [
+      924,
+      634,
+      1093,
+      803
+    ],
+    "icon_sha256": "abbb280d86e6782bd3d27bced087c84b00b7e56e6bd6a7a9589a54887196e25e",
+    "icon_rgb_sha256": "c3aa2b727b5ae1be7da6a84de1793ee131e186745bde53c488c9fad8c52934af",
+    "favicon_sha256": "ff4fda905e7c7ad700b7886d1a52162acbd411979a8887ee200b6fcc0669adb9",
+    "favicon_rgb_sha256": "24916e7e6a361389e14bc2d058d553382165965e0c96e1b0ae84f3d90c4ecb4e",
+    "favicon_source": "docs/brand/icon.png resampled to 64x64 with LANCZOS",
+    "favicon_size": [
+      64,
+      64
+    ],
+    "favicon_background": "#fafafa"
+  }
+}
