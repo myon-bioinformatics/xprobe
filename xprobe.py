@@ -8,6 +8,8 @@ import ast
 import codecs
 import fnmatch
 import importlib
+import importlib.util
+import errno
 import json
 import os
 import random
@@ -1469,6 +1471,23 @@ def _decode_node_process_bytes(data):
     return data.decode("utf-8", errors="replace")
 
 
+def _node_backend_error(exc, package, node):
+    """Map vendored ``NodeNotFoundError`` to legacy ``load_*`` exception types."""
+    message = str(exc)
+    if node is not None and "node executable not found: " in message:
+        path = os.fspath(node)
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path) from exc
+    version = re.search(r"must be 24 or newer \(found (\d+)\)", message)
+    if version is not None:
+        raise RuntimeError(
+            f"needs Node 24+ with {package} (npm i --no-save {package}); "
+            f"found Node {version.group(1)}"
+        ) from exc
+    raise RuntimeError(
+        f"needs Node 24+ with {package} (npm i --no-save {package}); node not found"
+    ) from exc
+
+
 def _xprobe_node_run(target, *args, timeout=30, **kwargs):
     import subprocess
 
@@ -1491,8 +1510,11 @@ def _xprobe_node_run(target, *args, timeout=30, **kwargs):
             **run_kwargs,
         )
     except node_launch.LaunchError as exc:
+        # from: cursor (GitHubヘルプbot) — preserve legacy subprocess shapes for load_* callers.
         if exc.code == "ELAUNCHSTDINCLOSED":
             status = exc.status if exc.status is not None else -1
+            if status == 0:
+                return subprocess.CompletedProcess(command, 0, exc.stdout, exc.stderr)
             if status != 0:
                 return subprocess.CompletedProcess(
                     command, status, exc.stdout, exc.stderr
@@ -1516,10 +1538,8 @@ def _node_load(kind, text, node, timeout):
         done = _xprobe_node_run(
             "-e", _NODE_LOADER, kind, input=text, node=node, timeout=timeout, check=False
         )
-    except node_launch.NodeNotFoundError:
-        raise RuntimeError(
-            f"needs Node 24+ with {package} (npm i --no-save {package}); node not found"
-        )
+    except node_launch.NodeNotFoundError as exc:
+        _node_backend_error(exc, package, node)
     if done.returncode:
         reason = _decode_node_process_bytes(done.stderr).strip()
         if reason.startswith("missing:"):
