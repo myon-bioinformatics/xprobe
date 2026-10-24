@@ -37,6 +37,10 @@ needs_node = pytest.mark.skipif(NODE is None, reason="Node 24+ not available (se
 def _env() -> dict[str, str]:
     env = dict(os.environ)
     env[ENV_VAR] = sys.executable
+    # Node forwards stdin bytes unchanged. A Windows Python subprocess may
+    # decode pipes with a locale codec unless the test specifies UTF-8.
+    # This controls only the parity fixture, not the shared launcher runtime.
+    env["PYTHONIOENCODING"] = "utf-8"
     env.pop("PY_LAUNCH_ERROR_FORMAT", None)
     return env
 
