@@ -16,7 +16,7 @@ Exit codes for agent and shell callers:
 Search skips and truncation stay inside the JSON result and do not change 0 or 1.
 A JUnit file over ``--max-bytes`` is exit 2 (no report), not exit 3.
 
-``xprobe.cjs`` launches ``xprobe.py`` unchanged, so it uses the same statuses.
+``xprobe.cjs`` launches ``xprobe.py`` only, not this advanced CLI; JUnit importer flags are unavailable there.
 """
 import argparse
 import json
