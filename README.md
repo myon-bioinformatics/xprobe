@@ -65,7 +65,7 @@ python scripts/xprobe_cli.py TODO . --max-matches 100
 python scripts/xprobe_cli.py 'TODO|FIXME' . --regex
 ```
 
-The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `xprobe.cjs` is the hidden-text twin and does not import JUnit, so it does not use exit 3.
+The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` runs this same CLI, so its exit codes are identical.
 
 ## Tests
 
@@ -452,47 +452,24 @@ stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
 
-### From Node (`xprobe.cjs`)
+### From Node (`xprobe.cjs`, Node 24+)
 
 ```sh
-node xprobe.cjs --hidden-text untrusted.txt     # JSON findings, ASCII-escaped; exit 1 if any
+node xprobe.cjs --hidden-text --root untrusted.txt   # same JSON and exit codes as xprobe.py
 node xprobe.cjs --strip-hidden - < untrusted.txt
 ```
 
-```js
-const {hiddenText, stripHidden, hiddenTextRules} = require("./xprobe.cjs");
-```
+`xprobe.cjs` is a thin launcher: it runs `xprobe.py` through the vendored shared launcher
+`vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and
+the exit code are passed through unchanged; Python runs with `-S`. Set `XPROBE_PYTHON` to
+pick the interpreter. Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
+It needs Python 3.9+ and has no in-process JavaScript API; `require("./xprobe.cjs")` only
+exposes `PY_SCRIPT` and `PY_LAUNCH` (typed in `xprobe.d.cts`).
 
-`xprobe.cjs` is a standard-library CommonJS twin of the hidden-text rules for Node 18+
-pipelines, Playwright tests and anything that should not spawn Python. It reports the
-same findings as `hidden_text` (kind, severity, code-point offsets, code points,
-`decoded`, `word`, `odd`); only `detail` writes a code point (`U+206A`) where Python
-spells a Unicode character name. `tests/test_xprobe_cjs_twin.py` runs both on a shared
-corpus of the hidden-text cases and compares them, including `stripHidden`.
-`xprobe.d.cts` declares its types for TypeScript and editors (`HiddenFinding`,
-`HiddenKind`, `HiddenTextOptions`); the module itself stays plain JavaScript.
-
-Unicode classification is embedded at Unicode 15.0 (CPython 3.12); IDNA uses
-Python's IDNA2003/legacy stringprep and round-trip checks, rather than the
-WHATWG URL decoder. Its normalizer preserves CPython's old Unicode 3.2
-decompositions with Unicode 15 combining classes and composition behavior.
-`scripts/generate_hidden_unicode.py` regenerates the tables
-with CPython 3.12. Python itself follows its interpreter's Unicode database, so
-characters added or reclassified in other database versions can differ. The CI
-compares stable cases across Python versions and exhaustively checks the Unicode
-15 name-classification boundaries and relevant letters/numbers on Python 3.12.
-
-Offsets count Unicode code points, including astral emoji and lone surrogates
-in the in-memory API. A Python string containing separate adjacent high/low
-surrogate code points cannot be distinguished from its corresponding scalar
-after JSON/JavaScript UTF-16 interchange; compare Unicode scalar strings (or
-isolated surrogates) across runtimes. CLI input must be valid UTF-8. Invalid
-UTF-8, missing files and invalid arguments produce stderr and status 2; extra
-arguments are rejected. A leading BOM is preserved by `--strip-hidden`.
-
-Run `node --test tests/xprobe_cli.test.cjs` for Node-only API/CLI regressions.
-`tests/test_xprobe_cjs_review.py` also checks control combinations, UTF-8 selector
-payloads, emoji offsets, Unicode boundaries and IDNA2003 edge cases against Python.
+The former native JavaScript twin of the hidden-text rules (`hiddenText`, `stripHidden`,
+`hiddenTextRules`, and `node xprobe.cjs --hidden-text FILE|-`) was retired so that every
+repository uses the same Python-backed launcher. `tests/test_xprobe_node_entry.py` checks
+parity with `xprobe.py`, and `node --test tests/xprobe_cli.test.cjs` is the Node-side smoke test.
 
 
 ## Convention-driven file and Python discovery

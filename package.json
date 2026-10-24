@@ -1,0 +1,7 @@
+{
+  "name": "xprobe",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  }
+}
