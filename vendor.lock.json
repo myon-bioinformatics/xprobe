@@ -18,6 +18,15 @@
       "destination": "vendor/node_launch.py",
       "blob_sha": "5284dc7f99cd5434a0c9db51aec541393ad2e8ae",
       "sha256": "fc5c5ff8f751ef0bc6429546c928aed63494f45d9b7cfa8d5782b542ea90e029"
+    },
+    {
+      "repository": "myon-bioinformatics/myon-bioinformatics",
+      "ref": "1116d5c4f55d25af4d21cfe9b3c88f49d3a476fa",
+      "commit": "1116d5c4f55d25af4d21cfe9b3c88f49d3a476fa",
+      "source": "py_launch.cjs",
+      "destination": "vendor/py_launch.cjs",
+      "blob_sha": "006817bc813187fa45abc3e8954fde27a2b73caa",
+      "sha256": "a78fe656cde285a83501b9b19d97b9ebde6f9637919b3adb95c50eb254154536"
     }
   ]
 }
