@@ -36,22 +36,22 @@ Pair coverage is exact against the 42 target pairs. Ranges span the five seeds.
 
 | Budget | Seeded pairs | Greedy pairs | Seeded wall µs | Greedy wall µs |
 | --- | --- | --- | --- | --- |
-| 0 | 0/42 | 0/42 | 206.9 | 292.7 |
-| 1 | 2/42 | 3/42 | 197.5 | 321.9 |
-| 6 | 9–14/42 | 18/42 | 211.9 | 374.0 |
-| 10 | 15–18/42 | 22/42 | 185.4 | 369.2 |
-| 12 | 18–20/42 | 24/42 | 199.3 | 365.5 |
-| 18 | 24–26/42 | 30/42 | 192.1 | 415.6 |
-| 24 | 31–32/42 | 36/42 | 201.8 | 455.0 |
-| 30 | 36–38/42 | 42/42 | 204.3 | 472.6 |
-| 36 | 42/42 | 42/42 | 196.8 | 496.1 |
+| 0 | 0/42 | 0/42 | 187.0 | 285.1 |
+| 1 | 2/42 | 3/42 | 187.3 | 312.9 |
+| 6 | 9–14/42 | 18/42 | 193.9 | 350.7 |
+| 10 | 15–18/42 | 22/42 | 198.4 | 398.2 |
+| 12 | 18–20/42 | 24/42 | 196.0 | 385.0 |
+| 18 | 24–26/42 | 30/42 | 196.0 | 415.3 |
+| 24 | 31–32/42 | 36/42 | 190.6 | 457.5 |
+| 30 | 36–38/42 | 42/42 | 189.6 | 462.5 |
+| 36 | 42/42 | 42/42 | 189.7 | 458.9 |
 
 Wall values are medians of the per-worker medians across seeds. At budget 10:
 
 | Method | CPU µs/call | Traced peak bytes | Whole-worker peak RSS bytes |
 | --- | --- | --- | --- |
-| seeded | 185.3 | 32806 | 14151680 |
-| greedy | 368.2 | 32570 | 14151680 |
+| seeded | 198.3 | 32806 | 14151680 |
+| greedy | 398.1 | 32570 | 14151680 |
 
 At seed 7/budget 10, coverage rises from 16/42 (38.1%) to 22/42 (52.4%).
 Across the five measured seeds, greedy improves pair coverage at every measured
