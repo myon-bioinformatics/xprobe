@@ -86,8 +86,9 @@ def test_caps_and_accounting(count, selected):
 ])
 @pytest.mark.parametrize('coverage', ['uncovered', 'mixed', 'covered'])
 @pytest.mark.parametrize('count', [0, 2, 10000])
+@pytest.mark.parametrize('selection', ['seeded', 'greedy'])
 def test_accounting_tracks_changed_boundary_sets(
-        monkeypatch, preset, total, mixed_eligible, coverage, count):
+        monkeypatch, preset, total, mixed_eligible, coverage, count, selection):
     boundaries = {kind: xprobe.boundary_cases(kind) for kind in ('text', 'number')}
     if preset == 'expanded':
         boundaries['text'].append({'name': 'unicode_newline', 'value': 'Ω\n'})
@@ -111,7 +112,7 @@ def test_accounting_tracks_changed_boundary_sets(
         eligible = 0
     monkeypatch.setattr(xprobe, 'case_factor_matrix', lambda: matrix)
 
-    report = xprobe.generate_factor_cases(seed=17, count=count)
+    report = xprobe.generate_factor_cases(seed=17, count=count, selection=selection)
     selected = min(count, eligible)
     assert report['candidate_total'] == total
     assert report['selected_count'] == len(report['cases']) == selected
@@ -120,7 +121,7 @@ def test_accounting_tracks_changed_boundary_sets(
                                      'limit': eligible - selected}
     assert report['excluded_count'] == sum(report['exclusions'].values())
     assert report['selected_count'] + report['excluded_count'] == total
-    assert report == xprobe.generate_factor_cases(seed=17, count=count)
+    assert report == xprobe.generate_factor_cases(seed=17, count=count, selection=selection)
 
 
 def test_seed_replay_freshness_and_rng_isolation():
@@ -179,11 +180,96 @@ def test_legacy_seeded_sampling_unchanged():
     assert len(xprobe.boundary_cases('text')) == len(xprobe.boundary_cases('number')) == 6
 
 
-def test_single_file_stdlib_replay_in_separate_process(tmp_path):
+@pytest.mark.parametrize('selection', ['seeded', 'greedy'])
+def test_single_file_stdlib_replay_in_separate_process(tmp_path, selection):
     (tmp_path / 'xprobe.py').write_bytes((Path(xprobe.__file__)).read_bytes())
     code = ('import json, xprobe; '
-            'print(json.dumps(xprobe.generate_factor_cases(seed=42, count=3), sort_keys=True))')
+            f'print(json.dumps(xprobe.generate_factor_cases(seed=42, count=3, selection={selection!r}), sort_keys=True))')
     result = subprocess.run([sys.executable, '-S', '-c', code], cwd=tmp_path,
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == xprobe.generate_factor_cases(seed=42, count=3)
+    assert json.loads(result.stdout) == xprobe.generate_factor_cases(seed=42, count=3, selection=selection)
+
+
+@pytest.mark.parametrize('selection', ['seeded', 'greedy'])
+@pytest.mark.parametrize('count', [0, 1, 6, 10, 30, 36, 10000])
+def test_selection_exact_coverage_budget_and_consumer(selection, count):
+    from scripts.benchmark_factor_selection import consumer_check, pair_coverage
+
+    before = random.getstate()
+    report = xprobe.generate_factor_cases(seed=7, count=count, selection=selection)
+    assert random.getstate() == before
+    assert len(report['cases']) == min(count, 36)
+    assert report['candidate_total'] == report['selected_count'] + report['excluded_count']
+    assert report['excluded_count'] == sum(report['exclusions'].values())
+    assert consumer_check(report['cases'])['mismatches'] == []
+    if selection == 'greedy':
+        expected = {0: 0, 1: 3, 6: 18, 10: 22, 30: 42, 36: 42, 10000: 42}
+        assert pair_coverage(report) == expected[count]
+        assert report['selection']['approximation_excluded'] == 0
+        assert report['cases'] == xprobe.generate_factor_cases(
+            seed=-1, count=count, selection=selection)['cases']
+
+
+def test_greedy_ties_prefixes_and_legacy_contract():
+    legacy = xprobe.generate_factor_cases(seed=7, count=10)
+    assert legacy == xprobe.generate_factor_cases(seed=7, count=10, selection='seeded')
+    assert 'selection' not in legacy
+    candidates = xprobe.generate_factor_cases(seed=0, count=36, selection='greedy')['cases']
+    texts = [case['name'] for case in xprobe.boundary_cases('text')]
+    numbers = [case['name'] for case in xprobe.boundary_cases('number')]
+    by_id = {case['id']: case for case in candidates}
+    ordered = [by_id[f'factor-v1-{text}-{number}'] for text in texts for number in numbers]
+    random.Random(7).shuffle(ordered)
+    assert legacy['cases'] == ordered[:10]
+    for count in range(37):
+        report = xprobe.generate_factor_cases(count=count, selection='greedy')
+        assert report['cases'] == candidates[:count]
+    with pytest.raises(ValueError, match='selection'):
+        xprobe.generate_factor_cases(selection='low_rank')
+
+
+@pytest.mark.parametrize('coverage', ['none', 'one', 'all'])
+@pytest.mark.parametrize('count', [0, 2, 10000])
+def test_greedy_partial_empty_and_already_covered(monkeypatch, coverage, count):
+    matrix = xprobe.case_factor_matrix()
+    if coverage == 'none':
+        matrix['uncovered_pairs'] = []
+    elif coverage == 'one':
+        matrix['uncovered_pairs'] = [p for p in matrix['uncovered_pairs']
+                                     if p['factors'] == ['ascii', 'zero']]
+    monkeypatch.setattr(xprobe, 'case_factor_matrix', lambda: matrix)
+    report = xprobe.generate_factor_cases(count=count, selection='greedy')
+    eligible = {'none': 0, 'one': 5, 'all': 36}[coverage]
+    assert report['selected_count'] == min(count, eligible)
+    assert report['exclusions'] == {'already_covered': 36 - eligible,
+                                     'limit': max(0, eligible - count)}
+    monkeypatch.setattr(xprobe, 'boundary_cases', lambda kind: [])
+    assert xprobe.generate_factor_cases(selection='greedy')['candidate_total'] == 0
+
+
+def test_consumer_oracle_detects_injected_limit_fault(monkeypatch):
+    from scripts.benchmark_factor_selection import consumer_check
+
+    cases = xprobe.generate_factor_cases(count=36)['cases']
+    assert consumer_check(cases)['mismatches'] == []
+    real_search = xprobe.search_text
+
+    def wrong_limit(text, pattern, *, max_matches):
+        # Controlled mutation, not a discovered or historical consumer defect.
+        return real_search(text, pattern, max_matches=1000)
+
+    monkeypatch.setattr(xprobe, 'search_text', wrong_limit)
+    failures = consumer_check(cases)['mismatches']
+    assert 'factor-v1-long-positive' in failures
+    assert 'factor-v1-empty-zero' in failures
+
+
+def test_pair_coverage_is_not_fault_detection():
+    from scripts.benchmark_factor_selection import consumer_check, pair_coverage
+
+    seeded = xprobe.generate_factor_cases(seed=42, count=10)
+    greedy = xprobe.generate_factor_cases(seed=42, count=10, selection='greedy')
+    assert pair_coverage(greedy) > pair_coverage(seeded)
+    assert consumer_check(seeded['cases'])['injected_fault']['detected']
+    assert not consumer_check(greedy['cases'])['injected_fault']['detected']
