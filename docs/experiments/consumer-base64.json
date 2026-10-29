@@ -1,0 +1,61 @@
+{
+  "target": "Ironmate.size_estimate.base64_chars",
+  "fix_pr": "https://github.com/myon-bioinformatics/Ironmate/pull/164",
+  "status": "bug still present in pinned main; fix in open Draft PR, not merged",
+  "consumer_evidence": "Ironmate/vendors xprobe.py; this target is a real sibling consumer function, not a xprobe call site",
+  "adapter": "number -> byte-length metadata, text unused; valid nonnegative integers only",
+  "rows": [
+    {
+      "revision": "f633cd7c37490e5e7958f1393c79a0fa53d4ab97",
+      "url": "https://github.com/myon-bioinformatics/Ironmate/blob/f633cd7c37490e5e7958f1393c79a0fa53d4ab97/size_estimate.py",
+      "source_sha256": "d109c2f53f318a0e22490fbce8b14abcc141d92579c1cd1a889d2bc08d9eb635",
+      "function_source": "def base64_chars(nbytes, data_uri=False):\n    \"\"\"Exact Base64 length (with = padding) for ``nbytes`` bytes.\"\"\"\n    return 4 * math.ceil(nbytes / 3) + (DATA_URI_PREFIX if data_uri else 0)",
+      "observations": [
+        {
+          "nbytes": 0,
+          "expected": 0,
+          "observed": 0,
+          "pass_exact": true
+        },
+        {
+          "nbytes": 1,
+          "expected": 4,
+          "observed": 4,
+          "pass_exact": true
+        },
+        {
+          "nbytes": 9223372036854775808,
+          "expected": 12297829382473034412,
+          "observed": 12297829382473033728,
+          "pass_exact": false
+        }
+      ]
+    },
+    {
+      "revision": "1792f7bc97ed7cfa43345212575ddfc09fb577bf",
+      "url": "https://github.com/myon-bioinformatics/Ironmate/blob/1792f7bc97ed7cfa43345212575ddfc09fb577bf/size_estimate.py",
+      "source_sha256": "aef2b6a72c8dcb6557cce3a645b040c3905430d544dc02d95d4df2fc1bc72951",
+      "function_source": "def base64_chars(nbytes, data_uri=False):\n    \"\"\"Exact Base64 length (with = padding) for ``nbytes`` bytes.\"\"\"\n    return 4 * ((nbytes + 2) // 3) + (DATA_URI_PREFIX if data_uri else 0)",
+      "observations": [
+        {
+          "nbytes": 0,
+          "expected": 0,
+          "observed": 0,
+          "pass_exact": true
+        },
+        {
+          "nbytes": 1,
+          "expected": 4,
+          "observed": 4,
+          "pass_exact": true
+        },
+        {
+          "nbytes": 9223372036854775808,
+          "expected": 12297829382473034412,
+          "observed": 12297829382473034412,
+          "pass_exact": true
+        }
+      ]
+    }
+  ]
+}
