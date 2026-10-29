@@ -9,7 +9,7 @@ It is an input generator, not a predictor of failures or a test runner.
 
 ## Schema v1
 
-`case_factor_matrix()` currently returns 25 source rows: 13 known corpus cases
+`case_factor_matrix()` currently returns 29 source rows: 17 known corpus cases
 and 12 boundaries. Each row has its stable source ID and an integer `bits`. Bit `i`
 corresponds to `factor_names[i]`; decode with `bits & (1 << i)`. All collections
 are fresh. Classification uses input properties, not the case's stated failure.
@@ -127,3 +127,26 @@ text preset keeps allocation small. No additional corpus inputs, arbitrary
 dimensions, Unicode × long-text mutations, or unbounded product are introduced.
 Future stages can measure useful new consumer regressions, pair coverage per
 budget, and selection cost before choosing low-rank or other candidate ranking.
+
+## Opt-in exact greedy selection
+
+`generate_factor_cases(seed=7, count=10, selection='greedy')` selects the largest
+marginal gain in currently uncovered pairs using integer pair bitsets. Ties use
+lexicographically ascending stable case IDs; seed is validated and recorded but
+does not affect this method. Zero-gain cases fill any remaining budget, preserving
+`selected_count == min(count, eligible candidates)` and prefix replay. This is a
+greedy maximum-coverage heuristic, not an exact optimizer or a low-rank model.
+It does not guarantee full pair coverage for arbitrary presets/budgets.
+
+The default `selection='seeded'` retains its original report and shuffle order.
+The greedy report adds optional descriptive metadata only:
+`selection={method: 'greedy', tie_break: 'stable_id', approximation_excluded: 0}`.
+All required v1 fields and both existing exclusion reasons remain unchanged.
+Greedy ranking does not prune candidates before the budget: omitted eligible
+cases are still `exclusions.limit`, and approximation exclusions are separately
+recorded as zero. No rank setting is invented; low-rank approximation remains
+unimplemented. Python 3.9 compatibility uses `bin(mask).count('1')` for popcount.
+The CLI continues to use the existing seeded default.
+
+See [the reproducible comparison](experiments/factor-selection.md) for measured
+coverage, time, CPU, memory, consumer checks and a controlled fault comparison.

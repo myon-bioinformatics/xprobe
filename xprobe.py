@@ -1132,12 +1132,31 @@ def case_factor_matrix():
             'rows': rows, 'uncovered_pairs': uncovered}
 
 
-def generate_factor_cases(*, seed=0, count=20):
+def _greedy_factor_cases(candidates, pairs, count):
+    """Maximum marginal pair gain; stable ID ties, then fill to the budget."""
+    remaining = sorted(candidates, key=lambda case: case['id'])
+    masks = {case['id']: sum(1 << index for index, pair in enumerate(pairs)
+                            if case['factor_bits'] & pair['bits'] == pair['bits'])
+             for case in remaining}
+    selected, covered = [], 0
+    while remaining and len(selected) < count:
+        best = max(range(len(remaining)),
+                   key=lambda index: bin(masks[remaining[index]['id']] & ~covered).count('1'))
+        case = remaining.pop(best)
+        selected.append(case)
+        covered |= masks[case['id']]
+    return selected
+
+
+def generate_factor_cases(*, seed=0, count=20, selection='seeded'):
     """Return bounded, reproducible composite inputs and selection evidence.
 
     Enumerate the built-in text/number boundary product, retaining candidates
     that carry an uncovered cross-field factor pair. Seeded selection is without
-    replacement. value={text, number} is an input template: callers assign its
+    replacement by default. Opt-in greedy selection maximizes marginal exact
+    pair gain with stable ID ties (seed is validated/recorded but unused).
+    Neither method approximates or removes candidates before the count limit.
+    value={text, number} is an input template: callers assign its
     fields to their own API (e.g. number to an output limit). No expectations,
     target execution, global RNG changes, I/O or low-rank approximation.
     """
@@ -1145,6 +1164,8 @@ def generate_factor_cases(*, seed=0, count=20):
         raise ValueError('seed must be an integer')
     if isinstance(count, bool) or not isinstance(count, int) or not 0 <= count <= 10000:
         raise ValueError('count must be an integer between 0 and 10000')
+    if selection not in ('seeded', 'greedy'):
+        raise ValueError('selection must be seeded or greedy')
     matrix = case_factor_matrix()
     pairs = matrix['uncovered_pairs']
     candidates = []
@@ -1165,14 +1186,21 @@ def generate_factor_cases(*, seed=0, count=20):
                 'factor_bits': bits,
                 'origin_ids': ['boundary-text-' + text['name'],
                                'boundary-number-' + number['name']]})
-    random.Random(seed).shuffle(candidates)
-    selected = candidates[:count]
+    if selection == 'seeded':
+        random.Random(seed).shuffle(candidates)
+        selected = candidates[:count]
+    else:
+        selected = _greedy_factor_cases(candidates, pairs, count)
     limited = len(candidates) - len(selected)
-    return {'schema': 'xprobe.factor-generation.v1', 'seed': seed,
+    report = {'schema': 'xprobe.factor-generation.v1', 'seed': seed,
             'limit': count, 'candidate_total': covered + len(candidates),
             'selected_count': len(selected), 'excluded_count': covered + limited,
             'exclusions': {'already_covered': covered, 'limit': limited},
             'matrix': matrix, 'cases': selected}
+    if selection == 'greedy':
+        report['selection'] = {'method': 'greedy', 'tie_break': 'stable_id',
+                               'approximation_excluded': 0}
+    return report
 
 
 def merge_cases(*corpora):
