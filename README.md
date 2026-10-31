@@ -70,7 +70,6 @@ The CLI searches only; it never imports or executes discovered project code. Out
 ## Tests
 
 ```sh
-uv pip install -r tests/requirements.txt
 uv run pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
@@ -397,7 +396,7 @@ file counts and first locations.
 
 `tests/test_xprobe_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
-`\p{RGI_Emoji}` (RegExp `v` flag, Node 24+) on `tests/fixtures/emoji_corpus.txt`;
+`\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 24+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
 
 ## Hidden text: invisible and deceptive characters (0.4)
