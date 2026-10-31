@@ -505,7 +505,7 @@ python -S -m unittest discover -s tests -p test_xprobe.py -v
 `pyproject.toml` is the canonical development dependency definition; legacy
 requirements files remain for downstream callers. Runtime metadata does not
 raise the source/vendoring floor to the development floor. CI pins checkout v7.0.1,
-setup-node v7.1.0, setup-python v7.1.0, setup-uv v10.3.2, and upload-artifact v7
+setup-node v7.1.0, setup-python v7.1.0, setup-uv v10.3.3, and upload-artifact v7
 by full commit SHA (or major tag for upload-artifact), and uses uv 0.13.3.
 ``load_toml`` / ``load_yaml`` Node fallbacks require Node 24+. The canonical
 ``xprobe.py`` spawns that Node with the standard library and does not require
