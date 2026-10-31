@@ -70,8 +70,8 @@ The CLI searches only; it never imports or executes discovered project code. Out
 ## Tests
 
 ```sh
-python -m pip install -r tests/requirements.txt
-python -m pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
+uv pip install -r tests/requirements.txt
+uv run pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
 Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.9–3.15 on Linux and Python 3.12 on Windows/macOS.
@@ -109,7 +109,7 @@ assert xprobe.corpus_from_json(encoded, jsonl=True) == fixtures
 python scripts/xprobe_cli.py --scan-config --root . --include '*.yaml'
 python scripts/xprobe_cli.py --env-report
 python scripts/xprobe_cli.py --corpus --category git --seed 7 --count 20 --format jsonl
-python -m pytest --junitxml=pytest-results.xml
+uv run pytest --junitxml=pytest-results.xml
 python scripts/xprobe_cli.py --junit pytest-results.xml
 ```
 
@@ -397,7 +397,7 @@ file counts and first locations.
 
 `tests/test_xprobe_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
-`\p{RGI_Emoji}` (RegExp `v` flag, Node 20+) on `tests/fixtures/emoji_corpus.txt`;
+`\p{RGI_Emoji}` (RegExp `v` flag, Node 24+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
 
 ## Hidden text: invisible and deceptive characters (0.4)
@@ -499,7 +499,7 @@ package. Development/test environments use Python 3.11+ and a committed uv lock:
 
 ```sh
 uv sync --locked --python 3.11
-uv run --locked python -m pytest
+uv run --locked pytest
 python -S -m unittest discover -s tests -p test_xprobe.py -v
 ```
 
