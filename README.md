@@ -73,7 +73,7 @@ The CLI searches only; it never imports or executes discovered project code. Out
 uv run pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
-Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.9–3.15 on Linux and Python 3.12 on Windows/macOS.
+Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.9–3.15 on Linux and Python 3.15 on Windows/macOS.
 
 ## Configuration discovery and regression corpus (0.2)
 
@@ -505,8 +505,9 @@ python -S -m unittest discover -s tests -p test_xprobe.py -v
 `pyproject.toml` is the canonical development dependency definition; legacy
 requirements files remain for downstream callers. Runtime metadata does not
 raise the source/vendoring floor to the development floor. CI pins checkout v7.0.1,
-setup-node v7.1.0, setup-python v7.1.0, setup-uv v10.3.3, and upload-artifact v7
+setup-node v7.1.0, setup-uv v10.3.3, and upload-artifact v7
 by full commit SHA (or major tag for upload-artifact), and uses uv 0.13.3.
+Python for CI comes from setup-uv (`actions/setup-python` is not used).
 ``load_toml`` / ``load_yaml`` Node fallbacks require Node 24+. The canonical
 ``xprobe.py`` spawns that Node with the standard library and does not require
 ``vendor/node_launch.py`` when the file is copied alone. Setup actions using
