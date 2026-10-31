@@ -77,3 +77,49 @@ def test_worker_separates_exclusions_and_actual_defect():
 def test_upstream_module_bytes(kind, blob):
     data = (ROOT/'tests/fixtures'/f'rulebook-{kind}.py').read_bytes()
     assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest() == blob
+
+
+def test_saved_evidence_consistent_with_exact_replay():
+    import gzip
+    import json
+    data = json.loads(gzip.decompress((ROOT/'docs/experiments/consumer-selection.json.gz').read_bytes()))
+    assert len(data['rows']) == 500
+    assert len({(r['size'],r['method'],r['budget'],r['seed']) for r in data['rows']}) == 500
+    for filename, digest in data['source_sha256'].items():
+        source = (ROOT/filename).read_bytes()
+        # Permit Git's LF/CRLF checkout translation for code, not fixture bytes.
+        if not filename.startswith('tests/fixtures/'):
+            source = source.replace(b'\r\n', b'\n')
+        assert hashlib.sha256(source).hexdigest() == digest
+    for size in (128, 512):
+        cases, matrix = experiment.population(size)
+        by_id = {c['id']:c for c in cases}
+        historical = {r['id']:r for r in data['replay'][str(size)]}
+        # Re-execute full pinned modules rather than trusting recorded outcomes.
+        for current in experiment.replay(cases):
+            recorded = historical[current['id']]
+            assert current['value'] == recorded['value']
+            for kind in ('old', 'fixed'):
+                assert current[kind]['matches_expected'] == recorded[kind]['matches_expected']
+                assert current[kind].get('output') == recorded[kind].get('output')
+                # re.error was renamed PatternError in newer Python releases.
+                assert ('error' in current[kind]) == ('error' in recorded[kind])
+        for row in (r for r in data['rows'] if r['size'] == size):
+            ids = row['selected_ids']
+            assert len(set(ids)) == len(ids) == row['budget']
+            assert set(ids) <= by_id.keys()
+            detected = [i for i in ids if not historical[i]['old']['matches_expected']]
+            assert row['detecting_ids'] == detected
+            assert row['failing_input_count'] == len(detected)
+            assert row['historical_defects_detected'] == int(bool(detected))
+            assert row['historical_defects_total'] == 1
+            assert row['budget_excluded'] == size-len(ids)
+            assert row['exact_eligibility_excluded'] == row['approximation_prepruned'] == 0
+            omitted = set(by_id)-set(ids) if row['method'].startswith('binary') else set()
+            assert set(row['approximation_omitted_ids']) == omitted
+            pairs = set()
+            for i in ids:
+                bits = by_id[i]['factor_bits']
+                pairs.update(itertools.combinations([j for j in range(22) if bits & (1 << j)],2))
+            assert row['covered_pairs'] == len(pairs)
+            assert row['target_pairs'] == len(matrix['uncovered_pairs'])

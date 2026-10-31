@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Opt-in historical RuleBook replay and larger-product selection benchmark."""
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import importlib.util
 import itertools
@@ -139,6 +140,7 @@ def worker(size, method, budget, seed):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--jobs', type=int, default=1, choices=range(1, 9))
     p.add_argument('--worker', nargs=4)
     p.add_argument('--output', type=Path)
     a = p.parse_args()
@@ -148,17 +150,22 @@ def main():
         return
     if not a.output:
         p.error('--output required')
-    rows = []
+    jobs = []
     for n in (128,512):
         for b in (0,1,10,32,n):
             for s in SEEDS:
                 methods = list(METHODS)
                 random.Random(n+b+s).shuffle(methods)
                 for m in methods:
-                    r = subprocess.run([sys.executable,'-S',__file__,'--worker',str(n),m,str(b),str(s)], capture_output=True,text=True,check=True,timeout=180)
-                    rows.append(json.loads(r.stdout))
+                    jobs.append((n,m,b,s))
+    def run(job):
+        n,m,b,s = job
+        r = subprocess.run([sys.executable,'-S',__file__,'--worker',str(n),m,str(b),str(s)], capture_output=True,text=True,check=True,timeout=180)
+        return json.loads(r.stdout)
+    with ThreadPoolExecutor(max_workers=a.jobs) as pool:
+        rows = list(pool.map(run, jobs))
     hashes = {str(f.relative_to(ROOT)):hashlib.sha256(f.read_bytes()).hexdigest() for f in (Path(__file__), ROOT/'scripts/binary_selection_model.py', ROOT/'xprobe.py', ROOT/'tests/fixtures/rulebook-old.py', ROOT/'tests/fixtures/rulebook-fixed.py')}
-    data = dict(schema='xprobe.consumer-selection.v1', python=sys.version, platform=platform.platform(), source_sha256=hashes,
+    data = dict(schema='xprobe.consumer-selection.v1', concurrent_workers=a.jobs, python=sys.version, platform=platform.platform(), source_sha256=hashes,
         rows=rows, replay={str(n):replay(population(n)[0]) for n in (128,512)})
     a.output.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
 
