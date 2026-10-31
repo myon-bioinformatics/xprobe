@@ -12,7 +12,7 @@ low-rank approximation, binary decomposition or scale correction are added.
 
 ```sh
 python -S scripts/benchmark_factor_selection.py --output /tmp/factor-selection.json
-python -m pytest -q tests/test_factor_generation.py
+uv run pytest -q tests/test_factor_generation.py
 ```
 
 The adjacent `factor-selection.json` records all 90 method/budget/seed runs,

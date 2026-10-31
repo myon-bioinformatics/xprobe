@@ -58,7 +58,7 @@ The opt-in test adapter requires pytest, already provided by
 stdlib-only, and imports without pytest.
 
 ```sh
-python -m pytest -p scripts.xprobe_pytest \
+uv run pytest -p scripts.xprobe_pytest \
   --xprobe-jsonl=reports/pytest-events.jsonl \
   --xprobe-repository=owner/repository
 ```
