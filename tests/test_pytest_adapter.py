@@ -36,7 +36,7 @@ def execute(tmp_path, source, *options, evidence_directory=None):
 
 @pytest.mark.parametrize('junit', [False, True])
 def test_native_outcomes_and_explore(tmp_path, junit):
-    destination = os.environ.get('XPROBE_FAILURE_EVIDENCE') if junit else None
+    destination = os.environ.get('FAILURE_EVIDENCE_DIR') if junit else None
     directory = Path(destination) if destination else None
     result, rows = execute(tmp_path, '''import pytest
 import sys
@@ -127,7 +127,7 @@ def test_pass(): pass
 
 def test_evidence_survives_identity_assertion_failure(tmp_path, tmp_path_factory, monkeypatch):
     directory = tmp_path_factory.mktemp('evidence')
-    monkeypatch.setenv('XPROBE_FAILURE_EVIDENCE', str(directory))
+    monkeypatch.setenv('FAILURE_EVIDENCE_DIR', str(directory))
     importer = xprobe.cases_from_junit
 
     def mismatched_identity(*args, **kwargs):

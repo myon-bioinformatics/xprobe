@@ -108,7 +108,7 @@ jobs:
         run: python -m py_compile xprobe.py scripts/xprobe_cli.py scripts/xprobe_pytest.py
       - name: Test with branch coverage
         env:
-          XPROBE_FAILURE_EVIDENCE: reports/controlled-failure
+          FAILURE_EVIDENCE_DIR: reports/controlled-failure
           NODE_PATH: ${{ github.workspace }}/tests/js/node_modules
         run: uv run pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
       - name: Collect failure identities with the shared importer
