@@ -1,6 +1,6 @@
 "use strict";
 // Node-side smoke test for the xprobe.cjs launcher (runs xprobe.py through vendor/py_launch.cjs).
-// Needs Node 24+ and Python 3.9+ on PATH (or XPROBE_PYTHON); no npm dependencies.
+// Needs Node 26+ and Python 3.9+ on PATH (or XPROBE_PYTHON); no npm dependencies.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {spawnSync} = require("node:child_process");

@@ -31,7 +31,7 @@ def _node() -> str | None:
 
 
 NODE = _node()
-needs_node = pytest.mark.skipif(NODE is None, reason="Node 24+ not available (set NODE)")
+needs_node = pytest.mark.skipif(NODE is None, reason="Node 26+ not available (set NODE)")
 
 
 def _env() -> dict[str, str]:
@@ -61,7 +61,7 @@ def test_vendored_launcher_matches_lock():
     lock = json.loads((ROOT / "vendor.lock.json").read_text(encoding="utf-8"))
     entry = next(f for f in lock["files"] if f["destination"] == "vendor/py_launch.cjs")
     assert entry["repository"] == "myon-bioinformatics/myon-bioinformatics"
-    assert entry["commit"] == entry["ref"] == "1116d5c4f55d25af4d21cfe9b3c88f49d3a476fa"
+    assert entry["commit"] == entry["ref"] == "1f6f1e345f640827703e2872151a73b4cbdfd382"
     assert entry["source"] == "py_launch.cjs"
     data = (ROOT / "vendor" / "py_launch.cjs").read_bytes()
     assert hashlib.sha256(data).hexdigest() == entry["sha256"]
