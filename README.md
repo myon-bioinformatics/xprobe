@@ -325,11 +325,11 @@ resolve through `NODE_PATH` or the current directory (`npm i --no-save js-yaml s
 without them a `RuntimeError` says what is missing. Text goes through stdin to a fixed
 script; nothing in the input is evaluated.
 
-`xprobe.py` remains one file. YAML, and TOML on Python 3.10 and older, need Node 24+.
+`xprobe.py` remains one file. YAML, and TOML on Python 3.10 and older, need Node 26+.
 When `vendor/node_launch.py` is already beside the script, that sibling launcher is used;
 a copy of `xprobe.py` alone uses an inlined stdlib launcher and does not need the helper.
 Search and the other commands do not spawn Node. `python xprobe.py --load` exits 2 and
-writes the Node 24+ message to stderr when Node or the reader package is missing.
+writes the Node 26+ message to stderr when Node or the reader package is missing.
 
 ```sh
 python xprobe.py --load yaml .github/workflows/ci.yml    # JSON on stdout
@@ -451,7 +451,7 @@ stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
 
-### From Node (`xprobe.cjs`, Node 24+)
+### From Node (`xprobe.cjs`, Node 26+)
 
 ```sh
 node xprobe.cjs --hidden-text --root untrusted.txt   # same JSON and exit codes as xprobe.py
@@ -508,7 +508,7 @@ raise the source/vendoring floor to the development floor. CI pins checkout v7.0
 setup-node v7.1.0, setup-uv v10.3.3, and upload-artifact v7
 by full commit SHA (or major tag for upload-artifact), and uses the latest uv.
 Python for CI comes from setup-uv (`actions/setup-python` is not used).
-``load_toml`` / ``load_yaml`` Node fallbacks require Node 24+. The canonical
+``load_toml`` / ``load_yaml`` Node fallbacks require Node 26+. The canonical
 ``xprobe.py`` spawns that Node with the standard library and does not require
 ``vendor/node_launch.py`` when the file is copied alone. Setup actions using
 Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
