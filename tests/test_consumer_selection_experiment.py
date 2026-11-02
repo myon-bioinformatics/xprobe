@@ -86,9 +86,12 @@ def test_saved_evidence_consistent_with_exact_replay():
     assert len(data['rows']) == 500
     assert len({(r['size'],r['method'],r['budget'],r['seed']) for r in data['rows']}) == 500
     for filename, digest in data['source_sha256'].items():
-        source = (ROOT/filename).read_bytes()
+        # Historical timing provenance is frozen, not relabeled after runtime changes.
+        source_path = ('tests/fixtures/xprobe-consumer-selection-measured.py'
+                       if filename == 'xprobe.py' else filename)
+        source = (ROOT/source_path).read_bytes()
         # Permit Git's LF/CRLF checkout translation for code, not fixture bytes.
-        if not filename.startswith('tests/fixtures/'):
+        if not source_path.startswith('tests/fixtures/'):
             source = source.replace(b'\r\n', b'\n')
         assert hashlib.sha256(source).hexdigest() == digest
     for size in (128, 512):
@@ -123,3 +126,21 @@ def test_saved_evidence_consistent_with_exact_replay():
                 pairs.update(itertools.combinations([j for j in range(22) if bits & (1 << j)],2))
             assert row['covered_pairs'] == len(pairs)
             assert row['target_pairs'] == len(matrix['uncovered_pairs'])
+
+
+def test_archived_measurement_bytes_remain_frozen():
+    archive = (ROOT / 'docs/experiments/consumer-selection.json.gz').read_bytes()
+    # Original f30e025 measurement, before the later hash-only relabeling.
+    assert hashlib.sha256(archive).hexdigest() == '7d9b6a3149b162898f6e290a90d79dc3d1ad3e06336c0a4832c88cfb450a1818'
+
+
+def test_saved_provenance_rejects_mutated_historical_source(monkeypatch):
+    original = Path.read_bytes
+    def altered(path):
+        data = original(path)
+        if path.name == 'xprobe-consumer-selection-measured.py':
+            return data + b'\n# mutation: not the measured source\n'
+        return data
+    monkeypatch.setattr(Path, 'read_bytes', altered)
+    with pytest.raises(AssertionError):
+        test_saved_evidence_consistent_with_exact_replay()

@@ -1735,7 +1735,18 @@ def _node_backend_error(exc, package, node):
     if node is not None and "node executable not found: " in message:
         path = os.fspath(node)
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path) from exc
-    version = re.search(r"must be 26 or newer \(found (\d+)\)", message)
+    # The shared launcher collapses rejected PATH candidates into not-found.
+    # Probe that same candidate explicitly to retain the useful version error.
+    if node is None and "node executable not found" in message:
+        import shutil
+        discovered = shutil.which("node")
+        if discovered:
+            launcher = _node_launch_module()
+            try:
+                launcher.resolve_node(node=discovered, env_var=None)
+            except launcher.NodeNotFoundError as probe_exc:
+                message = str(probe_exc)
+    version = re.search(r"must be \d+ or newer \(found (\d+)\)", message)
     if version is not None:
         raise RuntimeError(
             f"needs Node 26+ with {package} (npm i --no-save {package}); "

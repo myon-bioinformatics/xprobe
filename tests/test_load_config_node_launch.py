@@ -610,3 +610,13 @@ def test_mutation_version_mapping_required(tmp_path, monkeypatch):
     monkeypatch.setattr(xprobe, "_node_backend_error", broken_backend)
     with pytest.raises(RuntimeError, match="node not found"):
         xprobe._node_load("yaml-failsafe", "a: 1\n", str(script), 30)
+
+
+@pytest.mark.parametrize('major', [24, 25])
+@pytest.mark.parametrize('explicit', [False, True])
+def test_below_node_26_reports_actual_version(tmp_path, monkeypatch, major, explicit):
+    script = _write_fake_node(tmp_path, version=f'v{major}.0.0', on_eval='pass')
+    monkeypatch.setattr(shutil, 'which', lambda name, **kw: str(script) if name == 'node' else None)
+    xprobe._node_launch_module().clear_probe_cache()
+    with pytest.raises(RuntimeError, match=rf'Node 26\+.*found Node {major}'):
+        xprobe._node_load('yaml-failsafe', 'a: 1\n', str(script) if explicit else None, 30)

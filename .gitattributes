@@ -7,3 +7,4 @@ tests/fixtures/native_error_sweep/*.xml -text
 # Byte-identical historical application modules used by the selection experiment.
 tests/fixtures/rulebook-old.py -text
 tests/fixtures/rulebook-fixed.py -text
+tests/fixtures/xprobe-consumer-selection-measured.py -text

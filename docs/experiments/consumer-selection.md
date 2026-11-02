@@ -157,3 +157,16 @@ The archived source hashes identify the measured code. CPU and memory are descri
 
 Local complete suite: **693 passed, 27 skipped, 13 subtests passed**. This is
 local author validation, not an independent-review or hosted-CI claim.
+
+
+## Historical provenance after Node 26 integration
+
+The 500-condition archive is retained byte-for-byte from experiment commit
+`f30e025`. Its `xprobe.py` hash describes the measured source, now preserved in
+`tests/fixtures/xprobe-consumer-selection-measured.py` (same repository license),
+not the current Node 26 runtime. This restores the original provenance rather
+than repeating the later hash-only relabeling in `669a996`; no timing or memory
+measurement has been regenerated. The offline tests validate these frozen bytes
+and continue to replay outcomes and selection invariants with current code.
+The runtime integration changes the Node floor and launchers, not the measured
+selector protocol or the archived 500 rows.
