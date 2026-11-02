@@ -65,7 +65,7 @@ python scripts/xprobe_cli.py TODO . --max-matches 100
 python scripts/xprobe_cli.py 'TODO|FIXME' . --regex
 ```
 
-The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` does **not** run this advanced CLI; it launches `xprobe.py` only (see [From Node](#from-node-xprobecjs-node-24)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
+The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` does **not** run this advanced CLI; it launches `xprobe.py` only (see [From Node](#from-node-xprobecjs-node-26)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
 
 ## Tests
 
@@ -396,7 +396,7 @@ file counts and first locations.
 
 `tests/test_xprobe_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
-`\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 24+) on `tests/fixtures/emoji_corpus.txt`;
+`\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 26+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
 
 ## Hidden text: invisible and deceptive characters (0.4)
