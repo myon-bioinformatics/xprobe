@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ['24', latest]
+        node: ['26', latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -26,7 +26,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: node --test tests/xprobe_cli.test.cjs
       - name: Type-check xprobe.d.cts (TypeScript is fetched here only, not a repo dependency)
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '26'
         run: |
           npm install --prefix build/types --no-save --ignore-scripts --package-lock=false --no-audit --no-fund typescript@7.0.2 @types/node@26.6.5
           build/types/node_modules/.bin/tsc --noEmit --strict --module nodenext --typeRoots build/types/node_modules/@types --types node xprobe.d.cts
@@ -101,14 +101,14 @@ jobs:
           python -c "import os; from pathlib import Path; print(Path('.venv').resolve() / ('Scripts' if os.name == 'nt' else 'bin'))" >> "$GITHUB_PATH"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: '26'
       - name: Install JS readers for load_toml/load_yaml (tests only)
         run: npm ci --prefix tests/js --no-audit --no-fund
       - name: Compile artifact and CLI
         run: python -m py_compile xprobe.py scripts/xprobe_cli.py scripts/xprobe_pytest.py
       - name: Test with branch coverage
         env:
-          XPROBE_FAILURE_EVIDENCE: reports/controlled-failure
+          FAILURE_EVIDENCE_DIR: reports/controlled-failure
           NODE_PATH: ${{ github.workspace }}/tests/js/node_modules
         run: uv run pytest -p scripts.xprobe_pytest --xprobe-jsonl=reports/pytest-events.jsonl --xprobe-repository="${{ github.repository }}" --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90 --junitxml=reports/junit.xml
       - name: Collect failure identities with the shared importer

@@ -24,7 +24,7 @@ reject missing/malformed XML with exit 2 and return exit 3 on case-limit truncat
 Collector exit 0 means import completed, including imports of failed tests:
 it does not replace the child or outer pytest exit status.
 
-CI sets `XPROBE_FAILURE_EVIDENCE=reports/controlled-failure` to retain the
+CI sets `FAILURE_EVIDENCE_DIR=reports/controlled-failure` to retain the
 controlled child's raw XML, native JSONL, compact failure JSONL and validated
 receipt alongside the ordinary reports in the always-uploaded Actions artifact.
 The child's expected nonzero result is asserted by the outer regression, so

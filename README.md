@@ -65,7 +65,7 @@ python scripts/xprobe_cli.py TODO . --max-matches 100
 python scripts/xprobe_cli.py 'TODO|FIXME' . --regex
 ```
 
-The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` does **not** run this advanced CLI; it launches `xprobe.py` only (see [From Node](#from-node-xprobecjs-node-24)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
+The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` does **not** run this advanced CLI; it launches `xprobe.py` only (see [From Node](#from-node-xprobecjs-node-26)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
 
 ## Tests
 
@@ -325,11 +325,11 @@ resolve through `NODE_PATH` or the current directory (`npm i --no-save js-yaml s
 without them a `RuntimeError` says what is missing. Text goes through stdin to a fixed
 script; nothing in the input is evaluated.
 
-`xprobe.py` remains one file. YAML, and TOML on Python 3.10 and older, need Node 24+.
+`xprobe.py` remains one file. YAML, and TOML on Python 3.10 and older, need Node 26+.
 When `vendor/node_launch.py` is already beside the script, that sibling launcher is used;
 a copy of `xprobe.py` alone uses an inlined stdlib launcher and does not need the helper.
 Search and the other commands do not spawn Node. `python xprobe.py --load` exits 2 and
-writes the Node 24+ message to stderr when Node or the reader package is missing.
+writes the Node 26+ message to stderr when Node or the reader package is missing.
 
 ```sh
 python xprobe.py --load yaml .github/workflows/ci.yml    # JSON on stdout
@@ -396,7 +396,7 @@ file counts and first locations.
 
 `tests/test_xprobe_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
-`\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 24+) on `tests/fixtures/emoji_corpus.txt`;
+`\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 26+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
 
 ## Hidden text: invisible and deceptive characters (0.4)
@@ -451,7 +451,7 @@ stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
 
-### From Node (`xprobe.cjs`, Node 24+)
+### From Node (`xprobe.cjs`, Node 26+)
 
 ```sh
 node xprobe.cjs --hidden-text --root untrusted.txt   # same JSON and exit codes as xprobe.py
@@ -508,7 +508,7 @@ raise the source/vendoring floor to the development floor. CI pins checkout v7.0
 setup-node v7.1.0, setup-uv v10.3.3, and upload-artifact v7
 by full commit SHA (or major tag for upload-artifact), and uses the latest uv.
 Python for CI comes from setup-uv (`actions/setup-python` is not used).
-``load_toml`` / ``load_yaml`` Node fallbacks require Node 24+. The canonical
+``load_toml`` / ``load_yaml`` Node fallbacks require Node 26+. The canonical
 ``xprobe.py`` spawns that Node with the standard library and does not require
 ``vendor/node_launch.py`` when the file is copied alone. Setup actions using
 Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).

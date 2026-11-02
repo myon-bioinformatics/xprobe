@@ -309,7 +309,7 @@ def test_normal_load_matches_legacy(tmp_path, monkeypatch):
     monkeypatch.setenv("NODE_PATH", str(JS))
     script = _write_fake_node(
         tmp_path,
-        version="v24.0.0",
+        version="v26.0.0",
         on_eval="import json, sys; sys.stdout.write(json.dumps({'ok': True}))",
     )
     text = "a: 1\n"
@@ -336,7 +336,7 @@ def test_node_missing_matches_legacy_type(monkeypatch):
 
     with pytest.raises(RuntimeError, match="node not found"):
         old()
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*node not found"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*node not found"):
         new()
 
 
@@ -350,7 +350,7 @@ def test_node_v20_rejected_while_legacy_would_run(tmp_path, monkeypatch):
     text = "a: 1\n"
     legacy = _legacy_node_load("yaml-failsafe", text, str(script), 30)
     assert legacy == {"v": 20}
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*found Node 20"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*found Node 20"):
         xprobe._node_load("yaml-failsafe", text, str(script), 30)
 
 
@@ -358,7 +358,7 @@ def test_nonzero_exit_matches_legacy(tmp_path, monkeypatch):
     monkeypatch.setenv("NODE_PATH", str(JS))
     script = _write_fake_node(
         tmp_path,
-        version="v24.0.0",
+        version="v26.0.0",
         on_eval="import sys; sys.stderr.write('parse:bad token'); sys.exit(3)",
     )
     text = "a: 1\n"
@@ -373,7 +373,7 @@ def test_nonzero_exit_matches_legacy(tmp_path, monkeypatch):
 
 
 def test_timeout_cmd_includes_resolved_node(tmp_path, monkeypatch):
-    script = _write_fake_node(tmp_path, version="v24.0.0", on_eval="import time; time.sleep(60)")
+    script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="import time; time.sleep(60)")
     node_launch = xprobe._node_launch_module()
 
     def hang(*args, **kwargs):
@@ -392,7 +392,7 @@ def test_timeout_cmd_includes_resolved_node(tmp_path, monkeypatch):
 
 
 def test_timeout_matches_legacy(monkeypatch, tmp_path):
-    script = _write_fake_node(tmp_path, version="v24.0.0", on_eval="pass")
+    script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
     cmd = [str(script), "-e", xprobe._NODE_LOADER, "toml"]
     timeout = 11
     node_launch = xprobe._node_launch_module()
@@ -417,7 +417,7 @@ def test_timeout_matches_legacy(monkeypatch, tmp_path):
 
 
 def test_stdin_closed_nonzero_surfaces_legacy_value_error(tmp_path, monkeypatch):
-    script = _write_fake_node(tmp_path, version="v24.0.0", close_stdin_unread=True)
+    script = _write_fake_node(tmp_path, version="v26.0.0", close_stdin_unread=True)
     monkeypatch.setenv("NODE_PATH", str(JS))
 
     def old():
@@ -453,7 +453,7 @@ def test_explicit_missing_node_path_raises_file_not_found(tmp_path, monkeypatch)
 def test_node_not_on_path_raises_runtime_error(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name, **kw: None)
     xprobe._node_launch_module().clear_probe_cache()
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*node not found"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*node not found"):
         xprobe._node_load("yaml-failsafe", "a: 1\n", None, 30)
 
 
@@ -461,7 +461,7 @@ def test_node_env_var_does_not_override_path(tmp_path, monkeypatch):
     monkeypatch.setenv("NODE", str(tmp_path / "nonexistent-x"))
     script = _write_fake_node(
         tmp_path,
-        version="v24.0.0",
+        version="v26.0.0",
         on_eval="import json, sys; sys.stdout.write(json.dumps({'via': 'path'}))",
     )
     monkeypatch.setattr(
@@ -477,7 +477,7 @@ def test_stdin_closed_zero_exit_returns_result_with_large_input(tmp_path, monkey
     payload = json.dumps({"ok": True}).encode()
     script = _write_fake_node(
         tmp_path,
-        version="v24.0.0",
+        version="v26.0.0",
         close_stdin_unread=True,
         stdin_close_exit_code=0,
         stdin_close_stdout=payload,
@@ -488,7 +488,7 @@ def test_stdin_closed_zero_exit_returns_result_with_large_input(tmp_path, monkey
 
 @pytest.mark.skipif(
     not _load_config_mod._node_reader_ready(),
-    reason="Node 24+ and tests/js required",
+    reason="Node 26+ and tests/js required",
 )
 def test_load_yaml_under_python_I_subprocess():
     env = os.environ.copy()
@@ -513,7 +513,7 @@ def test_load_yaml_under_python_I_subprocess():
 
 
 def test_unmapped_launch_error_propagates(tmp_path, monkeypatch):
-    script = _write_fake_node(tmp_path, version="v24.0.0", on_eval="pass")
+    script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
     node_launch = xprobe._node_launch_module()
 
     def launch_weird(*args, **kwargs):
@@ -534,7 +534,7 @@ def test_mutation_stdin_zero_mapping_required(tmp_path, monkeypatch):
     payload = json.dumps({"z": 1}).encode()
     script = _write_fake_node(
         tmp_path,
-        version="v24.0.0",
+        version="v26.0.0",
         close_stdin_unread=True,
         stdin_close_exit_code=0,
         stdin_close_stdout=payload,
@@ -555,7 +555,7 @@ def test_mutation_stdin_zero_mapping_required(tmp_path, monkeypatch):
 
 
 def test_mutation_timeout_mapping_required(tmp_path, monkeypatch):
-    script = _write_fake_node(tmp_path, version="v24.0.0", on_eval="pass")
+    script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
     node_launch = xprobe._node_launch_module()
 
     def launch_timeout(*args, **kwargs):
@@ -589,7 +589,7 @@ def test_mutation_file_not_found_mapping_required(tmp_path, monkeypatch):
 
     def broken_backend(exc, package, node):
         raise RuntimeError(
-            f"needs Node 24+ with {package} (npm i --no-save {package}); node not found"
+            f"needs Node 26+ with {package} (npm i --no-save {package}); node not found"
         )
 
     monkeypatch.setattr(xprobe, "_node_backend_error", broken_backend)
@@ -604,9 +604,19 @@ def test_mutation_version_mapping_required(tmp_path, monkeypatch):
 
     def broken_backend(exc, package, node):
         raise RuntimeError(
-            f"needs Node 24+ with {package} (npm i --no-save {package}); node not found"
+            f"needs Node 26+ with {package} (npm i --no-save {package}); node not found"
         )
 
     monkeypatch.setattr(xprobe, "_node_backend_error", broken_backend)
     with pytest.raises(RuntimeError, match="node not found"):
         xprobe._node_load("yaml-failsafe", "a: 1\n", str(script), 30)
+
+
+@pytest.mark.parametrize('major', [24, 25])
+@pytest.mark.parametrize('explicit', [False, True])
+def test_below_node_26_reports_actual_version(tmp_path, monkeypatch, major, explicit):
+    script = _write_fake_node(tmp_path, version=f'v{major}.0.0', on_eval='pass')
+    monkeypatch.setattr(shutil, 'which', lambda name, **kw: str(script) if name == 'node' else None)
+    xprobe._node_launch_module().clear_probe_cache()
+    with pytest.raises(RuntimeError, match=rf'Node 26\+.*found Node {major}'):
+        xprobe._node_load('yaml-failsafe', 'a: 1\n', str(script) if explicit else None, 30)

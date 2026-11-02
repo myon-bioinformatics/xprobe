@@ -26,7 +26,7 @@ def _force_fallback(monkeypatch):
     return launcher
 
 
-def _patch_probe(launcher, monkeypatch, *, stdout=b"v24.0.0\n", returncode=0, error=None):
+def _patch_probe(launcher, monkeypatch, *, stdout=b"v26.0.0\n", returncode=0, error=None):
     calls = []
 
     def fake_run(args, *extra, **kwargs):
@@ -100,7 +100,7 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
         assert json.loads(loaded.stdout) == {"on": "push"}
     else:
         assert loaded.returncode == 2, loaded.stderr
-        assert "Node 24+" in loaded.stderr
+        assert "Node 26+" in loaded.stderr
         assert "Traceback" not in loaded.stderr
         assert "node_launch.py" not in loaded.stderr
 
@@ -122,13 +122,13 @@ def test_tomllib_load_ignores_missing_sibling(monkeypatch):
 def test_fallback_missing_node_and_cli_message(monkeypatch, tmp_path, capsys):
     _force_fallback(monkeypatch)
     monkeypatch.setattr(shutil, "which", lambda *_args, **_kwargs: None)
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*node not found"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*node not found"):
         xprobe.load_yaml("a: 1\n")
     target = tmp_path / "w.yml"
     target.write_text("a: 1\n", encoding="utf-8")
     assert xprobe.main(["--load", "yaml", str(target)]) == 2
     err = capsys.readouterr().err
-    assert "Node 24+" in err
+    assert "Node 26+" in err
     assert "node not found" in err
     assert "Traceback" not in err
 
@@ -137,7 +137,7 @@ def test_fallback_rejects_old_explicit_node_and_missing_path(monkeypatch, tmp_pa
     launcher = _force_fallback(monkeypatch)
     old = tmp_path / "node20"
     _patch_probe(launcher, monkeypatch, stdout=b"v20.19.0\n")
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*found Node 20"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*found Node 20"):
         xprobe.load_yaml("a: 1\n", node=str(old))
 
     launcher.clear_probe_cache()
@@ -186,7 +186,7 @@ def test_fallback_rejects_batch_wrappers(monkeypatch):
 
 def test_fallback_parses_and_reports_reader_errors(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     calls = _patch_probe(launcher, monkeypatch)
     holder = {"stdout": b'{"a": "1"}', "stderr": b"", "code": 0}
 
@@ -210,7 +210,7 @@ def test_fallback_parses_and_reports_reader_errors(monkeypatch, tmp_path):
 
 def test_fallback_timeout_maps_to_timeout_expired(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     _patch_probe(launcher, monkeypatch)
 
     def popen(command, **_kwargs):
@@ -232,7 +232,7 @@ def test_fallback_timeout_maps_to_timeout_expired(monkeypatch, tmp_path):
 
 def test_fallback_timeout_survives_stuck_kill(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     _patch_probe(launcher, monkeypatch)
 
     def popen(command, **_kwargs):
@@ -251,7 +251,7 @@ def test_fallback_timeout_survives_stuck_kill(monkeypatch, tmp_path):
 
 def test_fallback_stdin_closed_keeps_child_result(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     _patch_probe(launcher, monkeypatch)
 
     class _Broken:
@@ -334,7 +334,7 @@ def test_fallback_node_env_does_not_override_path(monkeypatch, tmp_path):
 
 def test_fallback_run_accepts_bytes_and_check(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     _patch_probe(launcher, monkeypatch)
     seen = {}
 
@@ -390,7 +390,7 @@ def test_fallback_run_accepts_bytes_and_check(monkeypatch, tmp_path):
 
 def test_fallback_popen_oserror(monkeypatch, tmp_path):
     launcher = _force_fallback(monkeypatch)
-    node = tmp_path / "node24"
+    node = tmp_path / "node26"
     _patch_probe(launcher, monkeypatch)
 
     def popen(_command, **_kwargs):
