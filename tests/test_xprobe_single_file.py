@@ -26,7 +26,7 @@ def _force_fallback(monkeypatch):
     return launcher
 
 
-def _patch_probe(launcher, monkeypatch, *, stdout=b"v24.0.0\n", returncode=0, error=None):
+def _patch_probe(launcher, monkeypatch, *, stdout=b"v26.0.0\n", returncode=0, error=None):
     calls = []
 
     def fake_run(args, *extra, **kwargs):
