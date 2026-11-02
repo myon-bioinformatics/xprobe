@@ -23,7 +23,7 @@ def _node_reader_ready() -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     match = re.search(r"v?(\d+)", (done.stdout or "") + (done.stderr or ""))
-    return bool(match and int(match.group(1)) >= 24)
+    return bool(match and int(match.group(1)) >= 26)
 
 
 node_ready = pytest.mark.skipif(
