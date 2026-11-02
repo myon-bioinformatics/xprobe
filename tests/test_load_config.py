@@ -28,7 +28,7 @@ def _node_reader_ready() -> bool:
 
 node_ready = pytest.mark.skipif(
     not _node_reader_ready(),
-    reason="run `npm ci --prefix tests/js` and use Node 24+ (CI does) to enable the Node readers",
+    reason="run `npm ci --prefix tests/js` and use Node 26+ (CI does) to enable the Node readers",
 )
 
 TOML = """title = "x"
@@ -146,7 +146,7 @@ def test_backend_errors_name_the_missing_piece(tmp_path, monkeypatch):
         with pytest.raises(RuntimeError, match="npm i --no-save js-yaml"):
             xprobe.load_yaml("a: 1", node=real)
     monkeypatch.setattr(shutil, "which", lambda name, **kw: None)
-    with pytest.raises(RuntimeError, match=r"Node 24\+.*node not found"):
+    with pytest.raises(RuntimeError, match=r"Node 26\+.*node not found"):
         xprobe.load_yaml("a: 1")
 
 
