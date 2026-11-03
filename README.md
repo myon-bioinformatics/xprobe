@@ -512,3 +512,9 @@ Python for CI comes from setup-uv (`actions/setup-python` is not used).
 ``xprobe.py`` spawns that Node with the standard library and does not require
 ``vendor/node_launch.py`` when the file is copied alone. Setup actions using
 Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
+
+## Focused test discovery
+
+See [standard-library discovery commands](docs/unittest-discovery.md) for
+validated `python -S -m unittest discover` recipes, filename/name filtering,
+and the boundary with the full pytest suite.
