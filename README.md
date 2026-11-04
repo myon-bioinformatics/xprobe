@@ -24,7 +24,7 @@ with source/run identities, original diagnostics and explicit unobserved cases.
 
 The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
 
-Python target: 3.9–3.15. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
+Python runtime target: 3.11–3.15. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
 
 ## Public API
 
@@ -73,7 +73,7 @@ The CLI searches only; it never imports or executes discovered project code. Out
 uv run pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
 
-Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.9–3.15 on Linux and Python 3.15 on Windows/macOS.
+Tests cover literal/regex/Unicode/CRLF coordinates, byte/match boundaries, hidden/binary/encoding behavior, read errors, symlinks, explicit probe expectations, malformed cases, CLI exit codes and copy-one-file import from another directory. CI runs Python 3.11–3.15 on Linux and Python 3.15 on Windows/macOS.
 
 ## Configuration discovery and regression corpus (0.2)
 
@@ -461,8 +461,8 @@ node xprobe.cjs --strip-hidden - < untrusted.txt
 `xprobe.cjs` is a thin launcher: it runs `xprobe.py` through the vendored shared launcher
 `vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and
 the exit code are passed through unchanged; Python runs with `-S`. Set `XPROBE_PYTHON` to
-pick the interpreter. Launcher failures (no Python 3.9+, spawn error, signal) exit 2.
-It needs Python 3.9+ and has no in-process JavaScript API; `require("./xprobe.cjs")` only
+pick the interpreter. Launcher failures (no compatible Python, spawn error, signal) exit 2.
+Supported use needs Python 3.11+ and has no in-process JavaScript API; `require("./xprobe.cjs")` only
 exposes `PY_SCRIPT` and `PY_LAUNCH` (typed in `xprobe.d.cts`).
 
 The former native JavaScript twin of the hidden-text rules (`hiddenText`, `stripHidden`,
@@ -491,10 +491,11 @@ See [cross-repository recipes, trial results and limits](docs/stdlib-discovery.m
 
 ## Runtime and development Python policy
 
-The standard-library runtime supports Python 3.9+; this change preserves the
-existing runtime floor. The separate `runtime-compatibility` CI lane executes
+The standard-library runtime and development/test environments support Python
+3.11+, declared by `project.requires-python` in `pyproject.toml`. The separate
+`runtime-compatibility` CI lane executes
 behavior tests with `python -S`, without installing pytest or any third-party
-package. Development/test environments use Python 3.11+ and a committed uv lock:
+package. Development/test dependencies use a committed uv lock:
 
 ```sh
 uv sync --locked --python 3.11
@@ -502,9 +503,12 @@ uv run --locked pytest
 python -S -m unittest discover -s tests -p test_xprobe.py -v
 ```
 
-`pyproject.toml` is the canonical development dependency definition; legacy
-requirements files remain for downstream callers. Runtime metadata does not
-raise the source/vendoring floor to the development floor. CI pins checkout v7.0.1,
+`pyproject.toml` is the canonical Python floor and development dependency
+definition; legacy requirements files remain for downstream callers. The shared
+vendored launcher and older-runtime compatibility paths are retained unchanged,
+but do not extend the supported Python range. Portability analysis can still
+target Python 3.10 or other versions independently of the interpreter running
+xprobe. CI pins checkout v7.0.1,
 setup-node v7.1.0, setup-uv v10.3.3, and upload-artifact v7
 by full commit SHA (or major tag for upload-artifact), and uses the latest uv.
 Python for CI comes from setup-uv (`actions/setup-python` is not used).
