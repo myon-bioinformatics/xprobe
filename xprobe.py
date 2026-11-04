@@ -1132,6 +1132,10 @@ def case_factor_matrix():
             'rows': rows, 'uncovered_pairs': uncovered}
 
 
+# Python 3.9 retains the original exact fallback; 3.10+ avoids binary strings.
+_factor_popcount = getattr(int, 'bit_count', lambda value: bin(value).count('1'))
+
+
 def _greedy_factor_cases(candidates, pairs, count):
     """Maximum marginal pair gain; stable ID ties, then fill to the budget."""
     remaining = sorted(candidates, key=lambda case: case['id'])
@@ -1141,7 +1145,7 @@ def _greedy_factor_cases(candidates, pairs, count):
     selected, covered = [], 0
     while remaining and len(selected) < count:
         best = max(range(len(remaining)),
-                   key=lambda index: bin(masks[remaining[index]['id']] & ~covered).count('1'))
+                   key=lambda index: _factor_popcount(masks[remaining[index]['id']] & ~covered))
         case = remaining.pop(best)
         selected.append(case)
         covered |= masks[case['id']]
