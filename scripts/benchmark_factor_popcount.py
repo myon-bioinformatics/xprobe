@@ -29,7 +29,10 @@ def main():
             ids = [case['id'] for case in result]
             if reference is None:
                 reference = ids
-            assert ids == reference
+            if ids != reference:
+                raise SystemExit(
+                    f"Factor selection ID mismatch: {name}, repetition={repetition}"
+                )
             if repetition:
                 samples[name].append(elapsed)
     print(json.dumps({'python': sys.version, 'platform': platform.platform(),
