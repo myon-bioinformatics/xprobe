@@ -1,12 +1,12 @@
 # Portable runner output selection
 
-Optional stdlib-only `portable_output.py` extracts summary lines from Python or
+Optional stdlib-only `scripts/portable_output.py` extracts summary lines from Python or
 Node test output. This is a **pure helper**: it never launches processes,
 discovers browsers, rewrites Playwright configuration, or infers success from
 text. Preserve the subprocess exit code independently.
 
 ```python
-from portable_output import result_receipt
+from portable_output import result_receipt  # with scripts/ on sys.path
 receipt = result_receipt(7, "1 failed\n", "Error: assertion\n", limit=20)
 assert receipt["exit_code"] == 7
 ```
