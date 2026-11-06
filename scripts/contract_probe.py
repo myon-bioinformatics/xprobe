@@ -16,7 +16,8 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-from xprobe import run_cases
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # xprobe.py lives at the repository root
+from xprobe import run_cases  # noqa: E402
 
 
 def canonical(value):
