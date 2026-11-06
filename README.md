@@ -385,7 +385,7 @@ python xprobe.py --emoji --root ../a --root ../b --brief   # which emoji are use
 `emoji_sequences(text)` finds whole emoji sequences (ZWJ, skin-tone modifiers,
 flags, keycaps, subdivision tag flags) using the Extended_Pictographic table and the
 UTS #51 sequence shape, with offsets, `kind`, and an `identity` without U+FE0F (the
-same rule as browser-test-kit's `route_trail.py`, so `❤️` and `❤` are one emoji).
+same rule as BrowserTestKit's `route_trail.py`, so `❤️` and `❤` are one emoji).
 Text-default symbols such as the copyright sign only count with U+FE0F.
 `emoji_name()` and `emoji_find()` use this interpreter's `unicodedata`, which names
 single code points only: a ZWJ sequence reads as its parts (`WOMAN + PERSONAL
