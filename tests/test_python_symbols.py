@@ -1,8 +1,5 @@
 """Static name discovery, checked against real unittest name collection."""
-import json
-import subprocess
-import sys
-import unittest
+import json, subprocess, sys, unittest
 from pathlib import Path
 
 import pytest

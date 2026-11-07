@@ -4,19 +4,7 @@ Importing this module performs no I/O. Probes execute only caller-supplied
 callables, and are not a sandbox or a timeout mechanism.
 """
 
-import ast
-import codecs
-import fnmatch
-import importlib
-import importlib.util
-import errno
-import json
-import os
-import random
-import re
-import stat
-import unicodedata
-import xml.etree.ElementTree as ET
+import ast, codecs, errno, fnmatch, importlib, importlib.util, json, os, random, re, stat, unicodedata, xml.etree.ElementTree as ET
 from pathlib import Path
 
 __version__ = "0.4.0"

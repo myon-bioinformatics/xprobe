@@ -4,14 +4,7 @@
 Each method/budget/seed runs in a fresh process. Timings exclude imports, JSON,
 coverage/oracles and tracemalloc. Memory is measured separately in that worker.
 """
-import argparse
-import json
-import platform
-import statistics
-import subprocess
-import sys
-import time
-import tracemalloc
+import argparse, json, platform, statistics, subprocess, sys, time, tracemalloc
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

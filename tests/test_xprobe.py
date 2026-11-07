@@ -1,14 +1,5 @@
-import ast
-import importlib.util
-import json
-import re
-import shutil
-import subprocess
-import sys
-import tempfile
-import unittest
-from pathlib import Path
-from unittest.mock import patch
+import ast, importlib.util, json, re, shutil, subprocess, sys, tempfile, unittest
+from pathlib import Path; from unittest.mock import patch
 
 import xprobe
 
