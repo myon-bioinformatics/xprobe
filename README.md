@@ -65,7 +65,7 @@ python scripts/xprobe_cli.py TODO . --max-matches 100
 python scripts/xprobe_cli.py 'TODO|FIXME' . --regex
 ```
 
-The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. `node xprobe.cjs` does **not** run this advanced CLI; it launches `xprobe.py` only (see [From Node](#from-node-xprobecjs-node-26)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
+The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. The Node entry (`vendor/py_launch.cjs` running `xprobe.py`) does **not** run this advanced CLI (see [From Node](#from-node-vendorpy_launchcjs-node-26)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
 
 ## Tests
 
@@ -451,22 +451,21 @@ stripping alone hides that anything was there. `hidden_text_scan(roots)` adds
 `path`/`line`/`column`; output is ASCII-escaped, so a scan never replays the
 characters it reports.
 
-### From Node (`xprobe.cjs`, Node 26+)
+### From Node (`vendor/py_launch.cjs`, Node 26+)
 
 ```sh
-node xprobe.cjs --hidden-text --root untrusted.txt   # same JSON and exit codes as xprobe.py
-node xprobe.cjs --strip-hidden - < untrusted.txt
+node vendor/py_launch.cjs --env-var XPROBE_PYTHON -- xprobe.py --hidden-text --root untrusted.txt   # same JSON and exit codes as xprobe.py
+node vendor/py_launch.cjs --env-var XPROBE_PYTHON -- xprobe.py --strip-hidden - < untrusted.txt
 ```
 
-`xprobe.cjs` is a thin launcher: it runs `xprobe.py` through the vendored shared launcher
-`vendor/py_launch.cjs` (pinned in `vendor.lock.json`). Arguments, stdin/stdout/stderr and
-the exit code are passed through unchanged; Python runs with `-S`. Set `XPROBE_PYTHON` to
-pick the interpreter. Launcher failures (no compatible Python, spawn error, signal) exit 2.
-Supported use needs Python 3.11+ and has no in-process JavaScript API; `require("./xprobe.cjs")` only
-exposes `PY_SCRIPT` and `PY_LAUNCH` (typed in `xprobe.d.cts`).
+`xprobe.py` runs through the vendored shared launcher `vendor/py_launch.cjs` (pinned in
+`vendor.lock.json`); there is no per-tool `.cjs` wrapper. Arguments, stdin/stdout/stderr and
+the exit code are passed through unchanged; Python runs with `-S`. `XPROBE_PYTHON` picks
+the interpreter. Launcher failures (a Node older than 26, no compatible Python, spawn error, signal) exit 2.
+Supported use needs Python 3.11+ and has no in-process JavaScript API.
 
 The former native JavaScript twin of the hidden-text rules (`hiddenText`, `stripHidden`,
-`hiddenTextRules`, and `node xprobe.cjs --hidden-text FILE|-`) was retired so that every
+`hiddenTextRules`, and the old `xprobe.cjs` wrapper) was retired so that every
 repository uses the same Python-backed launcher. `tests/test_xprobe_node_entry.py` checks
 parity with `xprobe.py`, and `node --test tests/xprobe_cli.test.cjs` is the Node-side smoke test.
 
