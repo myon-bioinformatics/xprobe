@@ -5,9 +5,11 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 import pytest
+import sys
 
-from contract_probe import write_junit
-from xprobe import cases_from_junit
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from contract_probe import write_junit  # noqa: E402
+from xprobe import cases_from_junit  # noqa: E402
 
 ROOT = Path(__file__).parent / "fixtures/native_error_sweep"
 INDEX = json.loads((ROOT / "index.json").read_text(encoding="utf-8"))

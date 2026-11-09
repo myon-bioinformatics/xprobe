@@ -1,6 +1,6 @@
 # Explicit Python / Node I/O contracts
 
-`contract_probe.py` is an optional stdlib CLI beside the vendorable `xprobe.py`.
+`scripts/contract_probe.py` is an optional stdlib CLI kept apart from the vendorable `xprobe.py`.
 The single-file artifact and its no-subprocess `run_cases` API are unchanged.
 This CLI supplies explicit process adapters to that existing assertion engine.
 
@@ -23,7 +23,7 @@ console encodings preserve Unicode values too.
 Use the API from Python or pass explicit argv arrays to the CLI:
 
 ```sh
-python -S contract_probe.py cases.json --target '{"name":"python","argv":["python","python_adapter.py"]}' --target '{"name":"node","argv":["node","node_adapter.mjs"]}' --workers 2 --timeout 10
+python -S scripts/contract_probe.py cases.json --target '{"name":"python","argv":["python","python_adapter.py"]}' --target '{"name":"node","argv":["node","node_adapter.mjs"]}' --workers 2 --timeout 10
 ```
 
 The arrays work without shell interpolation inside the runner. Shell quoting in
@@ -105,7 +105,7 @@ The receipt records the actual collector Python/platform separately; declared
 metadata does not attest the target runtime or source closure.
 
 ```sh
-python -S contract_probe.py negative-cases.json --target '{"name":"python","argv":["python","python_adapter.py"]}' --target '{"name":"node","argv":["node","node_adapter.mjs"]}' --junit acceptance.xml --observed-junit observed-failures.xml > receipt.json
+python -S scripts/contract_probe.py negative-cases.json --target '{"name":"python","argv":["python","python_adapter.py"]}' --target '{"name":"node","argv":["node","node_adapter.mjs"]}' --junit acceptance.xml --observed-junit observed-failures.xml > receipt.json
 ```
 
 | Output | Meaning | CI use |
