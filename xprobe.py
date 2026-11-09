@@ -2708,6 +2708,7 @@ def main(argv=None):
     import argparse
     import sys
     parser = argparse.ArgumentParser(description="Standalone read-only source/configuration inspection")
+    parser.suggest_on_error = True  # 🤔 argparse 3.14+: "maybe you meant" for --symbol-kind / --min-severity; older Pythons ignore it
     parser.add_argument("--root", action="append", help="Directory or file; repeat --root to search several repositories")
     parser.add_argument("--max-bytes", type=int, default=1_000_000)
     parser.add_argument("--max-matches", type=int, default=1000)
