@@ -1,8 +1,9 @@
 """Offline integrity and JUnit reuse of real historical language observations."""
-import hashlib, json, sys, xml.etree.ElementTree as ET
+import hashlib, json, xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
+import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from contract_probe import write_junit  # noqa: E402
