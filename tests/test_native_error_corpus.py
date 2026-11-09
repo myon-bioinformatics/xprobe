@@ -1,8 +1,6 @@
 """Offline integrity and JUnit reuse of real historical language observations."""
-import hashlib
-import json
+import hashlib, json, xml.etree.ElementTree as ET
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
 import pytest
 import sys

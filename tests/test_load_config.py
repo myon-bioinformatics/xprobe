@@ -1,10 +1,5 @@
 """load_toml / load_yaml: tomllib or Node (smol-toml / js-yaml), mirrored against tomllib and PyYAML."""
-import datetime
-import os
-import re
-import shutil
-import subprocess
-import sys
+import datetime, os, re, shutil, subprocess, sys
 from pathlib import Path
 
 import pytest

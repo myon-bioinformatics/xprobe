@@ -4,14 +4,7 @@
 Each method/budget/seed runs in a fresh process. Timings exclude imports, JSON,
 coverage/oracles and tracemalloc. Memory is measured separately in that worker.
 """
-import argparse
-import json
-import platform
-import statistics
-import subprocess
-import sys
-import time
-import tracemalloc
+import argparse, json, platform, statistics, subprocess, sys, time, tracemalloc
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -107,13 +100,13 @@ def measure(method, budget, seed, repeats, batch):
             'consumer': consumer_check(report['cases'])}
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--repeats', type=int, default=5)
     parser.add_argument('--batch', type=int, default=25)
     parser.add_argument('--worker', nargs=3, metavar=('METHOD', 'BUDGET', 'SEED'))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.repeats < 1 or args.batch < 1:
         parser.error('repeats and batch must be positive')
     if args.worker:

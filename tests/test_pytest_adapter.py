@@ -1,11 +1,6 @@
 """Real pytest processes: native outcomes, evidence, and unchanged exit status."""
-import json
-import os
+import json, os, shutil, subprocess, sys, xml.etree.ElementTree as ET
 from pathlib import Path
-import subprocess
-import shutil
-import sys
-import xml.etree.ElementTree as ET
 
 import pytest
 import xprobe

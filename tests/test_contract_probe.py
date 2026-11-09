@@ -1,12 +1,5 @@
-import json
-import os
-from pathlib import Path
-import shutil
-import subprocess
-import sys
-import threading
-import xml.etree.ElementTree as ET
-from unittest.mock import patch
+import json, os, shutil, subprocess, sys, threading, xml.etree.ElementTree as ET
+from pathlib import Path; from unittest.mock import patch
 
 import pytest
 

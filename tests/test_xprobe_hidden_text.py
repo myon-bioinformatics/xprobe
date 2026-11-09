@@ -1,7 +1,5 @@
 """hidden_text: rule matching for invisible or deceptive characters (prompt injection, Trojan Source)."""
-import io
-import json
-import sys
+import io, json, sys
 
 import pytest
 

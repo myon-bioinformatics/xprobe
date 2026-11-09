@@ -18,11 +18,7 @@ A JUnit file over ``--max-bytes`` is exit 2 (no report), not exit 3.
 
 The Node entry (``vendor/py_launch.cjs`` running ``xprobe.py``) does not launch this advanced CLI; JUnit importer flags are unavailable there.
 """
-import argparse
-import json
-import os
-import re
-import sys
+import argparse, json, os, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

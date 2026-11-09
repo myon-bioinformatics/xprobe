@@ -1,6 +1,5 @@
 """Shared receipt validation; consumer repos need only integration checks."""
-import copy
-import json
+import copy, json
 import pytest
 import xprobe
 

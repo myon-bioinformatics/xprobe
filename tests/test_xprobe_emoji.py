@@ -1,8 +1,5 @@
 """Emoji sequences, names, reverse lookup and inventory; mirrored against Node's Unicode regex."""
-import json
-import shutil
-import subprocess
-import unicodedata
+import json, shutil, subprocess, unicodedata
 from pathlib import Path
 
 import pytest
