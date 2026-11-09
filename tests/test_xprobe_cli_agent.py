@@ -1,9 +1,6 @@
 """Real process runs of scripts/xprobe_cli.py for agent exit codes and error JSON."""
-import json
-import os
+import json, os, subprocess, sys
 from pathlib import Path
-import subprocess
-import sys
 
 import pytest
 

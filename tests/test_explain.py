@@ -1,8 +1,5 @@
 """explain_outcome: conditions that separate an outcome, counterexamples, CLI."""
-import io
-import json
-import subprocess
-import sys
+import io, json, subprocess, sys
 from pathlib import Path
 
 import pytest

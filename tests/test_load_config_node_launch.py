@@ -1,16 +1,8 @@
 """Parity between legacy subprocess Node loading and vendored node_launch."""
 from __future__ import annotations
 
-import ast
-import errno
-import json
-import os
-import shutil
-import subprocess
-import sys
-import threading
-from pathlib import Path
-from typing import NamedTuple, Union
+import ast, errno, json, os, shutil, subprocess, sys, threading
+from pathlib import Path; from typing import NamedTuple, Union
 
 import pytest
 

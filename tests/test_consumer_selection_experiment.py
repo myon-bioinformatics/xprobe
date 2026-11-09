@@ -1,9 +1,5 @@
 """Offline checks for historical replay; no performance thresholds."""
-import hashlib
-import importlib.util
-import itertools
-import random
-import sys
+import hashlib, importlib.util, itertools, random, sys
 from pathlib import Path
 
 import pytest

@@ -1,10 +1,5 @@
 """xprobe.py is the canonical artifact: one copied file, no helper module."""
-import errno
-import io
-import json
-import shutil
-import subprocess
-import sys
+import errno, io, json, shutil, subprocess, sys
 from pathlib import Path
 
 import pytest

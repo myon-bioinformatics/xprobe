@@ -1,9 +1,6 @@
 """Exact greedy parity, including ties and the Python 3.9 fallback."""
-from pathlib import Path
-import random
-import sys
-import unittest
-from unittest.mock import patch
+import random, sys, unittest
+from pathlib import Path; from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import xprobe

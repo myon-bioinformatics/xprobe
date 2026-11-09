@@ -4,17 +4,8 @@ Each input starts a fresh process. Commands must read one JSON value from stdin
 and write one JSON value to stdout. No shell, SDK, browser or target discovery.
 This executes trusted local commands; it is not a sandbox or process-tree killer.
 """
-import argparse
-from concurrent.futures import ThreadPoolExecutor
-import hashlib
-import json
-import math
-import os
-from pathlib import Path
-import shutil
-import subprocess
-import sys
-import xml.etree.ElementTree as ET
+import argparse, hashlib, json, math, os, shutil, subprocess, sys, xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor; from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # xprobe.py lives at the repository root
 from xprobe import run_cases  # noqa: E402

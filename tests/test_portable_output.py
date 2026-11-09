@@ -1,7 +1,5 @@
-import importlib.util
+import importlib.util, re, unittest
 from pathlib import Path
-import re
-import unittest
 
 spec = importlib.util.spec_from_file_location("portable_output", Path(__file__).resolve().parents[1] / "scripts" / "portable_output.py")
 module = importlib.util.module_from_spec(spec)
