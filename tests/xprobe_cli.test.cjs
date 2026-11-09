@@ -1,5 +1,5 @@
 "use strict";
-// Node-side smoke test for the xprobe.cjs launcher (runs xprobe.py through vendor/py_launch.cjs).
+// Node-side smoke test for the documented entry: node vendor/py_launch.cjs --env-var XPROBE_PYTHON -- xprobe.py ARGS.
 // Needs Node 26+ and Python 3.9+ on PATH (or XPROBE_PYTHON); no npm dependencies.
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -7,16 +7,15 @@ const {spawnSync} = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const modulePath = path.resolve(__dirname, "..", "xprobe.cjs");
-const cli = (args, input = "") => spawnSync(process.execPath, [modulePath, ...args], {
-  input, encoding: "utf8", timeout: 60000,
-});
+const root = path.resolve(__dirname, "..");
+const cli = (args, input = "") => spawnSync(process.execPath, [
+  path.join(root, "vendor", "py_launch.cjs"), "--env-var", "XPROBE_PYTHON", "--",
+  path.join(root, "xprobe.py"), ...args,
+], {input, encoding: "utf8", timeout: 60000});
 
-test("exports only the launcher configuration", () => {
-  const x = require(modulePath);
-  assert.deepEqual(Object.keys(x).sort(), ["PY_LAUNCH", "PY_SCRIPT"]);
-  assert.equal(path.basename(x.PY_SCRIPT), "xprobe.py");
-  assert.deepEqual(x.PY_LAUNCH, {envVar: "XPROBE_PYTHON", noSite: true});
+test("there is no per-tool wrapper next to xprobe.py", () => {
+  assert.equal(fs.existsSync(path.join(root, "xprobe.cjs")), false);
+  assert.equal(fs.existsSync(path.join(root, "xprobe.d.cts")), false);
 });
 
 test("--help exits 0 and documents the modes", () => {
