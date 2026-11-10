@@ -521,3 +521,24 @@ Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
 See [standard-library discovery commands](docs/unittest-discovery.md) for
 validated `python -S -m unittest discover` recipes, filename/name filtering,
 and the boundary with the full pytest suite.
+
+
+## uv: install the single-file command
+
+Runtime dependencies remain empty. From this repository root:
+
+```sh
+uv tool install .
+xprobe --help
+```
+
+Or use it once without registering a persistent command:
+
+```sh
+uvx --from 'git+https://github.com/myon-bioinformatics/xprobe.git@main' xprobe --help
+```
+
+For Python imports in another project, use `uv add /absolute/path/to/xprobe` and
+`uv run python -c 'import xprobe'`. `uv tool install` uses a separate environment.
+Use a reviewed full commit SHA instead of `main` when reproducibility is required.
+Only `xprobe.py` is installed; development dependency groups are not runtime requirements.
