@@ -12,6 +12,8 @@ test adapter emits JSONL readable by the existing corpus and search helpers.
 
 Single-file, standard-library Python toolkit for text search, boundary-case probing, and failure-oriented test support. Importable, CLI-ready, and easy to vendor.
 
+📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/xprobe/) (GitHub Pages)
+
 For bounded, browser-free comparison of explicit Python/Node command adapters,
 see [portable I/O contracts](docs/portable-contracts.md). This optional
 `contract_probe.py` CLI reuses `run_cases`; it does not change the single-file API.
