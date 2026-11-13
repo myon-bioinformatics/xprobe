@@ -1,4 +1,4 @@
-"""Parity between legacy subprocess Node loading and vendored node_launch."""
+"""Parity between legacy subprocess Node loading and vendored njs_launch."""
 from __future__ import annotations
 
 import ast, errno, json, os, shutil, subprocess, sys, threading
@@ -160,10 +160,10 @@ class _FakeNodePopen:
 
 
 @pytest.fixture(autouse=True)
-def _node_launch_process_layer_stub(monkeypatch):
-    node_launch = xprobe._node_launch_module()
-    real_run = node_launch.subprocess.run
-    real_popen = node_launch.subprocess.Popen
+def _njs_launch_process_layer_stub(monkeypatch):
+    njs_launch = xprobe._njs_launch_module()
+    real_run = njs_launch.subprocess.run
+    real_popen = njs_launch.subprocess.Popen
 
     def _complete_fake_run(argv: list[str], **kwargs) -> subprocess.CompletedProcess:
         spec = _FAKE_NODE_SPECS[_fake_node_key(argv[0])]
@@ -219,8 +219,8 @@ def _node_launch_process_layer_stub(monkeypatch):
             **kwargs,
         )
 
-    monkeypatch.setattr(node_launch.subprocess, "run", fake_run)
-    monkeypatch.setattr(node_launch.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(njs_launch.subprocess, "run", fake_run)
+    monkeypatch.setattr(njs_launch.subprocess, "Popen", fake_popen)
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     yield
@@ -250,7 +250,7 @@ def _write_fake_node(
 
 
 def _legacy_node_load(kind: str, text: str, node: str | None, timeout: float):
-    """Pre-node_launch subprocess.run loader (reference for parity tests)."""
+    """Pre-njs_launch subprocess.run loader (reference for parity tests)."""
     import shutil
 
     if not isinstance(text, str):
@@ -318,7 +318,7 @@ def test_normal_load_matches_legacy(tmp_path, monkeypatch):
 
 def test_node_missing_matches_legacy_type(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name, **kw: None)
-    xprobe._node_launch_module().clear_probe_cache()
+    xprobe._njs_launch_module().clear_probe_cache()
 
     def old():
         return _legacy_node_load("yaml-failsafe", "a: 1\n", None, 30)
@@ -366,17 +366,17 @@ def test_nonzero_exit_matches_legacy(tmp_path, monkeypatch):
 
 def test_timeout_cmd_includes_resolved_node(tmp_path, monkeypatch):
     script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="import time; time.sleep(60)")
-    node_launch = xprobe._node_launch_module()
+    njs_launch = xprobe._njs_launch_module()
 
     def hang(*args, **kwargs):
-        raise node_launch.LaunchError(
-            "node_launch: Node process timed out",
+        raise njs_launch.LaunchError(
+            "njs_launch: Node process timed out",
             code="ELAUNCHFAILURE",
             stdout=b"",
             stderr=b"",
         )
 
-    monkeypatch.setattr(node_launch, "run", hang)
+    monkeypatch.setattr(njs_launch, "run", hang)
     with pytest.raises(subprocess.TimeoutExpired) as info:
         xprobe._xprobe_node_run("-e", "sleep", input="x", node=str(script), timeout=7, check=False)
     assert info.value.timeout == 7
@@ -387,17 +387,17 @@ def test_timeout_matches_legacy(monkeypatch, tmp_path):
     script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
     cmd = [str(script), "-e", xprobe._NODE_LOADER, "toml"]
     timeout = 11
-    node_launch = xprobe._node_launch_module()
+    njs_launch = xprobe._njs_launch_module()
 
     def launch_timeout(*args, **kwargs):
-        raise node_launch.LaunchError(
-            "node_launch: Node process timed out",
+        raise njs_launch.LaunchError(
+            "njs_launch: Node process timed out",
             code="ELAUNCHFAILURE",
             stdout=b"",
             stderr=b"",
         )
 
-    monkeypatch.setattr(node_launch, "run", launch_timeout)
+    monkeypatch.setattr(njs_launch, "run", launch_timeout)
 
     def old():
         raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)
@@ -444,7 +444,7 @@ def test_explicit_missing_node_path_raises_file_not_found(tmp_path, monkeypatch)
 
 def test_node_not_on_path_raises_runtime_error(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name, **kw: None)
-    xprobe._node_launch_module().clear_probe_cache()
+    xprobe._njs_launch_module().clear_probe_cache()
     with pytest.raises(RuntimeError, match=r"Node 26\+.*node not found"):
         xprobe._node_load("yaml-failsafe", "a: 1\n", None, 30)
 
@@ -461,7 +461,7 @@ def test_node_env_var_does_not_override_path(tmp_path, monkeypatch):
         "which",
         lambda name, **kw: str(script) if name == "node" else None,
     )
-    xprobe._node_launch_module().clear_probe_cache()
+    xprobe._njs_launch_module().clear_probe_cache()
     assert xprobe._node_load("yaml-failsafe", "a: 1\n", None, 30) == {"via": "path"}
 
 
@@ -506,19 +506,19 @@ def test_load_yaml_under_python_I_subprocess():
 
 def test_unmapped_launch_error_propagates(tmp_path, monkeypatch):
     script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
-    node_launch = xprobe._node_launch_module()
+    njs_launch = xprobe._njs_launch_module()
 
     def launch_weird(*args, **kwargs):
-        raise node_launch.LaunchError(
-            "node_launch: unexpected child failure",
+        raise njs_launch.LaunchError(
+            "njs_launch: unexpected child failure",
             code="EUNMAPPED",
             status=2,
             stdout=b"",
             stderr=b"",
         )
 
-    monkeypatch.setattr(node_launch, "run", launch_weird)
-    with pytest.raises(node_launch.LaunchError, match="unexpected child failure"):
+    monkeypatch.setattr(njs_launch, "run", launch_weird)
+    with pytest.raises(njs_launch.LaunchError, match="unexpected child failure"):
         xprobe._node_load("toml", "a = 1\n", str(script), 30)
 
 
@@ -533,44 +533,44 @@ def test_mutation_stdin_zero_mapping_required(tmp_path, monkeypatch):
     )
     monkeypatch.setenv("NODE_PATH", str(JS))
     assert xprobe._node_load("yaml-failsafe", _LARGE_INPUT, str(script), 30) == {"z": 1}
-    node_launch = xprobe._node_launch_module()
-    real_map = xprobe._map_node_launch_error
+    njs_launch = xprobe._njs_launch_module()
+    real_map = xprobe._map_njs_launch_error
 
     def map_without_stdin_zero_success(exc, command, timeout):
         if exc.code == "ELAUNCHSTDINCLOSED" and (exc.status if exc.status is not None else -1) == 0:
             raise exc
         return real_map(exc, command, timeout)
 
-    monkeypatch.setattr(xprobe, "_map_node_launch_error", map_without_stdin_zero_success)
-    with pytest.raises(node_launch.LaunchError, match="stdin pipe closed"):
+    monkeypatch.setattr(xprobe, "_map_njs_launch_error", map_without_stdin_zero_success)
+    with pytest.raises(njs_launch.LaunchError, match="stdin pipe closed"):
         xprobe._node_load("yaml-failsafe", _LARGE_INPUT, str(script), 30)
 
 
 def test_mutation_timeout_mapping_required(tmp_path, monkeypatch):
     script = _write_fake_node(tmp_path, version="v26.0.0", on_eval="pass")
-    node_launch = xprobe._node_launch_module()
+    njs_launch = xprobe._njs_launch_module()
 
     def launch_timeout(*args, **kwargs):
-        raise node_launch.LaunchError(
-            "node_launch: Node process timed out",
+        raise njs_launch.LaunchError(
+            "njs_launch: Node process timed out",
             code="ELAUNCHFAILURE",
             stdout=b"",
             stderr=b"",
         )
 
-    monkeypatch.setattr(node_launch, "run", launch_timeout)
+    monkeypatch.setattr(njs_launch, "run", launch_timeout)
     with pytest.raises(subprocess.TimeoutExpired):
         xprobe._node_load("toml", "a = 1\n", str(script), 9)
 
-    real_map = xprobe._map_node_launch_error
+    real_map = xprobe._map_njs_launch_error
 
     def map_without_timeout(exc, command, timeout):
         if exc.code == "ELAUNCHFAILURE" and "timed out" in str(exc):
             raise exc
         return real_map(exc, command, timeout)
 
-    monkeypatch.setattr(xprobe, "_map_node_launch_error", map_without_timeout)
-    with pytest.raises(node_launch.LaunchError, match="timed out"):
+    monkeypatch.setattr(xprobe, "_map_njs_launch_error", map_without_timeout)
+    with pytest.raises(njs_launch.LaunchError, match="timed out"):
         xprobe._node_load("toml", "a = 1\n", str(script), 9)
 
 
@@ -609,6 +609,6 @@ def test_mutation_version_mapping_required(tmp_path, monkeypatch):
 def test_below_node_26_reports_actual_version(tmp_path, monkeypatch, major, explicit):
     script = _write_fake_node(tmp_path, version=f'v{major}.0.0', on_eval='pass')
     monkeypatch.setattr(shutil, 'which', lambda name, **kw: str(script) if name == 'node' else None)
-    xprobe._node_launch_module().clear_probe_cache()
+    xprobe._njs_launch_module().clear_probe_cache()
     with pytest.raises(RuntimeError, match=rf'Node 26\+.*found Node {major}'):
         xprobe._node_load('yaml-failsafe', 'a: 1\n', str(script) if explicit else None, 30)

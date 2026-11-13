@@ -328,7 +328,7 @@ without them a `RuntimeError` says what is missing. Text goes through stdin to a
 script; nothing in the input is evaluated.
 
 `xprobe.py` remains one file. YAML, and TOML on Python 3.10 and older, need Node 26+.
-When `vendor/node_launch.py` is already beside the script, that sibling launcher is used;
+When `vendor/njs_launch.py` is already beside the script, that sibling launcher is used;
 a copy of `xprobe.py` alone uses an inlined stdlib launcher and does not need the helper.
 Search and the other commands do not spawn Node. `python xprobe.py --load` exits 2 and
 writes the Node 26+ message to stderr when Node or the reader package is missing.
@@ -515,7 +515,7 @@ by full commit SHA (or major tag for upload-artifact), and uses the latest uv.
 Python for CI comes from setup-uv (`actions/setup-python` is not used).
 ``load_toml`` / ``load_yaml`` Node fallbacks require Node 26+. The canonical
 ``xprobe.py`` spawns that Node with the standard library and does not require
-``vendor/node_launch.py`` when the file is copied alone. Setup actions using
+``vendor/njs_launch.py`` when the file is copied alone. Setup actions using
 Node 24 require runner 2.327.1 or newer (GitHub-hosted runners are used).
 
 ## Focused test discovery
