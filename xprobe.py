@@ -1407,7 +1407,7 @@ def cases_from_junit(text, *, max_cases=1000, max_bytes=1_000_000,
 # --- structured config loading (TOML / YAML) -------------------------------
 # tomllib when the interpreter has it (3.11+); otherwise, and always for YAML,
 # Node 26+ with smol-toml / js-yaml resolved through NODE_PATH or the current
-# directory. A sibling ``vendor/node_launch.py`` is used when that file is
+# directory. A sibling ``vendor/njs_launch.py`` is used when that file is
 # present; a copied ``xprobe.py`` falls back to the stdlib launcher below.
 # Text goes through stdin; the script is fixed; no input is evaluated.
 _NODE_LOADER = r"""
@@ -1470,44 +1470,44 @@ def _from_node_toml(value):
     return value
 
 
-_NODE_LAUNCH = None
+_NJS_LAUNCH = None
 _MIN_NODE_MAJOR = 26
 
 
-def _sibling_node_launch_path():
-    return Path(__file__).resolve().parent / "vendor" / "node_launch.py"
+def _sibling_njs_launch_path():
+    return Path(__file__).resolve().parent / "vendor" / "njs_launch.py"
 
 
-def _node_launch_module():
+def _njs_launch_module():
     """Vendored launcher when it sits beside this file; otherwise stdlib.
 
     Import and non-Node commands never call this. Only TOML-without-tomllib
     and YAML need a launcher, and only those fail when Node itself is missing.
     """
-    global _NODE_LAUNCH
-    if _NODE_LAUNCH is None:
-        path = _sibling_node_launch_path()
+    global _NJS_LAUNCH
+    if _NJS_LAUNCH is None:
+        path = _sibling_njs_launch_path()
         if path.is_file():
-            spec = importlib.util.spec_from_file_location("_vendored_node_launch", path)
+            spec = importlib.util.spec_from_file_location("_vendored_njs_launch", path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             # The vendored copy still floors at its parent's older default.
             # xprobe's product floor is _MIN_NODE_MAJOR; enforce it here so
             # the vendored path cannot run on a Node version below it.
             module.MIN_NODE_MAJOR = max(module.MIN_NODE_MAJOR, _MIN_NODE_MAJOR)
-            _NODE_LAUNCH = module
+            _NJS_LAUNCH = module
         else:
-            _NODE_LAUNCH = _stdlib_node_launch()
-    return _NODE_LAUNCH
+            _NJS_LAUNCH = _stdlib_njs_launch()
+    return _NJS_LAUNCH
 
 
-def _stdlib_node_launch():
-    """Minimal Node 26+ spawn used when ``vendor/node_launch.py`` is absent.
+def _stdlib_njs_launch():
+    """Minimal Node 26+ spawn used when ``vendor/njs_launch.py`` is absent.
 
     Resolves like the vendored helper with ``env_var=None`` (PATH via
     ``shutil.which``, not the ``NODE`` environment variable). Version misses
     and launch failures use the same ``NodeNotFoundError`` / ``LaunchError``
-    shape ``_node_backend_error`` and ``_map_node_launch_error`` already map.
+    shape ``_node_backend_error`` and ``_map_njs_launch_error`` already map.
     """
     import shutil
     import subprocess
@@ -1535,7 +1535,7 @@ def _stdlib_node_launch():
         lowered = path.lower()
         if lowered.endswith(".cmd") or lowered.endswith(".bat"):
             raise NodeNotFoundError(
-                "node_launch: node batch wrappers (.cmd/.bat) are not supported: " + path
+                "njs_launch: node batch wrappers (.cmd/.bat) are not supported: " + path
             )
 
     def _probe(path, probe_timeout):
@@ -1552,19 +1552,19 @@ def _stdlib_node_launch():
                 check=False,
             )
         except FileNotFoundError as exc:
-            raise NodeNotFoundError("node_launch: node executable not found: " + path) from exc
+            raise NodeNotFoundError("njs_launch: node executable not found: " + path) from exc
         except subprocess.TimeoutExpired as exc:
-            raise NodeNotFoundError("node_launch: node version probe timed out: " + path) from exc
+            raise NodeNotFoundError("njs_launch: node version probe timed out: " + path) from exc
         except OSError as exc:
-            raise NodeNotFoundError("node_launch: node version probe failed: " + path) from exc
+            raise NodeNotFoundError("njs_launch: node version probe failed: " + path) from exc
         output = _decode_node_process_bytes(completed.stdout) + _decode_node_process_bytes(completed.stderr)
         match = version_re.search(output)
         if completed.returncode != 0 or match is None:
-            raise NodeNotFoundError("node_launch: node version probe failed: " + path)
+            raise NodeNotFoundError("njs_launch: node version probe failed: " + path)
         major = int(match.group("major"))
         if major < _MIN_NODE_MAJOR:
             raise NodeNotFoundError(
-                f"node_launch: node version must be {_MIN_NODE_MAJOR} or newer (found {major}): " + path
+                f"njs_launch: node version must be {_MIN_NODE_MAJOR} or newer (found {major}): " + path
             )
         probed[path] = path
         return path
@@ -1578,7 +1578,7 @@ def _stdlib_node_launch():
             return _probe(path, probe_timeout) if probe else path
         discovered = shutil.which("node")
         if not discovered:
-            raise NodeNotFoundError("node_launch: node executable not found")
+            raise NodeNotFoundError("njs_launch: node executable not found")
         _reject_batch(discovered)
         return _probe(discovered, probe_timeout) if probe else discovered
 
@@ -1603,7 +1603,7 @@ def _stdlib_node_launch():
                 shell=False,
             )
         except OSError as exc:
-            raise LaunchError(f"node_launch: Node process failed: {exc}", code="ELAUNCHFAILURE") from exc
+            raise LaunchError(f"njs_launch: Node process failed: {exc}", code="ELAUNCHFAILURE") from exc
 
         stdout_chunks = []
         stderr_chunks = []
@@ -1676,21 +1676,21 @@ def _stdlib_node_launch():
             returncode = -1
         if stdin_error:
             raise LaunchError(
-                f"node_launch: Node process failed: {stdin_error[0]}",
+                f"njs_launch: Node process failed: {stdin_error[0]}",
                 code="ELAUNCHFAILURE",
                 stdout=stdout,
                 stderr=stderr,
             ) from stdin_error[0]
         if timed_out:
             raise LaunchError(
-                "node_launch: Node process timed out",
+                "njs_launch: Node process timed out",
                 code="ELAUNCHFAILURE",
                 stdout=stdout,
                 stderr=stderr,
             )
         if stdin_closed:
             raise LaunchError(
-                "node_launch: Node stdin pipe closed unexpectedly",
+                "njs_launch: Node stdin pipe closed unexpectedly",
                 code="ELAUNCHSTDINCLOSED",
                 status=returncode,
                 stdout=stdout,
@@ -1733,7 +1733,7 @@ def _node_backend_error(exc, package, node):
         import shutil
         discovered = shutil.which("node")
         if discovered:
-            launcher = _node_launch_module()
+            launcher = _njs_launch_module()
             try:
                 launcher.resolve_node(node=discovered, env_var=None)
             except launcher.NodeNotFoundError as probe_exc:
@@ -1749,7 +1749,7 @@ def _node_backend_error(exc, package, node):
     ) from exc
 
 
-def _map_node_launch_error(exc, command, timeout):
+def _map_njs_launch_error(exc, command, timeout):
     """Map vendored ``LaunchError`` to legacy ``load_*`` subprocess shapes."""
     import subprocess
 
@@ -1767,17 +1767,17 @@ def _map_node_launch_error(exc, command, timeout):
 
 
 def _xprobe_node_run(target, *args, timeout=30, **kwargs):
-    node_launch = _node_launch_module()
+    njs_launch = _njs_launch_module()
     run_kwargs = dict(kwargs)
     node = run_kwargs.pop("node", None)
     env_var = run_kwargs.pop("env_var", None)
     run_kwargs.pop("probe", None)
-    executable = node_launch.resolve_node(node=node, env_var=env_var)
-    command = node_launch.node_command(
+    executable = njs_launch.resolve_node(node=node, env_var=env_var)
+    command = njs_launch.node_command(
         target, *args, node=executable, probe=False, env_var=env_var
     )
     try:
-        return node_launch.run(
+        return njs_launch.run(
             target,
             *args,
             timeout=timeout,
@@ -1786,20 +1786,20 @@ def _xprobe_node_run(target, *args, timeout=30, **kwargs):
             env_var=env_var,
             **run_kwargs,
         )
-    except node_launch.LaunchError as exc:
-        return _map_node_launch_error(exc, command, timeout)
+    except njs_launch.LaunchError as exc:
+        return _map_njs_launch_error(exc, command, timeout)
 
 
 def _node_load(kind, text, node, timeout):
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     package = "smol-toml" if kind == "toml" else "js-yaml"
-    node_launch = _node_launch_module()
+    njs_launch = _njs_launch_module()
     try:
         done = _xprobe_node_run(
             "-e", _NODE_LOADER, kind, input=text, node=node, timeout=timeout, check=False
         )
-    except node_launch.NodeNotFoundError as exc:
+    except njs_launch.NodeNotFoundError as exc:
         _node_backend_error(exc, package, node)
     if done.returncode:
         reason = _decode_node_process_bytes(done.stderr).strip()

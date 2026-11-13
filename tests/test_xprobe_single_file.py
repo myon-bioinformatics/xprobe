@@ -10,13 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _force_fallback(monkeypatch):
-    monkeypatch.setattr(xprobe, "_NODE_LAUNCH", None)
+    monkeypatch.setattr(xprobe, "_NJS_LAUNCH", None)
     monkeypatch.setattr(
         xprobe,
-        "_sibling_node_launch_path",
-        lambda: Path("/absent/vendor/node_launch.py"),
+        "_sibling_njs_launch_path",
+        lambda: Path("/absent/vendor/njs_launch.py"),
     )
-    launcher = xprobe._node_launch_module()
+    launcher = xprobe._njs_launch_module()
     launcher.clear_probe_cache()
     return launcher
 
@@ -68,7 +68,7 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
     (script_dir / "note.txt").write_text("TODO keep\n", encoding="utf-8")
     (script_dir / "w.yml").write_text("on: push\n", encoding="utf-8")
     assert not (script_dir / "vendor").exists()
-    assert not (script_dir / "node_launch.py").exists()
+    assert not (script_dir / "njs_launch.py").exists()
 
     def run(*args):
         return subprocess.run(
@@ -82,7 +82,7 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
     help_done = run("--help")
     assert help_done.returncode == 0, help_done.stderr
     assert "--search" in help_done.stdout
-    assert "node_launch" not in help_done.stderr
+    assert "njs_launch" not in help_done.stderr
 
     search = run("--search", "TODO", "--root", "note.txt")
     assert search.returncode == 0, search.stderr
@@ -97,13 +97,13 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
         assert loaded.returncode == 2, loaded.stderr
         assert "Node 26+" in loaded.stderr
         assert "Traceback" not in loaded.stderr
-        assert "node_launch.py" not in loaded.stderr
+        assert "njs_launch.py" not in loaded.stderr
 
 
 def test_checkout_prefers_sibling_launcher(monkeypatch):
-    monkeypatch.setattr(xprobe, "_NODE_LAUNCH", None)
-    module = xprobe._node_launch_module()
-    assert str(getattr(module, "__file__", "")).replace("\\", "/").endswith("vendor/node_launch.py")
+    monkeypatch.setattr(xprobe, "_NJS_LAUNCH", None)
+    module = xprobe._njs_launch_module()
+    assert str(getattr(module, "__file__", "")).replace("\\", "/").endswith("vendor/njs_launch.py")
 
 
 def test_tomllib_load_ignores_missing_sibling(monkeypatch):
