@@ -146,6 +146,15 @@ def test_portability_bytes_unparsable_pyproject_and_limits(tmp_path):
             xprobe.portability_findings(tmp_path, **bad)
 
 
+# The supported runtime floor (pyproject, tests/test_fleet.py) is separate from analysis targets.
+def test_python310_analysis_target_is_not_the_runtime_floor(tmp_path):
+    (tmp_path / 'example.py').write_text('import tomllib\n', encoding='utf-8')
+    report = xprobe.portability_findings(tmp_path, min_python=(3, 10))
+    assert report['min_python'] == [3, 10]
+    assert any(item['kind'] == 'too_new' for item in report['findings'])
+    assert xprobe.portability_findings(tmp_path)['min_python'] == [3, 10]
+
+
 def test_cli_annotate_junit(tmp_path, capsys):
     report = tmp_path / "junit.xml"
     report.write_text(JUNIT, encoding="utf-8")

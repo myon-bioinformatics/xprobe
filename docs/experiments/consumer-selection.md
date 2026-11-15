@@ -88,7 +88,7 @@ hashes are retained with all results, including unfavorable runs.
 
 ```sh
 python -S scripts/experiment_consumer_selection.py --jobs 4 --output docs/experiments/consumer-selection.json
-python -m pytest -q tests/test_consumer_selection_experiment.py tests/test_factor_generation.py
+python -m pytest -q tests/test_factor_generation.py
 ```
 
 The normal CI discovers the offline regression tests. The complete benchmark is

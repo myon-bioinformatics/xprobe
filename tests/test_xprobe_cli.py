@@ -1,4 +1,7 @@
-"""Real process runs of scripts/xprobe_cli.py for agent exit codes and error JSON."""
+"""Real process runs of scripts/xprobe_cli.py: agent exit codes, error JSON and the JUnit collector CI uses.
+
+Collector success is not pytest success.
+"""
 import json, os, subprocess, sys
 from pathlib import Path
 
@@ -219,3 +222,35 @@ def test_real_pytest_junit_import_and_case_limit(tmp_path):
     mixed_payload = error_json(mixed)
     assert mixed_payload["code"] == "usage"
     assert "sentinel-secret" not in mixed.stderr
+
+
+# ──── JUnit collector as CI runs it ────
+
+@pytest.mark.parametrize('source,options,status', [
+    (None, [], 2),
+    ('<testsuites>', [], 2),
+    ('<testsuite><testcase name="one"><failure/></testcase>'
+     '<testcase name="two"><error/></testcase></testsuite>', ['--max-matches=1'], 3),
+    ('<testsuite><testcase name="ok"/></testsuite>', [], 0),
+    ('<testsuite><testcase name="bad"><failure/></testcase></testsuite>', [], 0),
+])
+def test_collector_does_not_hide_invalid_or_truncated_reports(tmp_path, source, options, status):
+    report = tmp_path / 'junit.xml'
+    if source is not None:
+        report.write_text(source, encoding='utf-8')
+    result = run(['--junit', str(report), '--repository=owner/repo', '--report-id=sample', *options])
+    assert result.returncode == status
+    if status == 2:
+        assert result.stdout == ''  # No empty success report synthesized on error.
+        failure = json.loads(result.stderr)
+        assert failure['ok'] is False and failure['exit'] == 2
+        assert failure['code'] in {'io_error', 'invalid_input'}
+    elif status == 3:
+        imported = json.loads(result.stdout)
+        assert imported['truncated'] is True
+        assert json.loads(result.stderr)['code'] == 'truncated'
+        assert all(row['context']['commit_sha'] is None for row in imported['cases'])
+    else:
+        imported = json.loads(result.stdout)
+        assert imported['truncated'] is False and result.stderr == ''
+        assert all(row['context']['commit_sha'] is None for row in imported['cases'])

@@ -4,7 +4,7 @@ This module combines the earlier xgrep.py and xfail.py ideas:
 
 1. Reduce repeated troubleshooting searches with built-in configuration/header/key/scheme vocabulary, filtered repository search and explicitly requested environment-name inspection.
 2. Preserve explained, deterministic regression inputs gathered from previous failures and make them reusable from pytest or other callers.
-3. Keep runtime standard-library-only, single-file and vendor-copyable. External test tools remain in tests/requirements.txt.
+3. Keep runtime standard-library-only, single-file and vendor-copyable. External test tools remain in the pyproject `dev` dependency group.
 
 Version 0.1 provided basic grep and generic boundary presets. Version 0.2 adds dictionary discovery, a persistent-corpus data contract, seeded corpus sampling and JUnit failure-identity ingestion. It does not infer original inputs or assert that all corpus values should fail every consumer.
 
