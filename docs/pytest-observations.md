@@ -54,7 +54,7 @@ Use pytest's native reports as the Python observation source. JUnit remains a
 cross-runner CI interchange format; it is not the reproduction model.
 
 The opt-in test adapter requires pytest, already provided by
-`tests/requirements.txt`. `xprobe.py` itself remains independently vendorable,
+the `dev` dependency group. `xprobe.py` itself remains independently vendorable,
 stdlib-only, and imports without pytest.
 
 ```sh

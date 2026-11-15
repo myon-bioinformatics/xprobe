@@ -26,7 +26,7 @@ with source/run identities, original diagnostics and explicit unobserved cases.
 
 The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
 
-Python runtime target: 3.11–3.15. Tests use external development dependencies under `tests/requirements.txt`; runtime uses the standard library only.
+Python runtime target: 3.11–3.15. Tests use the `dev` dependency group in `pyproject.toml`; runtime uses the standard library only.
 
 ## Public API
 
