@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
-      - run: node --test tests/xprobe_cli.test.cjs
+      - run: node --test tests/xprobe.test.cjs
 
   vendor-locked:
     name: Vendor locked baseline

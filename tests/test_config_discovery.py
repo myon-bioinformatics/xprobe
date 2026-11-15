@@ -1,3 +1,4 @@
+"""Configuration discovery (inspect_text / scan_config / inspect_environment), the regression corpus and JUnit import (0.2)."""
 import json, random, subprocess, sys
 from pathlib import Path
 

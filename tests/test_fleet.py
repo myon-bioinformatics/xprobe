@@ -1,7 +1,9 @@
-"""Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, Node entry."""
-import json
+"""Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, Node entry,
+the Python runtime floor and the benchmark guard."""
+import json, tomllib, unittest
 
 import pytest
+import yaml
 
 from vendor import fleet_check as fleet
 
@@ -46,3 +48,50 @@ def test_node_matches_python(case):
 @needs_node
 def test_vendored_launcher_keeps_its_contract():
     fleet.launcher_contract(ROOT, ENV_VAR)
+
+
+# The runtime floor: pyproject, uv.lock and the stdlib runtime-compatibility lane agree.
+def test_runtime_metadata_and_lock_agree():
+    project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
+    lock = tomllib.loads((ROOT / 'uv.lock').read_text(encoding='utf-8'))
+    assert project['project']['requires-python'] == '>=3.11'
+    assert lock['requires-python'] == project['project']['requires-python']
+
+
+def test_stdlib_runtime_matrix_covers_supported_versions():
+    workflow = yaml.safe_load((ROOT / '.github/workflows/runtime-compatibility.yml').read_text(encoding='utf-8'))
+    job = workflow['jobs']['runtime']
+    assert job['strategy']['matrix']['python'] == ['3.11', '3.12', '3.13', '3.14', '3.15']
+    commands = '\n'.join(step.get('run', '') for step in job['steps'])
+    assert 'python -S -m unittest discover -s tests -p test_xprobe.py -v' in commands
+
+
+class BenchmarkParityTests(unittest.TestCase):
+    """Benchmark ID checks must run even with Python optimization enabled."""
+
+    def run_benchmark(self, optimized, mismatch):
+        selection = ("side_effect=itertools.cycle([[{'id': 'expected'}], [{'id': 'different'}]])"
+                     if mismatch else "return_value=[{'id': 'expected'}]")
+        patch = ("import itertools\n"
+                 "g['xprobe'].generate_factor_cases = mock.Mock(return_value={'cases': [], 'matrix': {'uncovered_pairs': []}})\n"
+                 f"g['xprobe']._greedy_factor_cases = mock.Mock({selection})")
+        return fleet.run_main(ROOT, "scripts/benchmark_factor_popcount.py", patch, optimized=optimized, timeout=30)
+
+    def test_mismatch_exits_without_publishing_measurements(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_benchmark(optimized, mismatch=True)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("Factor selection ID mismatch: binary_string", result.stderr)
+                self.assertIn("repetition=0", result.stderr)
+
+    def test_matching_results_still_publish_measurements(self):
+        for optimized in (False, True):
+            with self.subTest(optimized=optimized):
+                result = self.run_benchmark(optimized, mismatch=False)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                report = json.loads(result.stdout)
+                self.assertEqual(report["selected_ids"], ["expected"])
+                for samples in report["samples_ns"].values():
+                    self.assertEqual(len(samples), 21)

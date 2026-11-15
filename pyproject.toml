@@ -22,3 +22,8 @@ xprobe = "xprobe:main"
 
 [tool.setuptools]
 py-modules = ["xprobe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--strict-config --strict-markers"

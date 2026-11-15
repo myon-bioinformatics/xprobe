@@ -396,7 +396,7 @@ is reported). `--emoji-names FILE` (or `names=load_emoji_names(FILE)`) takes CLD
 spellings used (`forms`, to catch a heading written both with and without U+FE0F),
 file counts and first locations.
 
-`tests/test_xprobe_emoji.py` mirrors the table against Node's
+`tests/test_emoji.py` mirrors the table against Node's
 `\p{Extended_Pictographic}` for every code point and the sequences against
 `\p{RGI_Emoji}` (RegExp `v` flag; this repository's Node floor is 26+) on `tests/fixtures/emoji_corpus.txt`;
 both skip without Node. Extended_Pictographic is not stable across Unicode versions (Unicode 17 narrowed it); the table is Unicode 16.0's, so it must equal Node's on 16.0 and be a superset on newer versions.
@@ -469,7 +469,7 @@ Supported use needs Python 3.11+ and has no in-process JavaScript API.
 The former native JavaScript twin of the hidden-text rules (`hiddenText`, `stripHidden`,
 `hiddenTextRules`, and the old `xprobe.cjs` wrapper) was retired so that every
 repository uses the same Python-backed launcher. `tests/test_fleet.py` checks
-parity with `xprobe.py`, and `node --test tests/xprobe_cli.test.cjs` is the Node-side smoke test.
+parity with `xprobe.py`, and `node --test tests/xprobe.test.cjs` is the Node-side smoke test.
 
 
 ## Convention-driven file and Python discovery

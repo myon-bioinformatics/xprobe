@@ -1,3 +1,4 @@
+"""scripts/portable_output.py: bounded line selection and receipts for process runner output."""
 import importlib.util, re, unittest
 from pathlib import Path
 

@@ -1,3 +1,4 @@
+"""Direct `python xprobe.py` use: the default config scan, --search, --corpus, exit codes and a standalone copy."""
 import json, subprocess, sys
 from pathlib import Path
 

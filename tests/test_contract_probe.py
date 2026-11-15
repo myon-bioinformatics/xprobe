@@ -1,3 +1,4 @@
+"""scripts/contract_probe.py: explicit JSON I/O contracts run against command adapters, receipts and JUnit."""
 import json, os, shutil, subprocess, sys, threading, xml.etree.ElementTree as ET
 from pathlib import Path; from unittest.mock import patch
 

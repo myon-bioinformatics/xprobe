@@ -25,6 +25,4 @@ jobs:
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
       - name: Exercise runtime behavior without site-packages
-        run: |
-          python -S -m unittest discover -s tests -p test_xprobe.py -v
-          python -S -m unittest discover -s tests -p test_text_runtime.py -v
+        run: python -S -m unittest discover -s tests -p test_xprobe.py -v
