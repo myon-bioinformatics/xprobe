@@ -468,7 +468,7 @@ Supported use needs Python 3.11+ and has no in-process JavaScript API.
 
 The former native JavaScript twin of the hidden-text rules (`hiddenText`, `stripHidden`,
 `hiddenTextRules`, and the old `xprobe.cjs` wrapper) was retired so that every
-repository uses the same Python-backed launcher. `tests/test_xprobe_node_entry.py` checks
+repository uses the same Python-backed launcher. `tests/test_fleet.py` checks
 parity with `xprobe.py`, and `node --test tests/xprobe_cli.test.cjs` is the Node-side smoke test.
 
 
