@@ -1,9 +1,8 @@
 """Fleet contracts through the parent's shared checks (vendor/fleet_check.py): locks, pins, Node entry,
 the Python runtime floor and the benchmark guard."""
-import json, tomllib, unittest
+import json, unittest
 
 import pytest
-import yaml
 
 from vendor import fleet_check as fleet
 
@@ -11,7 +10,7 @@ ROOT = fleet.repo_root(__file__)
 PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
 ACCEPTED = {
     "vendor/py_launch.cjs": "384f5dd532076062f7833038764e9a62322c387c",
-    "vendor/fleet_check.py": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1",
+    "vendor/fleet_check.py": "81f6aea6231d4490e581443fdeb43a09e6018ff0",
 }
 TOOL, ENV_VAR = "xprobe.py", "XPROBE_PYTHON"
 CASES = [{"id": "help", "args": ["--help"], "rc": 0}, {"id": "bogus", "args": ["--bogus"], "rc": 2}, {"id": "hidden-rules", "args": ["--hidden-rules"], "rc": 0}, {"id": "hidden-text", "args": ["--hidden-text", "--root", "LICENSE"], "rc": 0}, {"id": "strip-missing", "args": ["--strip-hidden", "no-such-file"], "rc": 2}]
@@ -19,9 +18,12 @@ needs_node = pytest.mark.skipif(fleet.node() is None, reason="Node 26+ not avail
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    rows = fleet.check_lock(ROOT, commits=ACCEPTED)
-    launcher = rows["vendor/py_launch.cjs"]
-    assert (launcher["repository"], launcher["source"]) == (fleet.PARENT, "py_launch.cjs")
+    fleet.check_lock(ROOT, commits=ACCEPTED, sources={
+        "vendor/myon-bioinformatics-LICENSE": (fleet.PARENT, "LICENSE"),
+        "vendor/njs_launch.py": (fleet.PARENT, "njs_launch.py"),
+        "vendor/py_launch.cjs": (fleet.PARENT, "py_launch.cjs"),
+        "vendor/fleet_check.py": (fleet.PARENT, "fleet_check.py"),
+    })
 
 
 def test_parent_workflow_references_use_reviewed_rollout_commit():
@@ -50,20 +52,12 @@ def test_vendored_launcher_keeps_its_contract():
     fleet.launcher_contract(ROOT, ENV_VAR)
 
 
-# The runtime floor: pyproject, uv.lock and the stdlib runtime-compatibility lane agree.
-def test_runtime_metadata_and_lock_agree():
-    project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))
-    lock = tomllib.loads((ROOT / 'uv.lock').read_text(encoding='utf-8'))
-    assert project['project']['requires-python'] == '>=3.11'
-    assert lock['requires-python'] == project['project']['requires-python']
-
-
+# The runtime floor: pyproject, uv.lock and the stdlib runtime-compatibility lane agree (fleet.python_floor);
+# the supported versions and the exact command stay this repository's expectation.
 def test_stdlib_runtime_matrix_covers_supported_versions():
-    workflow = yaml.safe_load((ROOT / '.github/workflows/runtime-compatibility.yml').read_text(encoding='utf-8'))
-    job = workflow['jobs']['runtime']
-    assert job['strategy']['matrix']['python'] == ['3.11', '3.12', '3.13', '3.14', '3.15']
-    commands = '\n'.join(step.get('run', '') for step in job['steps'])
-    assert 'python -S -m unittest discover -s tests -p test_xprobe.py -v' in commands
+    assert fleet.python_floor(ROOT) == ('3.11', ['3.11', '3.12', '3.13', '3.14', '3.15'])
+    assert ('python -S -m unittest discover -s tests -p test_xprobe.py -v'
+            in fleet.workflow_job(ROOT, 'runtime', 'runtime-compatibility.yml'))
 
 
 class BenchmarkParityTests(unittest.TestCase):
