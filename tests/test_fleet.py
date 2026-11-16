@@ -30,6 +30,10 @@ def test_parent_workflow_references_use_reviewed_rollout_commit():
     assert set(fleet.parent_refs(ROOT, skip=(".vendor-sync-tools",))) == {PARENT_WORKFLOW_PIN}
 
 
+def test_every_action_is_pinned_by_full_sha_with_a_version_comment():
+    assert ("actions/upload-artifact", "cf430e030ddbb5b0abf93d22962f4752f3646cd9", "v7.0.2") in fleet.check_actions(ROOT)
+
+
 def test_no_per_tool_wrapper_and_readme_documents_the_direct_command():
     assert not (ROOT / "xprobe.cjs").exists()
     assert not (ROOT / "xprobe.d.cts").exists()
