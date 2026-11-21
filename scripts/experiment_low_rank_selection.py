@@ -67,10 +67,15 @@ def approximate(candidates, matrix, rank, seed, scale):
 def generate(method, budget, seed):
     if method in ('seeded', 'greedy'):
         return xprobe.generate_factor_cases(selection=method, count=budget, seed=seed)
-    _, rank, scale = method.split('-')
     # Reuse the exact candidate generator and matrix schema; stable IDs remove
     # the source shuffle before fitting. No new values or target expectations.
     report = xprobe.generate_factor_cases(count=10000, seed=seed)
+    return rank_binary_report(report, method, budget, seed)
+
+
+def rank_binary_report(report, method, budget, seed):
+    """Rank a supplied population using the original experimental selection rule."""
+    _, rank, scale = method.split('-')
     candidates = sorted(report['cases'], key=lambda c: c['id'])
     scores, coefficients, error = approximate(candidates, report['matrix'], int(rank), seed, scale)
     pairs = report['matrix']['uncovered_pairs']

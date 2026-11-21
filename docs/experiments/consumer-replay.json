@@ -1,0 +1,3460 @@
+{
+  "protocol_commit": "4ac812aeafa3489d24235453df168593d218fe22",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "candidate_count": 180,
+  "pair_count": 42,
+  "sources": {
+    "Ironmate": [
+      {
+        "revision": "f633cd7c37490e5e7958f1393c79a0fa53d4ab97",
+        "path": "size_estimate.py",
+        "sha256": "d109c2f53f318a0e22490fbce8b14abcc141d92579c1cd1a889d2bc08d9eb635"
+      },
+      {
+        "revision": "1792f7bc97ed7cfa43345212575ddfc09fb577bf",
+        "path": "size_estimate.py",
+        "sha256": "aef2b6a72c8dcb6557cce3a645b040c3905430d544dc02d95d4df2fc1bc72951"
+      }
+    ],
+    "BrowserTestKit": [
+      {
+        "revision": "89bb12888f7b27926938a2af3e2c9427a40a3d55",
+        "path": "scripts/interaction.py",
+        "sha256": "e803af5220f5a1b1bb90bd87e2a1efee1b7b7432fc1c5c07d1e039d67c0d636a"
+      },
+      {
+        "revision": "1f3884bc59c86f678d349ab90400f2ac9ee4550a",
+        "path": "scripts/interaction.py",
+        "sha256": "875c57386704ba0124999a233d2ddc7f771f30f592631fe40aa4d74353618484"
+      }
+    ]
+  },
+  "defect_triggering_numbers": {
+    "Ironmate": [
+      9223372036854775806,
+      9223372036854775807,
+      9223372036854775808,
+      9223372036854775809,
+      9223372036854775810
+    ],
+    "BrowserTestKit": [
+      1,
+      5,
+      9,
+      13
+    ]
+  },
+  "summary": [
+    {
+      "method": "seeded",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        6,
+        11
+      ],
+      "median_cpu_ns": 33380,
+      "median_peak_bytes": 4544
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        22,
+        22
+      ],
+      "median_cpu_ns": 863524,
+      "median_peak_bytes": 15904
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 0,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        4,
+        6
+      ],
+      "median_cpu_ns": 20723274,
+      "median_peak_bytes": 983196
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 1,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        2,
+        11
+      ],
+      "median_cpu_ns": 21295174,
+      "median_peak_bytes": 969257
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 4,
+        "BrowserTestKit": 4
+      },
+      "pair_range": [
+        6,
+        16
+      ],
+      "median_cpu_ns": 67579205,
+      "median_peak_bytes": 975948
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "detections": {
+        "Ironmate": 3,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        5,
+        18
+      ],
+      "median_cpu_ns": 67508862,
+      "median_peak_bytes": 973601
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        12,
+        22
+      ],
+      "median_cpu_ns": 32298,
+      "median_peak_bytes": 4544
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        42,
+        42
+      ],
+      "median_cpu_ns": 1518908,
+      "median_peak_bytes": 15904
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        10,
+        12
+      ],
+      "median_cpu_ns": 25971828,
+      "median_peak_bytes": 983196
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        11,
+        13
+      ],
+      "median_cpu_ns": 26824275,
+      "median_peak_bytes": 969257
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        10,
+        22
+      ],
+      "median_cpu_ns": 73532206,
+      "median_peak_bytes": 975948
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "detections": {
+        "Ironmate": 5,
+        "BrowserTestKit": 5
+      },
+      "pair_range": [
+        10,
+        26
+      ],
+      "median_cpu_ns": 71609358,
+      "median_peak_bytes": 973601
+    }
+  ],
+  "rows": [
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 0,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.047619047619047616
+        ],
+        "weighted_squared_error": 342.85714285714283,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20591899,
+        20343128,
+        20054419
+      ],
+      "wall_ns": [
+        20597906,
+        20346091,
+        20057310
+      ],
+      "peak_python_bytes": 1048188
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "empty:1",
+        "newline:-1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 0,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009785824699038364,
+          0.009011500786936754,
+          0.012073597654179065,
+          0.008636140620194783
+        ],
+        "weighted_squared_error": 38.99622907370364,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 5,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        61564581,
+        71519347,
+        67508862
+      ],
+      "wall_ns": [
+        61572620,
+        72511410,
+        67971318
+      ],
+      "peak_python_bytes": 976745
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        804777,
+        811557,
+        1084182
+      ],
+      "wall_ns": [
+        809445,
+        812130,
+        1085213
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 0,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009785824699038364
+        ],
+        "weighted_squared_error": 41.276036520295264,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 2,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20652519,
+        21358569,
+        20485240
+      ],
+      "wall_ns": [
+        20666533,
+        21369718,
+        20488036
+      ],
+      "peak_python_bytes": 981449
+    },
+    {
+      "method": "seeded",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "long:9223372036854775806",
+        "space:12",
+        "unicode:13",
+        "newline:None",
+        "space:None",
+        "long:4",
+        "space:9007199254740993",
+        "empty:9007199254740992",
+        "nul:1",
+        "long:9007199254740990"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 9,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        35232,
+        32869,
+        47560
+      ],
+      "wall_ns": [
+        39940,
+        33281,
+        47932
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "seed": 0,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:9223372036854775808",
+        "newline:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:10",
+        "unicode:11",
+        "unicode:12"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 0,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.047619047619047616,
+          0.06922398589065255,
+          0.04482657260435038,
+          0.04312892509541539
+        ],
+        "weighted_squared_error": 277.37630859184475,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 15,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        68802284,
+        69676213,
+        67785251
+      ],
+      "wall_ns": [
+        68811274,
+        69681151,
+        67789477
+      ],
+      "peak_python_bytes": 953436
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 1,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04656084656084656
+        ],
+        "weighted_squared_error": 343.610582010582,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        21836239,
+        24137310,
+        21748233
+      ],
+      "wall_ns": [
+        21844190,
+        24147477,
+        21751484
+      ],
+      "peak_python_bytes": 992148
+    },
+    {
+      "method": "seeded",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "unicode:16",
+        "empty:9",
+        "empty:8",
+        "nul:9",
+        "nul:14",
+        "long:2",
+        "empty:13",
+        "long:9223372036854775810",
+        "space:12",
+        "long:16"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33450,
+        31938,
+        31456
+      ],
+      "wall_ns": [
+        38238,
+        32339,
+        31858
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        962271,
+        903324,
+        875392
+      ],
+      "wall_ns": [
+        963839,
+        904209,
+        884459
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "empty:9223372036854775808",
+        "newline:1",
+        "long:0",
+        "long:None",
+        "empty:0",
+        "nul:1",
+        "empty:x",
+        "long:1",
+        "nul:None",
+        "nul:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 1,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009835380363010154,
+          0.01024759290100061,
+          0.010532798543223452,
+          0.010022100914856703
+        ],
+        "weighted_squared_error": 38.87673554398635,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 16,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        69311531,
+        64905209,
+        65495076
+      ],
+      "wall_ns": [
+        69343970,
+        64909775,
+        65499778
+      ],
+      "peak_python_bytes": 964265
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "long:-1",
+        "nul:-1",
+        "empty:None",
+        "long:None",
+        "newline:None",
+        "nul:None",
+        "empty:x",
+        "long:0",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 1,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04656084656084656,
+          0.06877131099353322,
+          0.031991707336798465,
+          0.04065287194320225
+        ],
+        "weighted_squared_error": 287.62410576258,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 16,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": false
+      },
+      "cpu_ns": [
+        64465215,
+        62360185,
+        61702548
+      ],
+      "wall_ns": [
+        64474035,
+        62370811,
+        61712704
+      ],
+      "peak_python_bytes": 962556
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:9223372036854775808",
+        "empty:None",
+        "long:-1",
+        "long:1",
+        "long:10",
+        "long:11",
+        "long:12",
+        "long:13"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 1,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009835380363010154
+        ],
+        "weighted_squared_error": 41.268685615948755,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        21353011,
+        22689978,
+        24187205
+      ],
+      "wall_ns": [
+        21360276,
+        22692664,
+        24190853
+      ],
+      "peak_python_bytes": 968969
+    },
+    {
+      "method": "seeded",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "newline:9",
+        "empty:9007199254740992",
+        "empty:x",
+        "nul:9007199254740994",
+        "space:10",
+        "newline:9223372036854775806",
+        "unicode:9007199254740991",
+        "empty:2",
+        "space:9007199254740993",
+        "newline:None"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33380,
+        31437,
+        68802
+      ],
+      "wall_ns": [
+        37938,
+        31838,
+        69546
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "empty:x",
+        "long:-1",
+        "long:x",
+        "newline:1",
+        "empty:0",
+        "newline:-1",
+        "newline:0",
+        "long:1",
+        "empty:1",
+        "newline:x"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 7,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009430893274038397,
+          0.010414550917307589,
+          0.012395714883592583,
+          0.012305419594798793
+        ],
+        "weighted_squared_error": 38.201238214680366,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 18,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        68261600,
+        69074078,
+        66172043
+      ],
+      "wall_ns": [
+        68270114,
+        69078048,
+        66176194
+      ],
+      "peak_python_bytes": 965057
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1063952,
+        837355,
+        834050
+      ],
+      "wall_ns": [
+        1069559,
+        838110,
+        834754
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 7,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04735449735449736
+        ],
+        "weighted_squared_error": 343.04708994708994,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 4,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20723274,
+        22253530,
+        20454654
+      ],
+      "wall_ns": [
+        20730774,
+        22256654,
+        20457300
+      ],
+      "peak_python_bytes": 983196
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 7,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009430893274038397
+        ],
+        "weighted_squared_error": 41.327600385525955,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 4,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20098785,
+        23086498,
+        37004603
+      ],
+      "wall_ns": [
+        20105186,
+        23089215,
+        37008975
+      ],
+      "peak_python_bytes": 977297
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "seed": 7,
+      "ids": [
+        "empty:1",
+        "empty:-1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 7,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04735449735449736,
+          0.06918283362727808,
+          0.048477552886723965,
+          0.031606347636274006
+        ],
+        "weighted_squared_error": 281.54423091710737,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        68361348,
+        68722675,
+        62151639
+      ],
+      "wall_ns": [
+        68376535,
+        68737351,
+        62155980
+      ],
+      "peak_python_bytes": 991308
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "empty:9223372036854775808",
+        "empty:x",
+        "long:1",
+        "empty:0",
+        "long:10",
+        "long:11",
+        "long:12",
+        "long:13",
+        "long:14",
+        "long:15"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 42,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.046031746031746035,
+          0.06838918283362729,
+          0.04448354998149237,
+          0.03427045404352871
+        ],
+        "weighted_squared_error": 284.7836532871986,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 8,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        67320992,
+        68101892,
+        64058164
+      ],
+      "wall_ns": [
+        67537986,
+        68119055,
+        64062547
+      ],
+      "peak_python_bytes": 980484
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "space:1",
+        "nul:-1",
+        "nul:None",
+        "long:1",
+        "long:0",
+        "newline:x",
+        "empty:1",
+        "empty:9223372036854775808",
+        "newline:-1"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 42,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009293383651982,
+          0.008727229642210992,
+          0.00903196886049495,
+          0.010092611935356925
+        ],
+        "weighted_squared_error": 39.384475916562636,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 18,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        63372700,
+        62025937,
+        67736960
+      ],
+      "wall_ns": [
+        63380957,
+        62030802,
+        67741795
+      ],
+      "peak_python_bytes": 973601
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        853419,
+        1023292,
+        863524
+      ],
+      "wall_ns": [
+        859086,
+        1024488,
+        864254
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 42,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009293383651982
+        ],
+        "weighted_squared_error": 41.34706563344588,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20242740,
+        19290143,
+        20079086
+      ],
+      "wall_ns": [
+        20248335,
+        19293294,
+        20082294
+      ],
+      "peak_python_bytes": 969257
+    },
+    {
+      "method": "seeded",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "long:9007199254740991",
+        "space:9223372036854775806",
+        "empty:14",
+        "space:11",
+        "empty:12",
+        "space:5",
+        "newline:-1",
+        "unicode:2",
+        "newline:0",
+        "empty:9007199254740991"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33550,
+        133679,
+        76844
+      ],
+      "wall_ns": [
+        39370,
+        134625,
+        77348
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 42,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.046031746031746035
+        ],
+        "weighted_squared_error": 343.9809523809524,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20939725,
+        19741805,
+        20452080
+      ],
+      "wall_ns": [
+        20946267,
+        19745090,
+        20454499
+      ],
+      "peak_python_bytes": 975060
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "newline:None",
+        "space:None",
+        "empty:1",
+        "long:1",
+        "empty:0",
+        "newline:1",
+        "empty:x",
+        "empty:9223372036854775808",
+        "long:10",
+        "long:11"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 99,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009243827988010208,
+          0.009944439273372296,
+          0.008532090320286788,
+          0.011740912567038977
+        ],
+        "weighted_squared_error": 39.01390718965584,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 14,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        72537247,
+        61697360,
+        68775239
+      ],
+      "wall_ns": [
+        72546830,
+        61702322,
+        68780048
+      ],
+      "peak_python_bytes": 976913
+    },
+    {
+      "method": "seeded",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "space:9223372036854775810",
+        "long:6",
+        "space:-1",
+        "unicode:9007199254740993",
+        "space:13",
+        "long:11",
+        "nul:x",
+        "unicode:8",
+        "newline:9223372036854775808",
+        "long:9007199254740991"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        107971,
+        32818,
+        31577
+      ],
+      "wall_ns": [
+        113963,
+        33261,
+        31938
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "empty:1",
+        "newline:9223372036854775808",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 99,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.03306878306878307,
+          0.04903068223174043,
+          0.06250653988161337,
+          0.026774437286448585
+        ],
+        "weighted_squared_error": 298.601533832942,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        73171109,
+        67579205,
+        67447499
+      ],
+      "wall_ns": [
+        73180323,
+        67590864,
+        67452425
+      ],
+      "peak_python_bytes": 975948
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 99,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009243827988010208
+        ],
+        "weighted_squared_error": 41.35401042960828,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 4,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        21137720,
+        22135494,
+        21295174
+      ],
+      "wall_ns": [
+        21143617,
+        22146792,
+        21298542
+      ],
+      "peak_python_bytes": 969257
+    },
+    {
+      "method": "greedy",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 170,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        828071,
+        878196,
+        922031
+      ],
+      "wall_ns": [
+        832595,
+        879266,
+        922863
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 10,
+      "seed": 99,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16"
+      ],
+      "excluded": 170,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 99,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.03306878306878307
+        ],
+        "weighted_squared_error": 351.73280423280426,
+        "approximation_excluded": 170,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 6,
+      "detects": {
+        "Ironmate": false,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        20286304,
+        21132422,
+        23137634
+      ],
+      "wall_ns": [
+        20293453,
+        21135966,
+        23141103
+      ],
+      "peak_python_bytes": 967956
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:x",
+        "long:-1",
+        "long:0",
+        "long:1",
+        "long:9223372036854775808",
+        "long:None",
+        "long:x",
+        "nul:-1",
+        "nul:0",
+        "nul:1",
+        "nul:9223372036854775808",
+        "nul:None",
+        "nul:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:9223372036854775808",
+        "unicode:None",
+        "unicode:x"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 42,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1703102,
+        1725516,
+        1604946
+      ],
+      "wall_ns": [
+        1708838,
+        1727166,
+        1606182
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:None",
+        "long:0",
+        "newline:-1",
+        "newline:0",
+        "newline:1"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 0,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009785824699038364
+        ],
+        "weighted_squared_error": 41.276036520295264,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 13,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        27334764,
+        27227936,
+        26648464
+      ],
+      "wall_ns": [
+        27342811,
+        27231272,
+        26651662
+      ],
+      "peak_python_bytes": 981449
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "empty:1",
+        "newline:-1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "space:1",
+        "space:-1",
+        "unicode:1",
+        "newline:0"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 0,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009785824699038364,
+          0.009011500786936754,
+          0.012073597654179065,
+          0.008636140620194783
+        ],
+        "weighted_squared_error": 38.99622907370364,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 10,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        74052771,
+        71609358,
+        70962114
+      ],
+      "wall_ns": [
+        74062524,
+        71664568,
+        71044877
+      ],
+      "peak_python_bytes": 976745
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "long:9223372036854775806",
+        "space:12",
+        "unicode:13",
+        "newline:None",
+        "space:None",
+        "long:4",
+        "space:9007199254740993",
+        "empty:9007199254740992",
+        "nul:1",
+        "long:9007199254740990",
+        "newline:10",
+        "unicode:9223372036854775810",
+        "long:x",
+        "space:8",
+        "unicode:11",
+        "space:0",
+        "nul:9223372036854775810",
+        "nul:9007199254740991",
+        "newline:13",
+        "empty:None",
+        "newline:9223372036854775810",
+        "newline:9223372036854775809",
+        "empty:x",
+        "empty:9007199254740994",
+        "space:1",
+        "space:16",
+        "long:9",
+        "newline:9007199254740994",
+        "nul:3",
+        "long:9223372036854775808"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 18,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        35102,
+        32298,
+        31037
+      ],
+      "wall_ns": [
+        39951,
+        32760,
+        31418
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775808",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:None",
+        "empty:x"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 0,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.047619047619047616
+        ],
+        "weighted_squared_error": 342.85714285714283,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        27153915,
+        26325894,
+        28784310
+      ],
+      "wall_ns": [
+        27160936,
+        26336411,
+        28788199
+      ],
+      "peak_python_bytes": 1048188
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "seed": 0,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:9223372036854775808",
+        "newline:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:10",
+        "unicode:11",
+        "unicode:12",
+        "unicode:13",
+        "unicode:14",
+        "unicode:15",
+        "unicode:16",
+        "unicode:2",
+        "unicode:3",
+        "unicode:4",
+        "unicode:5",
+        "unicode:6",
+        "unicode:7",
+        "unicode:8",
+        "unicode:9",
+        "unicode:9007199254740990",
+        "unicode:9007199254740991",
+        "unicode:9007199254740992",
+        "unicode:9007199254740993",
+        "unicode:9007199254740994",
+        "unicode:9223372036854775806",
+        "unicode:9223372036854775807",
+        "unicode:9223372036854775809"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 0,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.047619047619047616,
+          0.06922398589065255,
+          0.04482657260435038,
+          0.04312892509541539
+        ],
+        "weighted_squared_error": 277.37630859184475,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 15,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        70507469,
+        73937349,
+        73532206
+      ],
+      "wall_ns": [
+        70517394,
+        73943082,
+        73536896
+      ],
+      "peak_python_bytes": 953436
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775808",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:None",
+        "empty:x"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 1,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04656084656084656
+        ],
+        "weighted_squared_error": 343.610582010582,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        25787715,
+        25463513,
+        25840893
+      ],
+      "wall_ns": [
+        25907138,
+        25466388,
+        25844485
+      ],
+      "peak_python_bytes": 992148
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "long:-1",
+        "nul:-1",
+        "empty:None",
+        "long:None",
+        "newline:None",
+        "nul:None",
+        "empty:x",
+        "long:0",
+        "empty:9223372036854775808",
+        "nul:1",
+        "long:x",
+        "space:None",
+        "nul:0",
+        "newline:-1",
+        "nul:10",
+        "nul:11",
+        "nul:12",
+        "nul:13",
+        "nul:14",
+        "nul:15",
+        "nul:16",
+        "nul:2",
+        "nul:3",
+        "nul:4",
+        "nul:5",
+        "nul:6",
+        "nul:7",
+        "nul:8",
+        "nul:9"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 1,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04656084656084656,
+          0.06877131099353322,
+          0.031991707336798465,
+          0.04065287194320225
+        ],
+        "weighted_squared_error": 287.62410576258,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        68148401,
+        71581746,
+        68854862
+      ],
+      "wall_ns": [
+        68156775,
+        71586470,
+        68917811
+      ],
+      "peak_python_bytes": 962556
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:x",
+        "long:-1",
+        "long:0",
+        "long:1",
+        "long:9223372036854775808",
+        "long:None",
+        "long:x",
+        "nul:-1",
+        "nul:0",
+        "nul:1",
+        "nul:9223372036854775808",
+        "nul:None",
+        "nul:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:9223372036854775808",
+        "unicode:None",
+        "unicode:x"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 42,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1454173,
+        1423928,
+        1579208
+      ],
+      "wall_ns": [
+        1460130,
+        1424957,
+        1580122
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "empty:9223372036854775808",
+        "newline:1",
+        "long:0",
+        "long:None",
+        "empty:0",
+        "nul:1",
+        "empty:x",
+        "long:1",
+        "nul:None",
+        "nul:9223372036854775808",
+        "long:x",
+        "newline:9223372036854775808",
+        "long:9223372036854775808",
+        "newline:x",
+        "nul:0",
+        "nul:10",
+        "nul:11",
+        "nul:12",
+        "nul:13",
+        "nul:14",
+        "nul:15",
+        "nul:16",
+        "nul:2",
+        "nul:3",
+        "nul:4",
+        "nul:5",
+        "nul:6",
+        "nul:7",
+        "nul:8",
+        "nul:9"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 1,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009835380363010154,
+          0.01024759290100061,
+          0.010532798543223452,
+          0.010022100914856703
+        ],
+        "weighted_squared_error": 38.87673554398635,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 23,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        70739113,
+        70834525,
+        70080544
+      ],
+      "wall_ns": [
+        70765191,
+        70846983,
+        70085139
+      ],
+      "peak_python_bytes": 964265
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:9223372036854775808",
+        "empty:None",
+        "long:-1",
+        "long:1",
+        "long:10",
+        "long:11",
+        "long:12",
+        "long:13",
+        "long:14",
+        "long:15",
+        "long:16",
+        "long:2",
+        "long:3",
+        "long:4",
+        "long:5",
+        "long:6",
+        "long:7",
+        "long:8",
+        "long:9",
+        "long:9007199254740990",
+        "long:9007199254740991",
+        "long:9007199254740992",
+        "long:9007199254740993",
+        "long:9007199254740994",
+        "long:9223372036854775806",
+        "long:9223372036854775807",
+        "long:9223372036854775809",
+        "long:9223372036854775810"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 1,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009835380363010154
+        ],
+        "weighted_squared_error": 41.268685615948755,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        25724140,
+        26328599,
+        27529484
+      ],
+      "wall_ns": [
+        25729999,
+        26331821,
+        27540794
+      ],
+      "peak_python_bytes": 968969
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "seed": 1,
+      "ids": [
+        "unicode:16",
+        "empty:9",
+        "empty:8",
+        "nul:9",
+        "nul:14",
+        "long:2",
+        "empty:13",
+        "long:9223372036854775810",
+        "space:12",
+        "long:16",
+        "newline:6",
+        "nul:9007199254740993",
+        "space:9",
+        "empty:14",
+        "unicode:9007199254740991",
+        "space:6",
+        "space:10",
+        "newline:9007199254740994",
+        "newline:12",
+        "long:-1",
+        "space:9223372036854775810",
+        "long:7",
+        "empty:None",
+        "empty:9007199254740990",
+        "empty:16",
+        "newline:9223372036854775806",
+        "nul:-1",
+        "unicode:9223372036854775810",
+        "newline:11",
+        "space:9007199254740991"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33320,
+        32428,
+        31217
+      ],
+      "wall_ns": [
+        39660,
+        32920,
+        31598
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:x",
+        "long:-1",
+        "long:0",
+        "long:1",
+        "long:9223372036854775808",
+        "long:None",
+        "long:x",
+        "nul:-1",
+        "nul:0",
+        "nul:1",
+        "nul:9223372036854775808",
+        "nul:None",
+        "nul:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:9223372036854775808",
+        "unicode:None",
+        "unicode:x"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 42,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1536895,
+        1456145,
+        1425169
+      ],
+      "wall_ns": [
+        1538561,
+        1456737,
+        1425981
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775808",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:x",
+        "long:-1",
+        "long:0"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 7,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009430893274038397
+        ],
+        "weighted_squared_error": 41.327600385525955,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        26790406,
+        26824275,
+        27460432
+      ],
+      "wall_ns": [
+        26795824,
+        26827351,
+        27463977
+      ],
+      "peak_python_bytes": 977297
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775808",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:None",
+        "long:-1",
+        "long:1"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 7,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04735449735449736
+        ],
+        "weighted_squared_error": 343.04708994708994,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 10,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        25481779,
+        25319778,
+        25719924
+      ],
+      "wall_ns": [
+        25488193,
+        25324143,
+        25722497
+      ],
+      "peak_python_bytes": 983196
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "newline:9",
+        "empty:9007199254740992",
+        "empty:x",
+        "nul:9007199254740994",
+        "space:10",
+        "newline:9223372036854775806",
+        "unicode:9007199254740991",
+        "empty:2",
+        "space:9007199254740993",
+        "newline:None",
+        "long:13",
+        "newline:3",
+        "space:11",
+        "space:9007199254740992",
+        "empty:5",
+        "unicode:3",
+        "unicode:None",
+        "long:9007199254740990",
+        "empty:0",
+        "unicode:11",
+        "unicode:1",
+        "unicode:9",
+        "long:10",
+        "nul:6",
+        "space:1",
+        "nul:0",
+        "empty:12",
+        "empty:3",
+        "space:2",
+        "newline:14"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 16,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        32929,
+        31357,
+        30566
+      ],
+      "wall_ns": [
+        38980,
+        31768,
+        30987
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "empty:1",
+        "empty:-1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "long:x",
+        "newline:1",
+        "empty:9223372036854775808"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 7,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.04735449735449736,
+          0.06918283362727808,
+          0.048477552886723965,
+          0.031606347636274006
+        ],
+        "weighted_squared_error": 281.54423091710737,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        71221280,
+        70763190,
+        72228488
+      ],
+      "wall_ns": [
+        71294151,
+        70768505,
+        72233025
+      ],
+      "peak_python_bytes": 991308
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "seed": 7,
+      "ids": [
+        "empty:x",
+        "long:-1",
+        "long:x",
+        "newline:1",
+        "empty:0",
+        "newline:-1",
+        "newline:0",
+        "long:1",
+        "empty:1",
+        "newline:x",
+        "empty:None",
+        "long:9223372036854775808",
+        "nul:x",
+        "empty:9223372036854775808",
+        "long:0",
+        "nul:-1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 7,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009430893274038397,
+          0.010414550917307589,
+          0.012395714883592583,
+          0.012305419594798793
+        ],
+        "weighted_squared_error": 38.201238214680366,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 26,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        67173151,
+        68563469,
+        70572447
+      ],
+      "wall_ns": [
+        67190741,
+        68569918,
+        70593721
+      ],
+      "peak_python_bytes": 965057
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "space:1",
+        "nul:-1",
+        "nul:None",
+        "long:1",
+        "long:0",
+        "newline:x",
+        "empty:1",
+        "empty:9223372036854775808",
+        "newline:-1",
+        "space:x",
+        "unicode:1",
+        "newline:1",
+        "newline:9223372036854775808",
+        "space:-1",
+        "nul:1",
+        "empty:None",
+        "empty:x",
+        "nul:0",
+        "space:10",
+        "space:11",
+        "space:12",
+        "space:13",
+        "space:14",
+        "space:15",
+        "space:16",
+        "space:2",
+        "space:3",
+        "space:4",
+        "space:5"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 42,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009293383651982,
+          0.008727229642210992,
+          0.00903196886049495,
+          0.010092611935356925
+        ],
+        "weighted_squared_error": 39.384475916562636,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 26,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        74048004,
+        76427256,
+        73223368
+      ],
+      "wall_ns": [
+        74058627,
+        76441128,
+        73229758
+      ],
+      "peak_python_bytes": 973601
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:None",
+        "empty:9223372036854775808",
+        "long:-1"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 42,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.046031746031746035
+        ],
+        "weighted_squared_error": 343.9809523809524,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        27086816,
+        26750095,
+        26221750
+      ],
+      "wall_ns": [
+        27095853,
+        26754176,
+        26225921
+      ],
+      "peak_python_bytes": 975060
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:x"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 42,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009293383651982
+        ],
+        "weighted_squared_error": 41.34706563344588,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33874534,
+        34287448,
+        40990080
+      ],
+      "wall_ns": [
+        33885152,
+        34292330,
+        40994356
+      ],
+      "peak_python_bytes": 969257
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:x",
+        "long:-1",
+        "long:0",
+        "long:1",
+        "long:9223372036854775808",
+        "long:None",
+        "long:x",
+        "nul:-1",
+        "nul:0",
+        "nul:1",
+        "nul:9223372036854775808",
+        "nul:None",
+        "nul:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:9223372036854775808",
+        "unicode:None",
+        "unicode:x"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 42,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1886225,
+        1761159,
+        1568101
+      ],
+      "wall_ns": [
+        1893321,
+        1762789,
+        1569882
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "empty:9223372036854775808",
+        "empty:x",
+        "long:1",
+        "empty:0",
+        "long:10",
+        "long:11",
+        "long:12",
+        "long:13",
+        "long:14",
+        "long:15",
+        "long:16",
+        "long:2",
+        "long:3",
+        "long:4",
+        "long:5",
+        "long:6",
+        "long:7",
+        "long:8",
+        "long:9",
+        "long:9007199254740990",
+        "long:9007199254740991",
+        "long:9007199254740992",
+        "long:9007199254740993",
+        "long:9007199254740994",
+        "long:9223372036854775806",
+        "long:9223372036854775807",
+        "long:9223372036854775809",
+        "long:9223372036854775810",
+        "nul:1",
+        "long:9223372036854775808"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 42,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.046031746031746035,
+          0.06838918283362729,
+          0.04448354998149237,
+          0.03427045404352871
+        ],
+        "weighted_squared_error": 284.7836532871986,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 10,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        90034063,
+        77745401,
+        75173502
+      ],
+      "wall_ns": [
+        90095338,
+        77771254,
+        75257991
+      ],
+      "peak_python_bytes": 980484
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "seed": 42,
+      "ids": [
+        "long:9007199254740991",
+        "space:9223372036854775806",
+        "empty:14",
+        "space:11",
+        "empty:12",
+        "space:5",
+        "newline:-1",
+        "unicode:2",
+        "newline:0",
+        "empty:9007199254740991",
+        "newline:4",
+        "space:-1",
+        "unicode:x",
+        "empty:1",
+        "nul:None",
+        "unicode:6",
+        "nul:x",
+        "long:9",
+        "long:9007199254740992",
+        "newline:5",
+        "nul:4",
+        "long:9223372036854775807",
+        "empty:9223372036854775808",
+        "nul:3",
+        "unicode:0",
+        "unicode:9223372036854775807",
+        "long:9223372036854775808",
+        "newline:13",
+        "unicode:9007199254740994",
+        "unicode:9223372036854775809"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 22,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        33409,
+        31827,
+        30385
+      ],
+      "wall_ns": [
+        39000,
+        32250,
+        30758
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-1-frequency",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:x",
+        "long:0",
+        "long:9223372036854775808",
+        "empty:0"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-frequency",
+        "rank": 1,
+        "seed": 99,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009243827988010208
+        ],
+        "weighted_squared_error": 41.35401042960828,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 11,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        26545531,
+        26388928,
+        26290852
+      ],
+      "wall_ns": [
+        26553096,
+        26399619,
+        26295018
+      ],
+      "peak_python_bytes": 969257
+    },
+    {
+      "method": "greedy",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "newline:1",
+        "newline:9223372036854775808",
+        "newline:None",
+        "newline:x",
+        "empty:-1",
+        "empty:0",
+        "empty:1",
+        "empty:9223372036854775808",
+        "empty:None",
+        "empty:x",
+        "long:-1",
+        "long:0",
+        "long:1",
+        "long:9223372036854775808",
+        "long:None",
+        "long:x",
+        "nul:-1",
+        "nul:0",
+        "nul:1",
+        "nul:9223372036854775808",
+        "nul:None",
+        "nul:x",
+        "unicode:-1",
+        "unicode:0",
+        "unicode:1",
+        "unicode:9223372036854775808",
+        "unicode:None",
+        "unicode:x"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 42,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        1491558,
+        1866556,
+        1518908
+      ],
+      "wall_ns": [
+        1496528,
+        1867801,
+        1519864
+      ],
+      "peak_python_bytes": 15904
+    },
+    {
+      "method": "seeded",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "space:9223372036854775810",
+        "long:6",
+        "space:-1",
+        "unicode:9007199254740993",
+        "space:13",
+        "long:11",
+        "nul:x",
+        "unicode:8",
+        "newline:9223372036854775808",
+        "long:9007199254740991",
+        "long:9223372036854775807",
+        "long:None",
+        "newline:0",
+        "unicode:9007199254740992",
+        "space:x",
+        "unicode:9223372036854775806",
+        "newline:9223372036854775806",
+        "unicode:9007199254740990",
+        "empty:7",
+        "space:0",
+        "newline:6",
+        "unicode:6",
+        "space:4",
+        "empty:8",
+        "nul:15",
+        "unicode:1",
+        "long:4",
+        "space:9007199254740991",
+        "newline:11",
+        "long:1"
+      ],
+      "excluded": 150,
+      "settings": {},
+      "covered_pairs": 20,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        32839,
+        32358,
+        31627
+      ],
+      "wall_ns": [
+        35004,
+        32771,
+        31979
+      ],
+      "peak_python_bytes": 4544
+    },
+    {
+      "method": "binary-1-none",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "empty:-1",
+        "empty:1",
+        "empty:0",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "empty:x",
+        "empty:9223372036854775808",
+        "empty:None"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-1-none",
+        "rank": 1,
+        "seed": 99,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.03306878306878307
+        ],
+        "weighted_squared_error": 351.73280423280426,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 12,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        28757070,
+        25971828,
+        25687686
+      ],
+      "wall_ns": [
+        28773321,
+        25975177,
+        25690574
+      ],
+      "peak_python_bytes": 967956
+    },
+    {
+      "method": "binary-4-frequency",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "newline:None",
+        "space:None",
+        "empty:1",
+        "long:1",
+        "empty:0",
+        "newline:1",
+        "empty:x",
+        "empty:9223372036854775808",
+        "long:10",
+        "long:11",
+        "long:12",
+        "long:13",
+        "long:14",
+        "long:15",
+        "long:16",
+        "long:2",
+        "long:3",
+        "long:4",
+        "long:5",
+        "long:6",
+        "long:7",
+        "long:8",
+        "long:9",
+        "long:9007199254740990",
+        "long:9007199254740991",
+        "long:9007199254740992",
+        "long:9007199254740993",
+        "long:9007199254740994",
+        "long:9223372036854775806",
+        "long:9223372036854775807"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-frequency",
+        "rank": 4,
+        "seed": 99,
+        "scale": "frequency",
+        "sweeps": 16,
+        "coefficients": [
+          0.009243827988010208,
+          0.009944439273372296,
+          0.008532090320286788,
+          0.011740912567038977
+        ],
+        "weighted_squared_error": 39.01390718965584,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 14,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        71836455,
+        83020330,
+        81681168
+      ],
+      "wall_ns": [
+        71845386,
+        83025395,
+        81686493
+      ],
+      "peak_python_bytes": 976913
+    },
+    {
+      "method": "binary-4-none",
+      "budget": 30,
+      "seed": 99,
+      "ids": [
+        "newline:-1",
+        "newline:0",
+        "empty:1",
+        "newline:9223372036854775808",
+        "empty:10",
+        "empty:11",
+        "empty:12",
+        "empty:13",
+        "empty:14",
+        "empty:15",
+        "empty:16",
+        "empty:2",
+        "empty:3",
+        "empty:4",
+        "empty:5",
+        "empty:6",
+        "empty:7",
+        "empty:8",
+        "empty:9",
+        "empty:9007199254740990",
+        "empty:9007199254740991",
+        "empty:9007199254740992",
+        "empty:9007199254740993",
+        "empty:9007199254740994",
+        "empty:9223372036854775806",
+        "empty:9223372036854775807",
+        "empty:9223372036854775809",
+        "empty:9223372036854775810",
+        "newline:1",
+        "newline:10"
+      ],
+      "excluded": 150,
+      "settings": {
+        "method": "binary-4-none",
+        "rank": 4,
+        "seed": 99,
+        "scale": "none",
+        "sweeps": 16,
+        "coefficients": [
+          0.03306878306878307,
+          0.04903068223174043,
+          0.06250653988161337,
+          0.026774437286448585
+        ],
+        "weighted_squared_error": 298.601533832942,
+        "approximation_excluded": 150,
+        "tie_break": "stable_id"
+      },
+      "covered_pairs": 13,
+      "detects": {
+        "Ironmate": true,
+        "BrowserTestKit": true
+      },
+      "cpu_ns": [
+        75912686,
+        74358704,
+        71089410
+      ],
+      "wall_ns": [
+        75933730,
+        74454695,
+        71093690
+      ],
+      "peak_python_bytes": 975948
+    }
+  ]
+}
