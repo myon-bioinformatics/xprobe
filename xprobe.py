@@ -2710,8 +2710,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Standalone read-only source/configuration inspection")
     parser.suggest_on_error = True  # 🤔 argparse 3.14+: "maybe you meant" for --symbol-kind / --min-severity; older Pythons ignore it
     parser.add_argument("--root", action="append", help="Directory or file; repeat --root to search several repositories")
-    parser.add_argument("--max-bytes", type=int, default=1_000_000)
-    parser.add_argument("--max-matches", type=int, default=1000)
+    parser.add_argument("--max-bytes", type=int, default=1_000_000,help="Skip a file larger than this many bytes (default: %(default)s)")
+    parser.add_argument("--max-matches", type=int, default=1000,help="Stop after this many matches (default: %(default)s)")
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--search", metavar="TEXT", help="Literal search; prints raw matching lines")
     modes.add_argument("--preset", metavar="NAME", help="Search with a named built-in regex (--presets lists them)")
@@ -2720,11 +2720,11 @@ def main(argv=None):
     modes.add_argument("--discover", action="store_true", help="Discover files under --root using --include conventions")
     parser.add_argument("--symbol-pattern", action="append", metavar="GLOB",
                         help="--symbols: short or lexical dotted name; repeat for OR, default '*'")
-    parser.add_argument("--symbol-kind", action="append", choices=("class", "function", "async_function"))
+    parser.add_argument("--symbol-kind", action="append", choices=("class", "function", "async_function"),help="--symbols: only this kind; repeat for OR")
     parser.add_argument("--include", action="append", metavar="GLOB", help="Discovery filename/path rule; repeat for OR")
     parser.add_argument("--exclude-dir", action="append", metavar="GLOB", help="Additional directory exclusion")
-    parser.add_argument("--include-hidden", action="store_true")
-    parser.add_argument("--max-files", type=int, default=5000)
+    parser.add_argument("--include-hidden", action="store_true",help="Also look in hidden files and directories")
+    parser.add_argument("--max-files", type=int, default=5000,help="Stop after this many files and report truncated (default: %(default)s)")
     parser.add_argument("--regex", action="store_true", help="--search TEXT is a regular expression")
     parser.add_argument("--normalize", metavar="STEPS", default="",
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
@@ -2748,7 +2748,7 @@ def main(argv=None):
     parser.add_argument("--kinds", metavar="K1,K2", help="Only these --hidden-text/--strip-hidden rules")
     modes.add_argument("--portability", action="store_true", help="Sources that break on --min-python/--max-python or a cp1252 locale")
     parser.add_argument("--min-python", metavar="X.Y", help="Default: requires-python in ROOT/pyproject.toml, else 3.10")
-    parser.add_argument("--max-python", default="3.14", metavar="X.Y")
+    parser.add_argument("--max-python", default="3.14", metavar="X.Y",help="Newest Python for --portability (default: %(default)s)")
     parser.add_argument("--windows-locale", action="store_true",
                         help="With --portability, also list I/O without encoding= and non-cp1252 bytes (hints; exit unaffected)")
     modes.add_argument("--load", nargs=2, metavar=("KIND", "FILE"),
@@ -2758,7 +2758,7 @@ def main(argv=None):
     parser.add_argument("--target-differs", metavar="A,B", help="Outcome for --explain: fields A and B differ")
     parser.add_argument("--id", dest="id_field", help="Record field naming counterexamples")
     parser.add_argument("--skip", action="append", default=[], help="Field not used as a condition")
-    parser.add_argument("--top", type=int, default=5)
+    parser.add_argument("--top", type=int, default=5,help="--explain: conditions ranked (default: %(default)s)")
     args = parser.parse_args(argv)
     if args.text_report and args.restore_mojibake is None:
         parser.error("--text-report requires --read-text or --restore-mojibake")
