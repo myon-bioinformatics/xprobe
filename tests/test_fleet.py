@@ -9,6 +9,7 @@ from vendor import fleet_check as fleet
 ROOT = fleet.repo_root(__file__)
 PARENT_WORKFLOW_PIN = "fbf433b296ec047f1c9acdf4d5d12c81ff7f59e8"
 ACCEPTED = {
+    "vendor/cli_args.py": "5ae22b1a1b808eca93e3c385a8db867fbeb8ee32",
     "vendor/py_launch.cjs": "384f5dd532076062f7833038764e9a62322c387c",
     "vendor/fleet_check.py": "64db25eb0fd9025dbe3cbcbced8b88a39ecb9266",
 }
@@ -19,6 +20,7 @@ needs_node = pytest.mark.skipif(fleet.node() is None, reason="Node 26+ not avail
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
     fleet.check_lock(ROOT, commits=ACCEPTED, sources={
+        "vendor/cli_args.py": ("myon-bioinformatics/cli_args", "cli_args.py"),
         "vendor/myon-bioinformatics-LICENSE": (fleet.PARENT, "LICENSE"),
         "vendor/njs_launch.py": (fleet.PARENT, "njs_launch.py"),
         "vendor/py_launch.cjs": (fleet.PARENT, "py_launch.cjs"),

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from vendor.cli_args import run_cli
+
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "scripts" / "xprobe_cli.py"
 
@@ -39,8 +41,7 @@ FLAG_HELP = {
 def run(args, **kwargs):
     env = os.environ.copy()
     env["COLUMNS"] = "160"
-    return subprocess.run([sys.executable, str(CLI), *args], capture_output=True, text=True,
-                          timeout=30, env=env, **kwargs)
+    return run_cli(CLI, *args, timeout=30, env=env, **kwargs)
 
 
 def error_json(proc):
