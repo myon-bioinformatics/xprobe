@@ -5,30 +5,23 @@ stdlib fallback launcher that a copied xprobe.py uses when vendor/njs_launch.py 
 """
 from __future__ import annotations
 
-import ast, datetime, errno, io, json, os, re, shutil, subprocess, sys, threading
+import ast, datetime, errno, io, json, os, shutil, subprocess, sys, threading
 from pathlib import Path; from typing import NamedTuple, Union
 
 import pytest
 
 import xprobe
+from vendor import fleet_check as fleet
+from vendor.cli_args import run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "tests" / "js" / "node_modules"
-
-
-def _node_reader_ready() -> bool:
-    if shutil.which("node") is None or not JS.is_dir():
-        return False
-    try:
-        done = subprocess.run(["node", "--version"], capture_output=True, text=True, timeout=5, check=False)
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    match = re.search(r"v?(\d+)", (done.stdout or "") + (done.stderr or ""))
-    return bool(match and int(match.group(1)) >= 26)
+NODE = fleet.node()  # Node 26+, the floor of the Node readers
+ANY_NODE = fleet.node(minimum=0)  # any version: an old Node must still name the missing piece
 
 
 node_ready = pytest.mark.skipif(
-    not _node_reader_ready(),
+    NODE is None or not JS.is_dir(),
     reason="run `npm ci --prefix tests/js` and use Node 26+ (CI does) to enable the Node readers",
 )
 
@@ -52,7 +45,7 @@ def _node_path(monkeypatch):
 @pytest.mark.usefixtures("_node_path")
 @node_ready
 def test_toml_via_node_matches_tomllib_shape():
-    value = xprobe.load_toml(TOML, node=shutil.which("node"))
+    value = xprobe.load_toml(TOML, node=NODE)
     assert value["owner"]["dob"] == datetime.datetime(1979, 5, 27, 15, 32, tzinfo=datetime.timezone.utc)
     assert value["owner"]["local"] == datetime.datetime(1979, 5, 27, 7, 32)
     assert value["owner"]["day"] == datetime.date(1979, 5, 27)
@@ -81,7 +74,7 @@ def test_toml_integer_boundaries_and_nesting(literal):
     expected = {"scalar": integer,
                 "nested": {"value": integer, "items": [integer, {"value": integer}]},
                 "rows": [{"value": integer}]}
-    value = xprobe.load_toml(text, node=shutil.which("node"))
+    value = xprobe.load_toml(text, node=NODE)
     assert value == expected
     assert type(value["scalar"]) is int
     assert type(value["nested"]["items"][1]["value"]) is int
@@ -101,7 +94,7 @@ def test_toml_marker_like_keys_remain_tables(marker):
     expected = {"\0" + marker: "9007199254740993",
                 "nested": [{"\0toml-int": "text", "value": 9223372036854775807}],
                 "when": datetime.datetime(1979, 5, 27, 7, 32, tzinfo=datetime.timezone.utc)}
-    value = xprobe.load_toml(text, node=shutil.which("node"))
+    value = xprobe.load_toml(text, node=NODE)
     assert value == expected
     if sys.version_info >= (3, 11):
         import tomllib
@@ -140,12 +133,12 @@ def test_parse_errors_are_value_errors():
     with pytest.raises(ValueError, match="invalid YAML"):
         xprobe.load_yaml("a: [")
     with pytest.raises(ValueError, match="invalid TOML"):
-        xprobe.load_toml("a = ", node=shutil.which("node"))
+        xprobe.load_toml("a = ", node=NODE)
 
 
 @pytest.mark.usefixtures("_node_path")
 def test_backend_errors_name_the_missing_piece(tmp_path, monkeypatch):
-    real = shutil.which("node")
+    real = ANY_NODE
     with pytest.raises(ValueError, match="schema"):
         xprobe.load_yaml("a: 1", schema="full")
     with pytest.raises(TypeError):
@@ -866,13 +859,7 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
     assert not (script_dir / "njs_launch.py").exists()
 
     def run(*args):
-        return subprocess.run(
-            [sys.executable, "-S", "xprobe.py", *args],
-            cwd=script_dir,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        return run_cli("xprobe.py", *args, python_options=("-S",), cwd=script_dir, timeout=30)
 
     help_done = run("--help")
     assert help_done.returncode == 0, help_done.stderr

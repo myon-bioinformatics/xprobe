@@ -2,10 +2,11 @@
 
 Search, probes, copy-one-file import and text reading, with no pytest or other site-packages.
 """
-import ast, json, re, shutil, subprocess, sys, tempfile, unittest
+import ast, json, re, shutil, sys, tempfile, unittest
 from pathlib import Path; from unittest.mock import patch
 
 import xprobe
+from vendor.cli_args import Command, run_cli, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -129,10 +130,10 @@ class IntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "vendor_probe.py"
             shutil.copy(ROOT / "xprobe.py", path)
-            proc = subprocess.run([sys.executable, "-B", "-c",
+            proc = run_command(Command((sys.executable, "-B", "-c",
                 "import vendor_probe as p; assert p.search_text('hit', 'hit'); "
-                "assert p.run_cases(int, [{'name':'n','value':'1','expected':1}])['passed']"],
-                cwd=tmp, capture_output=True, text=True, timeout=20)
+                "assert p.run_cases(int, [{'name':'n','value':'1','expected':1}])['passed']")),
+                cwd=tmp, timeout=20)
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(proc.stdout, "")
 
@@ -151,9 +152,7 @@ class IntegrationTests(unittest.TestCase):
             path = Path(tmp) / "a"
             path.write_text("hit")
             def run(pattern, *extra):
-                return subprocess.run([sys.executable, str(ROOT / "scripts/xprobe_cli.py"),
-                                       pattern, str(path), *extra], cwd=tmp,
-                                      capture_output=True, text=True, timeout=20)
+                return run_cli(ROOT / "scripts/xprobe_cli.py", pattern, path, *extra, cwd=tmp, timeout=20)
             hit = run("hit")
             self.assertEqual(hit.returncode, 0, hit.stderr)
             self.assertEqual(json.loads(hit.stdout)["matches"][0]["path"], "a")

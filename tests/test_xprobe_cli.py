@@ -2,12 +2,12 @@
 
 Collector success is not pytest success.
 """
-import json, os, subprocess, sys
+import json
 from pathlib import Path
 
 import pytest
 
-from vendor.cli_args import run_cli
+from vendor.cli_args import build_env, pytest_command, run_cli, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "scripts" / "xprobe_cli.py"
@@ -39,9 +39,7 @@ FLAG_HELP = {
 
 
 def run(args, **kwargs):
-    env = os.environ.copy()
-    env["COLUMNS"] = "160"
-    return run_cli(CLI, *args, timeout=30, env=env, **kwargs)
+    return run_cli(CLI, *args, timeout=30, env=build_env({"COLUMNS": "160"}), **kwargs)
 
 
 def error_json(proc):
@@ -191,10 +189,10 @@ def test_real_pytest_junit_import_and_case_limit(tmp_path):
     config = tmp_path / "pytest.ini"
     config.write_text("[pytest]\n", encoding="utf-8")
     report_path = tmp_path / "junit.xml"
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", "-c", str(config), "--noconftest", "-p", "no:cacheprovider",
-         str(target), "--junitxml=" + str(report_path)],
-        cwd=tmp_path, capture_output=True, text=True, timeout=60,
+    proc = run_command(
+        pytest_command(extra=["-c", str(config), "--noconftest", "-p", "no:cacheprovider",
+                              str(target), "--junitxml=" + str(report_path)]),
+        cwd=tmp_path, timeout=60,
     )
     assert proc.returncode == 1, proc.stderr
     xml = report_path.read_text(encoding="utf-8")

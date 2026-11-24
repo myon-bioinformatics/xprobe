@@ -7,6 +7,7 @@ import pytest
 
 import xprobe
 from scripts.measure_factor_triples import compare
+from vendor.cli_args import Command, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -189,8 +190,7 @@ def test_single_file_stdlib_replay_in_separate_process(tmp_path, selection):
     (tmp_path / 'xprobe.py').write_bytes((Path(xprobe.__file__)).read_bytes())
     code = ('import json, xprobe; '
             f'print(json.dumps(xprobe.generate_factor_cases(seed=42, count=3, selection={selection!r}), sort_keys=True))')
-    result = subprocess.run([sys.executable, '-S', '-c', code], cwd=tmp_path,
-                            capture_output=True, text=True, timeout=10)
+    result = run_command(Command((sys.executable, '-S', '-c', code)), cwd=tmp_path, timeout=10)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == xprobe.generate_factor_cases(seed=42, count=3, selection=selection)
 

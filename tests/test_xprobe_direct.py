@@ -1,9 +1,10 @@
 """Direct `python xprobe.py` use: the default config scan, --search, --corpus, exit codes and a standalone copy."""
-import json, subprocess, sys
+import json
 from pathlib import Path
 
 import pytest
 import xprobe
+from vendor.cli_args import run_cli
 
 
 def test_default_delegates_to_existing_api(monkeypatch, capsys):
@@ -62,8 +63,7 @@ def test_standalone_copy(tmp_path):
     # check to its source size and can legitimately hit the candidate limit.
     fixture = tmp_path / "config.env"
     fixture.write_text("PORT=8080\n", encoding="utf-8")
-    result = subprocess.run([sys.executable, "-S", str(script), "--root", str(fixture)],
-                            cwd=tmp_path, capture_output=True, text=True, timeout=10)
+    result = run_cli(script, "--root", fixture, python_options=("-S",), cwd=tmp_path, timeout=10)
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert [row["key"] for row in report["findings"]] == ["PORT"]

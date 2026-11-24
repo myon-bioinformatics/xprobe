@@ -1,10 +1,11 @@
 """explain_outcome: conditions that separate an outcome, counterexamples, CLI."""
-import io, json, subprocess, sys
+import io, json
 from pathlib import Path
 
 import pytest
 
 import xprobe
+from vendor.cli_args import run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,8 +84,8 @@ def test_main_explain_modes(tmp_path, capsys, monkeypatch):
 def test_runs_standalone_under_python_dash_S(tmp_path):
     path = tmp_path / 'p.json'
     path.write_text(json.dumps(presses()))
-    done = subprocess.run([sys.executable, '-S', str(ROOT / 'xprobe.py'), '--explain', str(path),
-                           '--target', 'hit.self=false', '--top', '1'], capture_output=True, text=True)
+    done = run_cli(ROOT / 'xprobe.py', '--explain', path, '--target', 'hit.self=false', '--top', '1',
+                   python_options=('-S',))
     assert done.returncode == 0 and 'box.height > 81' in done.stdout
 
 

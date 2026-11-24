@@ -1,10 +1,15 @@
 """scripts/contract_probe.py: explicit JSON I/O contracts run against command adapters, receipts and JUnit."""
-import json, os, shutil, subprocess, sys, threading, xml.etree.ElementTree as ET
+import json, subprocess, sys, threading, xml.etree.ElementTree as ET
 from pathlib import Path; from unittest.mock import patch
 
 import pytest
 
+from vendor import fleet_check as fleet
+from vendor.cli_args import build_env, run_cli
+
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = ROOT / "scripts" / "contract_probe.py"
+NODE = fleet.node(minimum=0)  # any Node can run the JSON adapter below
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from contract_probe import probe, write_junit  # noqa: E402
@@ -21,11 +26,9 @@ def target(name="python", code="import sys; print(sys.stdin.read())"):
     return {"name": name, "argv": [sys.executable, "-c", code]}
 
 
+@pytest.mark.skipif(NODE is None, reason="optional Node adapter integration; Python/error regressions still run")
 def test_real_python_and_node_json_adapters():
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("optional Node adapter integration; Python/error regressions still run")
-    targets = [target(), {"name": "node", "argv": [node, "-e",
+    targets = [target(), {"name": "node", "argv": [NODE, "-e",
         "process.stdin.setEncoding('utf8');let s='';process.stdin.on('data',x=>s+=x);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(s))));"]}]
     result = probe(document(), targets)
     assert result["passed"] and result["executions"] == 2
@@ -96,24 +99,21 @@ def test_invalid_contracts_start_no_process(change):
 def test_cli_failure_receipt_and_status(tmp_path):
     cases = tmp_path / "cases.json"
     cases.write_text(json.dumps(document(expected=False)), encoding="utf-8")
-    script = ROOT / "scripts" / "contract_probe.py"
-    result = subprocess.run([sys.executable, "-S", str(script), str(cases),
-        "--target", json.dumps(target()), "--target", json.dumps(target("other"))],
-        capture_output=True, text=True, encoding="utf-8",
-        env={**os.environ, "PYTHONIOENCODING": "cp1252"})
+    result = run_cli(SCRIPT, cases, "--target", json.dumps(target()), "--target", json.dumps(target("other")),
+                     python_options=("-S",), env=build_env({"PYTHONIOENCODING": "cp1252"}))
     assert result.returncode == 1
+    assert "\ufffd" not in result.stdout + result.stderr  # both streams are valid UTF-8
     assert json.loads(result.stdout)["executions"] == 2
 
 
 def test_cli_unicode_success_with_non_utf8_parent_console(tmp_path):
     cases = tmp_path / "cases.json"
     cases.write_text(json.dumps(document()), encoding="utf-8")
-    script = ROOT / "scripts" / "contract_probe.py"
-    result = subprocess.run([sys.executable, "-S", str(script), str(cases),
-        "--target", json.dumps(target()), "--target", json.dumps(target("other"))],
-        capture_output=True, text=True, encoding="ascii",
-        env={**os.environ, "PYTHONIOENCODING": "cp1252"})
+    result = run_cli(SCRIPT, cases, "--target", json.dumps(target()), "--target", json.dumps(target("other")),
+                     python_options=("-S",), env=build_env({"PYTHONIOENCODING": "cp1252"}))
     assert result.returncode == 0, result.stderr
+    # An ASCII-only parent must be able to read both streams: no byte outside ASCII.
+    assert result.stdout.isascii() and result.stderr.isascii()
     assert json.loads(result.stdout)["results"][0]["value"]["label"] == "日本語👩🏽‍💻"
 
 
@@ -177,13 +177,10 @@ def test_invalid_failure_contract_starts_no_process(expectation):
 def test_cli_deliberate_failure_emits_both_junit_reports(tmp_path):
     cases = tmp_path / "cases.json"
     cases.write_text(json.dumps(negative_document()), encoding="utf-8")
-    script = ROOT / "scripts" / "contract_probe.py"
     acceptance, observed = tmp_path / "accept.xml", tmp_path / "observe.xml"
-    argv = [sys.executable, "-S", str(script), str(cases), "--junit", str(acceptance),
-            "--observed-junit", str(observed)]
-    for item in negative_targets():
-        argv += ["--target", json.dumps(item)]
-    completed = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8")
+    targets = [token for item in negative_targets() for token in ("--target", json.dumps(item))]
+    completed = run_cli(SCRIPT, cases, "--junit", acceptance, "--observed-junit", observed, *targets,
+                        python_options=("-S",))
     assert completed.returncode == 0, completed.stderr
     assert ET.parse(acceptance).getroot().get("failures") == "0"
     assert ET.parse(observed).getroot().get("failures") == "2"
