@@ -1,25 +1,17 @@
 """Emoji sequences, names, reverse lookup and inventory; mirrored against Node's Unicode regex."""
-import json, shutil, subprocess, unicodedata
+import json, unicodedata
 from pathlib import Path
 
 import pytest
 
 import xprobe
+from vendor import fleet_check as fleet
+from vendor.cli_args import Command, run_command
 
 ROOT = Path(__file__).resolve().parent
 CORPUS = (ROOT / "fixtures" / "emoji_corpus.txt").read_text(encoding="utf-8")
-
-
-def _node(script, data):
-    node = shutil.which("node")
-    if node is None:
-        pytest.skip("node not installed")
-    probe = subprocess.run([node, "-e", "new RegExp('\\\\p{RGI_Emoji}', 'v')"], capture_output=True)
-    if probe.returncode:
-        pytest.skip("this Node has no RegExp v flag (Node 20+)")
-    done = subprocess.run([node, "-e", script], input=data, capture_output=True, text=True, encoding="utf-8",
-                          check=True)
-    return json.loads(done.stdout)
+NODE = fleet.node(minimum=20)  # the RegExp v flag (RGI_Emoji) arrived in Node 20
+needs_node = pytest.mark.skipif(NODE is None, reason="Node 20+ (RegExp v flag) not available (set NODE)")
 
 
 def test_sequences_kinds_and_names():
@@ -58,11 +50,14 @@ def test_find_by_name_and_flag():
             xprobe.emoji_find(bad)
 
 
+@needs_node
 def test_extended_pictographic_table_against_node_for_every_code_point():
-    node = _node("""
+    done = run_command(Command((NODE, "-e", """
       const re=/\\p{Extended_Pictographic}/u, out=[];
       for (let c=0;c<=0x10FFFF;c++) if ((c<0xD800||c>0xDFFF) && re.test(String.fromCodePoint(c))) out.push(c);
-      process.stdout.write(JSON.stringify({unicode: process.versions.unicode, points: out}));""", "")
+      process.stdout.write(JSON.stringify({unicode: process.versions.unicode, points: out}));""")), stdin="")
+    assert done.returncode == 0, done.stderr
+    node = json.loads(done.stdout)
     ours = [c for c in range(0x110000) if not 0xD800 <= c <= 0xDFFF and xprobe._PICT_RE.match(chr(c))]
     if node["unicode"].startswith(xprobe._EXT_PICT_UNICODE):
         assert ours == node["points"]
@@ -72,10 +67,13 @@ def test_extended_pictographic_table_against_node_for_every_code_point():
         assert set(node["points"]) <= set(ours), sorted(set(node["points"]) - set(ours))[:10]
 
 
+@needs_node
 def test_sequences_mirror_node_rgi_emoji():
-    node = _node("""
+    done = run_command(Command((NODE, "-e", """
       let s=''; process.stdin.setEncoding('utf8').on('data',c=>s+=c).on('end',()=>{
-        process.stdout.write(JSON.stringify([...s.matchAll(/\\p{RGI_Emoji}/gv)].map(m=>m[0])));});""", CORPUS)
+        process.stdout.write(JSON.stringify([...s.matchAll(/\\p{RGI_Emoji}/gv)].map(m=>m[0])));});""")), stdin=CORPUS)
+    assert done.returncode == 0, done.stderr
+    node = json.loads(done.stdout)
     ours = [row["emoji"] for row in xprobe.emoji_sequences(CORPUS)]
     extras = [e for e in ours if e not in node]
     # Every RGI sequence is found whole; extras are only text-default single symbols without VS16.

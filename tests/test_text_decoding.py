@@ -1,10 +1,11 @@
 """Reading legacy text: decode_text / readable_text, and mojibake detection, restoration, scan and CLI."""
-import json, subprocess, sys
+import json
 from pathlib import Path
 
 import pytest
 
 import xprobe
+from vendor.cli_args import run_cli
 from xprobe import decode_text
 
 
@@ -405,11 +406,11 @@ def test_read_cli_partial_is_usable_with_report_and_limits(tmp_path, capsys):
 
 def test_stdin_read_without_site_packages():
     script = Path(xprobe.__file__).resolve()
-    completed = subprocess.run([sys.executable, "-S", str(script), "--read-text", "-"],
-                               input="こんにちは".encode("cp932"), capture_output=True, timeout=10)
+    completed = run_cli(script, "--read-text", "-", python_options=("-S",),
+                        stdin="こんにちは".encode("cp932"), timeout=10)
     assert completed.returncode == 0
-    assert completed.stdout.decode("utf-8") == "こんにちは"
-    assert b"cp932" in completed.stderr
+    assert completed.stdout == "こんにちは"
+    assert "cp932" in completed.stderr
 
 
 def test_search_cli_propagates_decoding_diagnostics(tmp_path, capsys):

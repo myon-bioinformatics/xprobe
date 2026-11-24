@@ -1,11 +1,13 @@
 """Configuration discovery (inspect_text / scan_config / inspect_environment), the regression corpus and JUnit import (0.2)."""
-import json, random, subprocess, sys
+import json, random, sys
 from pathlib import Path
 
 import pytest
 import xprobe
+from vendor.cli_args import Command, pytest_command, run_cli, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
+CLI = ROOT / 'scripts' / 'xprobe_cli.py'
 
 
 @pytest.mark.parametrize('text,category,key', [
@@ -77,14 +79,11 @@ def test_glob_validation_and_raw_search_filters(tmp_path):
 
 def test_discovery_cli_and_corpus_cli(tmp_path):
     (tmp_path / '.env').write_text('PASSWORD=sentinel-secret', encoding='utf-8')
-    cli = str(ROOT / 'scripts/xprobe_cli.py')
-    proc = subprocess.run([sys.executable, cli, '--scan-config', '--root', str(tmp_path)],
-                          capture_output=True, text=True, timeout=20)
+    proc = run_cli(CLI, '--scan-config', '--root', tmp_path, timeout=20)
     assert proc.returncode == 0, proc.stderr
     assert 'sentinel-secret' not in proc.stdout + proc.stderr
     assert json.loads(proc.stdout)['findings'][0]['key'] == 'PASSWORD'
-    corpus = subprocess.run([sys.executable, cli, '--corpus', '--count', '3', '--seed', '7', '--format', 'jsonl'],
-                            capture_output=True, text=True, timeout=20)
+    corpus = run_cli(CLI, '--corpus', '--count', '3', '--seed', '7', '--format', 'jsonl', timeout=20)
     assert corpus.returncode == 0
     assert len(xprobe.corpus_from_json(corpus.stdout, jsonl=True)) == 3
 
@@ -186,11 +185,11 @@ def test_discovery_read_errors_do_not_emit_source_lines(monkeypatch, tmp_path):
 def test_new_apis_standalone_vendor(tmp_path):
     import shutil
     shutil.copy(ROOT / 'xprobe.py', tmp_path / 'standalone.py')
-    proc = subprocess.run([sys.executable, '-B', '-c',
+    proc = run_command(Command((sys.executable, '-B', '-c',
         "import standalone as p; assert p.inspect_text('PORT=80')['findings']; "
         "assert p.corpus_from_json(p.corpus_to_json(p.known_bad_cases())); "
-        "assert p.cases_from_junit('<testsuite/>')['cases'] == []"],
-        cwd=tmp_path, capture_output=True, text=True, timeout=20)
+        "assert p.cases_from_junit('<testsuite/>')['cases'] == []")),
+        cwd=tmp_path, timeout=20)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout == ''
 
@@ -198,8 +197,7 @@ def test_new_apis_standalone_vendor(tmp_path):
 def test_junit_cli_invalid_xml_reports_no_contents(tmp_path):
     path = tmp_path / 'result.xml'
     path.write_text('<testsuite>sentinel-secret', encoding='utf-8')
-    proc = subprocess.run([sys.executable, str(ROOT / 'scripts/xprobe_cli.py'), '--junit', str(path)],
-                          capture_output=True, text=True, timeout=20)
+    proc = run_cli(CLI, '--junit', path, timeout=20)
     assert proc.returncode == 2 and proc.stdout == ''
     failure = json.loads(proc.stderr)
     assert failure['ok'] is False and failure['code'] == 'invalid_input' and failure['exit'] == 2
@@ -241,9 +239,8 @@ def test_real_failed_pytest_run_imports_without_replaying_or_leaking(tmp_path):
     config = tmp_path / 'pytest.ini'
     config.write_text('[pytest]\n', encoding='utf-8')
     report = tmp_path / 'junit.xml'
-    proc = subprocess.run([sys.executable, '-m', 'pytest', '-c', str(config), str(target),
-                           '--junitxml=' + str(report)], cwd=tmp_path,
-                          capture_output=True, text=True, timeout=30)
+    proc = run_command(pytest_command(extra=['-c', str(config), str(target), '--junitxml=' + str(report)]),
+                       cwd=tmp_path, timeout=30)
     assert proc.returncode == 1
     xml = report.read_text(encoding='utf-8')
     assert 'sentinel-secret' in xml

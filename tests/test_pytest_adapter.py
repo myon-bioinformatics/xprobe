@@ -1,21 +1,22 @@
 """Real pytest processes: native outcomes, evidence, and unchanged exit status."""
-import json, os, shutil, subprocess, sys, xml.etree.ElementTree as ET
+import json, os, shutil, xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 import xprobe
+from vendor.cli_args import build_env, pytest_command, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def execute(tmp_path, source, *options, evidence_directory=None):
     (tmp_path / 'test_example.py').write_text(source, encoding='utf-8')
-    env = dict(os.environ, PYTHONPATH=str(ROOT), PYTEST_DISABLE_PLUGIN_AUTOLOAD='1')
+    env = build_env({'PYTHONPATH': str(ROOT), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'})
     env.pop('PYTEST_ADDOPTS', None)
-    command = [sys.executable, '-m', 'pytest', '-p', 'scripts.xprobe_pytest', '-q',
-               '--xprobe-jsonl=events.jsonl', '--xprobe-repository=owner/repo',
-               '--xprobe-run-id=sample', *options]
-    result = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
+    command = pytest_command(extra=['-p', 'scripts.xprobe_pytest', '-q',
+                                    '--xprobe-jsonl=events.jsonl', '--xprobe-repository=owner/repo',
+                                    '--xprobe-run-id=sample', *options])
+    result = run_command(command, cwd=tmp_path, env=env, timeout=30)
     # Preserve raw child outputs before JSON parsing or any validation can fail.
     if evidence_directory is not None:
         evidence_directory.mkdir(parents=True, exist_ok=True)
@@ -202,10 +203,10 @@ def test_canonical_sha_is_explicit_and_no_tests_is_not_pass(tmp_path):
 
 def test_adapter_is_opt_in(tmp_path):
     (tmp_path / 'test_ok.py').write_text('def test_ok(): pass\n')
-    env = dict(os.environ, PYTHONPATH=str(ROOT), PYTEST_DISABLE_PLUGIN_AUTOLOAD='1')
+    env = build_env({'PYTHONPATH': str(ROOT), 'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'})
     env.pop('PYTEST_ADDOPTS', None)
-    result = subprocess.run([sys.executable, '-m', 'pytest', '-p', 'scripts.xprobe_pytest', '-q'],
-                            cwd=tmp_path, env=env, capture_output=True, timeout=30)
+    result = run_command(pytest_command(extra=['-p', 'scripts.xprobe_pytest', '-q']),
+                         cwd=tmp_path, env=env, timeout=30)
     assert result.returncode == 0 and not list(tmp_path.glob('*.jsonl'))
 
 

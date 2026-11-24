@@ -1,11 +1,12 @@
 """Convention-driven discovery: discover_files / discover_python with caller-injected conventions, and the
 in-memory python_symbols they share, checked against real unittest name collection."""
-import json, subprocess, sys, unittest
+import json, unittest
 from pathlib import Path
 
 import pytest
 
 import xprobe
+from vendor.cli_args import run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -271,7 +272,6 @@ def test_single_file_works_without_site_packages(tmp_path):
     # A vendored xprobe.py and target with a top-level failure: no imports/run.
     (tmp_path / "xprobe.py").write_bytes((ROOT / "xprobe.py").read_bytes())
     (tmp_path / "target.py").write_text("raise RuntimeError('do not execute')\ndef probe(): pass\n", encoding="utf-8")
-    result = subprocess.run([sys.executable, "-S", "xprobe.py", "--symbols", "target.py"],
-                            cwd=tmp_path, capture_output=True, text=True, encoding="utf-8", timeout=20)
+    result = run_cli("xprobe.py", "--symbols", "target.py", python_options=("-S",), cwd=tmp_path, timeout=20)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["symbols"][0]["name"] == "probe"
