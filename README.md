@@ -1,10 +1,10 @@
 # xprobe
 
 <p align="center">
-  <img src="docs/brand/icon.png" alt="xprobe icon" width="160" />
+  <img src="https://myon-bioinformatics.github.io/xprobe/icon.png" alt="xprobe icon" width="160" />
 </p>
 
-[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)
+[Icon](https://myon-bioinformatics.github.io/xprobe/icon.png) · [Favicon](https://myon-bioinformatics.github.io/xprobe/favicon.png)
 
 For native pytest outcomes (including xfail/xpass and execution phases), see
 [pytest observations and exploration](docs/pytest-observations.md). The opt-in
