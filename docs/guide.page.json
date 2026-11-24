@@ -16,65 +16,86 @@
       ]
     },
     {
-      "type": "section",
-      "title": "📥 取得",
-      "blocks": [
+      "type": "tabs",
+      "id": "guide",
+      "tabs": [
         {
-          "type": "text",
-          "text": "1 ファイルを置くだけで動きます（pip 不要）。"
-        },
-        {
-          "type": "output",
-          "text": "curl -fsSLO https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/xprobe.py"
-        }
-      ]
-    },
-    {
-      "type": "section",
-      "title": "▶️ 実行",
-      "blocks": [
-        {
-          "type": "card",
-          "title": "🔎 検索",
-          "text": "文字どおりに探します（--regex で正規表現）。",
+          "label": "🧩 機能一覧",
           "blocks": [
             {
-              "type": "output",
-              "text": "$ python xprobe.py --search __version__ --root xprobe.py --brief\nxprobe.py:10:1: '__version__'"
+              "type": "section",
+              "title": "📥 取得",
+              "blocks": [
+                {
+                  "type": "text",
+                  "text": "1 ファイルを置くだけで動きます（pip 不要）。"
+                },
+                {
+                  "type": "output",
+                  "text": "curl -fsSLO https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/xprobe.py"
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "title": "▶️ 実行",
+              "blocks": [
+                {
+                  "type": "card",
+                  "title": "🔎 検索",
+                  "text": "文字どおりに探します（--regex で正規表現）。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python xprobe.py --search __version__ --root xprobe.py --brief\nxprobe.py:10:1: '__version__'"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🏷️ 名前つき正規表現",
+                  "text": "組み込みの正規表現を一覧します（--preset NAME で使用）。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python xprobe.py --presets\ngit-sha: full lowercase Git commit SHA\nsha256: SHA-256 hex digest\niso-timestamp: ISO 8601 date-time\nurl: scheme://... URL\npython-frame: Python traceback frame line\n…"
+                    }
+                  ]
+                },
+                {
+                  "type": "card",
+                  "title": "🧬 定義を探す",
+                  "text": "Python の関数・クラス定義を JSON で出します。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "$ python xprobe.py --symbols xprobe.py --symbol-pattern 'run_*'\n{\n  \"path\": \"xprobe.py\",\n  \"symbols\": [\n    {\n      \"kind\": \"function\",\n      \"line\": 748,\n      \"name\": \"run_cases\",\n      \"qualname\": \"run_cases\"\n…"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "section",
+              "title": "🐍 Python から呼ぶ",
+              "blocks": [
+                {
+                  "type": "output",
+                  "text": "python xprobe.py --help   # オプション一覧"
+                }
+              ]
             }
           ]
         },
         {
-          "type": "card",
-          "title": "🏷️ 名前つき正規表現",
-          "text": "組み込みの正規表現を一覧します（--preset NAME で使用）。",
+          "label": "🎞 GIF デモ",
           "blocks": [
             {
-              "type": "output",
-              "text": "$ python xprobe.py --presets\ngit-sha: full lowercase Git commit SHA\nsha256: SHA-256 hex digest\niso-timestamp: ISO 8601 date-time\nurl: scheme://... URL\npython-frame: Python traceback frame line\n…"
+              "type": "text",
+              "text": "🎞 まだ GIF はありません。ブラウザテストや実行の様子を GIF にしたら、ここに並びます。",
+              "muted": true
             }
           ]
-        },
-        {
-          "type": "card",
-          "title": "🧬 定義を探す",
-          "text": "Python の関数・クラス定義を JSON で出します。",
-          "blocks": [
-            {
-              "type": "output",
-              "text": "$ python xprobe.py --symbols xprobe.py --symbol-pattern 'run_*'\n{\n  \"path\": \"xprobe.py\",\n  \"symbols\": [\n    {\n      \"kind\": \"function\",\n      \"line\": 748,\n      \"name\": \"run_cases\",\n      \"qualname\": \"run_cases\"\n…"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "section",
-      "title": "🐍 Python から呼ぶ",
-      "blocks": [
-        {
-          "type": "output",
-          "text": "python xprobe.py --help   # オプション一覧"
         }
       ]
     },
