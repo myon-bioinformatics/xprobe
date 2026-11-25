@@ -1,4 +1,4 @@
-"""Thin search CLI; the vendorable module remains functions-only.
+"""Compatibility CLI for the original search and discovery arguments.
 
 Exit codes for agent and shell callers:
 
@@ -16,7 +16,7 @@ Exit codes for agent and shell callers:
 Search skips and truncation stay inside the JSON result and do not change 0 or 1.
 A JUnit file over ``--max-bytes`` is exit 2 (no report), not exit 3.
 
-The Node entry (``vendor/py_launch.cjs`` running ``xprobe.py``) does not launch this advanced CLI; JUnit importer flags are unavailable there.
+JUnit import is also available directly with ``python xprobe.py --junit FILE``.
 """
 import argparse, json, os, re, sys
 from pathlib import Path
@@ -110,22 +110,9 @@ def main(argv=None):
         parser.error("discovery/corpus modes take --root, not a search pattern")
     try:
         if args.junit:
-            if args.max_bytes <= 0:
-                raise ValueError("max-bytes must be positive")
-            with Path(args.junit).open("rb") as stream:
-                data = stream.read(args.max_bytes + 1)
-            if len(data) > args.max_bytes:
-                raise ValueError("JUnit exceeds byte limit")
-            report = xprobe.cases_from_junit(data.decode("utf-8"),
-                                             max_bytes=args.max_bytes, max_cases=args.max_matches,
-                                             repository=args.repository, commit_sha=args.commit_sha,
-                                             report_id=args.report_id)
-            print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
-            if report["truncated"]:
-                emit_failure("truncated", "truncated", EXIT_TRUNCATED,
-                             "JUnit case limit reached; partial report is on stdout")
-                return EXIT_TRUNCATED
-            return EXIT_OK
+            return xprobe._junit_cli(args.junit, max_bytes=args.max_bytes,
+                                     max_cases=args.max_matches, repository=args.repository,
+                                     commit_sha=args.commit_sha, report_id=args.report_id)
         if args.corpus:
             cases = (xprobe.generate_cases(seed=args.seed, count=args.count, category=args.category)
                      if args.count is not None else xprobe.known_bad_cases(args.category))

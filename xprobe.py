@@ -2703,6 +2703,38 @@ def hidden_text_scan(roots=(".",), *, kinds=None, min_severity="medium", max_fil
             "skipped": skipped, "truncated": truncated, "counts": counts, "findings": findings}
 
 
+def _junit_cli(path, *, max_bytes, max_cases, repository, commit_sha, report_id):
+    """Import a local JUnit file and preserve the JSON/exit contract in both CLIs."""
+    import sys
+
+    def failure(code, error, status, message=None):
+        payload = {"ok": False, "code": code, "error": error, "exit": status}
+        if message is not None:
+            payload["message"] = message
+        print(json.dumps(payload, ensure_ascii=True, sort_keys=True), file=sys.stderr)
+        return status
+
+    try:
+        _limit(max_bytes, "max_bytes")
+        with Path(path).open("rb") as stream:
+            data = stream.read(max_bytes + 1)
+        if len(data) > max_bytes:
+            raise ValueError("JUnit exceeds byte limit")
+        report = cases_from_junit(data.decode("utf-8"), max_bytes=max_bytes,
+                                  max_cases=max_cases, repository=repository,
+                                  commit_sha=commit_sha, report_id=report_id)
+    except OSError as error:
+        return failure("io_error", type(error).__name__, 2)
+    except (ValueError, LookupError) as error:
+        return failure("invalid_input" if isinstance(error, ValueError) else "lookup",
+                       type(error).__name__, 2)
+    print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+    if report["truncated"]:
+        return failure("truncated", "truncated", 3,
+                       "JUnit case limit reached; partial report is on stdout")
+    return 0
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
@@ -2730,6 +2762,11 @@ def main(argv=None):
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
+    modes.add_argument("--junit", metavar="FILE",
+                       help="Read JUnit failure identities as JSON; 0 complete, 2 invalid, 3 partial")
+    parser.add_argument("--repository", help="Explicit owner/name for --junit provenance")
+    parser.add_argument("--commit-sha", help="Full commit SHA for --junit provenance")
+    parser.add_argument("--report-id", help="Unique job/report identity for --junit (default: junit)")
     modes.add_argument("--annotate-junit", metavar="FILE", help="Print ::error workflow commands for failed JUnit testcases")
     modes.add_argument("--emoji", action="store_true", help="Emoji used under --root: counts, spellings, files")
     modes.add_argument("--emoji-find", metavar="WORDS", help="Emoji whose Unicode name has these words (e.g. 'house', 'flag jp')")
@@ -2762,6 +2799,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.text_report and args.restore_mojibake is None:
         parser.error("--text-report requires --read-text or --restore-mojibake")
+    if args.junit is not None:
+        return _junit_cli(args.junit, max_bytes=args.max_bytes, max_cases=args.max_matches,
+                          repository=args.repository, commit_sha=args.commit_sha,
+                          report_id=args.report_id if args.report_id is not None else "junit")
+    if any(v is not None for v in (args.repository, args.commit_sha, args.report_id)):
+        parser.error("--repository, --commit-sha and --report-id require --junit")
     roots = args.root or ["."]
     try:
         if args.discover or (args.symbols is not None and Path(args.symbols).is_dir()):
