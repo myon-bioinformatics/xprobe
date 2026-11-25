@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-page/1",
   "title": "xprobe 利用ガイド",
-  "theme": "auto",
+  "theme": "modern",
   "description": "テキスト検索・境界ケースの探索・失敗に寄せたテスト支援（xgrep + xfail + α）。読み取り専用。",
   "icon": "./icon.png",
   "favicon": "./favicon.png",
