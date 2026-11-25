@@ -88,6 +88,77 @@
           ]
         },
         {
+          "label": "🔬 検証ガイド",
+          "blocks": [
+            {
+              "type": "runbook",
+              "id": "verify",
+              "books": [
+                {
+                  "label": "🐍 python",
+                  "intro": "🤖 のついた手順は CI で実際に動かし、出た結果をそのまま載せています。",
+                  "runbook": {
+                    "key": "xprobe/python",
+                    "steps": [
+                      {
+                        "id": "get",
+                        "title": "📥 ファイルを置く",
+                        "command": "curl -fsSLO https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/xprobe.py",
+                        "needs": "🌐 ネットワーク"
+                      },
+                      {
+                        "id": "help",
+                        "title": "❓ ヘルプ",
+                        "command": "python xprobe.py --help",
+                        "run": true
+                      },
+                      {
+                        "id": "search",
+                        "title": "🔎 文字どおりに探す",
+                        "command": "python xprobe.py --search __version__ --root xprobe.py --brief",
+                        "run": true
+                      },
+                      {
+                        "id": "presets",
+                        "title": "🏷️ 名前つき正規表現",
+                        "command": "python xprobe.py --presets",
+                        "run": true
+                      },
+                      {
+                        "id": "symbols",
+                        "title": "🧬 定義を探す",
+                        "command": "python xprobe.py --symbols xprobe.py --symbol-pattern 'run_*'",
+                        "run": true
+                      }
+                    ]
+                  }
+                },
+                {
+                  "label": "⚡ uv",
+                  "intro": "uv があれば Python の版を気にせず動きます。",
+                  "runbook": {
+                    "key": "xprobe/uv",
+                    "steps": [
+                      {
+                        "id": "get",
+                        "title": "📥 ファイルを置く",
+                        "command": "curl -fsSLO https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/xprobe.py",
+                        "needs": "🌐 ネットワーク"
+                      },
+                      {
+                        "id": "help",
+                        "title": "❓ ヘルプ",
+                        "command": "uv run --no-project python xprobe.py --help",
+                        "run": true
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
           "label": "🎞 GIF デモ",
           "blocks": [
             {
