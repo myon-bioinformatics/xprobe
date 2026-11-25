@@ -113,7 +113,7 @@
                         "run": true
                       },
                       {
-                        "id": "search",
+                        "id": "find",
                         "title": "🔎 文字どおりに探す",
                         "command": "python xprobe.py --search __version__ --root xprobe.py --brief",
                         "run": true
