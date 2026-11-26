@@ -101,7 +101,7 @@ jobs:
       - name: Install JS readers for load_toml/load_yaml (tests only)
         run: npm ci --prefix tests/js --no-audit --no-fund
       - name: Compile artifact and CLI
-        run: python -m py_compile xprobe.py scripts/xprobe_cli.py scripts/xprobe_pytest.py
+        run: python -m py_compile xprobe.py scripts/xprobe_pytest.py
       - name: Test with branch coverage
         env:
           FAILURE_EVIDENCE_DIR: reports/controlled-failure
@@ -112,7 +112,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python scripts/xprobe_cli.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json.tmp
+          python xprobe.py --junit reports/junit.xml --repository "${{ github.repository }}" --report-id "${{ matrix.os }}-py${{ matrix.python }}-run${{ github.run_id }}-attempt${{ github.run_attempt }}" > reports/failures.json.tmp
           status=$?
           set -e
           # 0 publishes failures.json. 2 is usage or invalid input (JSON on stderr).

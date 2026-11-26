@@ -99,8 +99,8 @@ report ownership is implemented.
 ## Explore with the existing xprobe surface
 
 ```sh
-python scripts/xprobe_cli.py '"outcome": "xfail"' reports --include '*.jsonl'
-python scripts/xprobe_cli.py '"phase": "teardown"' reports --include '*.jsonl'
+python xprobe.py --search '"outcome": "xfail"' --root reports --include '*.jsonl'
+python xprobe.py --search '"phase": "teardown"' --root reports --include '*.jsonl'
 ```
 
 ```python

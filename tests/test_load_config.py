@@ -872,6 +872,23 @@ def test_copied_xprobe_runs_without_helper(tmp_path):
     assert report["matches"][0]["match"] == "TODO"
     assert report["errors"] == []
 
+    (script_dir / "junit.xml").write_text(
+        "<testsuite><testcase name='one'><failure>not in output</failure></testcase>"
+        "<testcase name='two'><error/></testcase></testsuite>", encoding="utf-8")
+    imported = run("--junit", "junit.xml", "--repository", "owner/repo")
+    assert imported.returncode == 0, imported.stderr
+    assert len(json.loads(imported.stdout)["cases"]) == 2
+    assert "not in output" not in imported.stdout
+    partial = run("--junit", "junit.xml", "--max-matches", "1")
+    assert partial.returncode == 3, partial.stderr
+    assert json.loads(partial.stdout)["truncated"] is True
+    assert json.loads(partial.stderr)["code"] == "truncated"
+    failed = run("--junit", "unavailable.xml")
+    assert failed.returncode == 2
+    assert failed.stdout == ""
+    assert json.loads(failed.stderr)["code"] == "io_error"
+    assert "unavailable.xml" not in failed.stderr
+
     loaded = run("--load", "yaml", "w.yml")
     if loaded.returncode == 0:
         assert json.loads(loaded.stdout) == {"on": "push"}

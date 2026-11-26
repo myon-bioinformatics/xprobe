@@ -52,7 +52,7 @@ conflicting contents for the same ID fail. Failure order changes affect ordinals
 this is report-level identity rather than a durable test-identity database.
 
 ```sh
-python scripts/xprobe_cli.py --junit reports/junit.xml \
+python xprobe.py --junit reports/junit.xml \
   --repository myon-bioinformatics/markdown \
   --commit-sha FULL_SHA_FROM_CANONICAL_RECORD \
   --report-id linux-py310-shard1-attempt1
@@ -68,7 +68,7 @@ Do not treat 3 as an argparse usage error. This repository's CI publishes
 Checked on 2026-10-23: this repository is the only workflow that runs the
 importer. `yourself` and `nvd_nist_known_vulns` document search commands and do
 not check this status. No downstream repository asserts exit 2 for a truncated
-JUnit import. The Node entry (`vendor/py_launch.cjs` running `xprobe.py`) does not launch `scripts/xprobe_cli.py`, so it does not expose the advanced CLI's JUnit importer statuses; Node callers that need `--junit` must invoke `scripts/xprobe_cli.py` directly.
+JUnit import.
 
 Do not invent replay inputs from JUnit. To reproduce a failure, record the
 original input explicitly in a separate explained case, and keep its expected

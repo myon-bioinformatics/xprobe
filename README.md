@@ -24,7 +24,7 @@ with source/run identities, original diagnostics and explicit unobserved cases.
 
 ## Design
 
-The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
+The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs.
 
 Python runtime target: 3.11–3.15. Tests use the `dev` dependency group in `pyproject.toml`; runtime uses the standard library only.
 
@@ -63,11 +63,13 @@ inputs = xprobe.boundary_cases("text")
 ## CLI
 
 ```sh
-python scripts/xprobe_cli.py TODO . --max-matches 100
-python scripts/xprobe_cli.py 'TODO|FIXME' . --regex
+python xprobe.py --search TODO --root . --max-matches 100
+python xprobe.py --search 'TODO|FIXME' --root . --regex
 ```
 
-The CLI searches only; it never imports or executes discovered project code. Output is JSON with escaped control characters. Exit codes: 0 = matches or a complete mode result (a finished JUnit import is 0 even when the imported tests failed), 1 = no matches, 2 = argparse usage, a no-report failure, or a finished search/scan whose report lists read errors, 3 = truncated JUnit report. Usage and no-report failures (invalid input, unreadable JUnit, bad regex) write one JSON object on stderr and leave stdout empty, so agents can tell them from a partial import. A finished search or scan with read errors still prints its report JSON on stdout and exits 2. Exit 3 writes the partial JUnit report on stdout (`truncated` true) and a stderr JSON object whose `code` is `truncated`. Search skips and truncation stay in the JSON and do not change 0 or 1. A JUnit file over `--max-bytes` is exit 2 with no report, not exit 3. `--help` documents every flag and these codes. The Node entry (`vendor/py_launch.cjs` running `xprobe.py`) does **not** run this advanced CLI (see [From Node](#from-node-vendorpy_launchcjs-node-26)), so JUnit importer flags such as `--junit` / `--repository` / `--report-id` are unrecognized there and exit 2.
+Search via `xprobe.py` never imports or executes discovered project code. The exit codes are 0 for a match, 1 for no matches, and 2 for usage errors, read errors, or an incomplete search. Use `--help` to see the standalone commands.
+
+JUnit import prints ASCII-safe JSON. Exit 0 means a complete import even if the tests failed; exit 2 means invalid input or an unreadable/oversized file (no report); exit 3 means the case limit was reached (partial report on stdout and a `truncated` diagnostic on stderr). `--annotate-junit` is a separate mode for GitHub Actions annotations.
 
 ## Tests
 
@@ -107,11 +109,11 @@ assert xprobe.corpus_from_json(encoded, jsonl=True) == fixtures
 ```
 
 ```sh
-python scripts/xprobe_cli.py --scan-config --root . --include '*.yaml'
-python scripts/xprobe_cli.py --env-report
-python scripts/xprobe_cli.py --corpus --category git --seed 7 --count 20 --format jsonl
+python xprobe.py --scan-config --root . --include '*.yaml'
+python xprobe.py --env-report
+python xprobe.py --corpus --category git --seed 7 --count 20 --format jsonl
 uv run pytest --junitxml=pytest-results.xml
-python scripts/xprobe_cli.py --junit pytest-results.xml
+python xprobe.py --junit pytest-results.xml
 ```
 
 Discovery output deliberately omits **all values and surrounding lines**, including URLs, query strings and credentials. Classification is heuristic evidence, not a complete parser or a credential verdict. Source paths/key names themselves can identify projects; choose inputs before sharing. The legacy explicit `search_text` / `search_files` APIs return raw text and are unsuitable for sharing sensitive inputs without caller review.
