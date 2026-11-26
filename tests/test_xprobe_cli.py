@@ -1,4 +1,4 @@
-"""Real process runs of scripts/xprobe_cli.py: agent exit codes, error JSON and the JUnit collector CI uses.
+"""Real process runs of xprobe.py: agent exit codes, error JSON and the JUnit collector CI uses.
 
 Collector success is not pytest success.
 """
@@ -10,33 +10,7 @@ import pytest
 from vendor.cli_args import build_env, pytest_command, run_cli, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / "scripts" / "xprobe_cli.py"
-
-# Help snippets that must appear for every flag. A missing help string fails this.
-FLAG_HELP = {
-    "pattern": "Literal or regular-expression text to search for",
-    "root": "File or directory to search",
-    "--regex": "Treat pattern as a Python regular expression",
-    "--ignore-case": "Match without case sensitivity",
-    "--include-hidden": "Search hidden files and directories",
-    "--max-bytes": "Maximum bytes read from each file",
-    "--max-matches": "Maximum matches, findings, or JUnit cases",
-    "--scan-config": "Discover configuration keys under --root",
-    "--env-report": "recognized environment variable names",
-    "--corpus": "built-in regression corpus",
-    "--factor-cases": "seeded factor-generation cases",
-    "--junit": "bounded local JUnit report",
-    "--include": "Glob of files to include",
-    "--exclude-dir": "Directory name to skip",
-    "--category": "Corpus category filter",
-    "--repository": "Explicit owner/name for JUnit provenance",
-    "--commit-sha": "Full SHA from canonical repository metadata",
-    "--report-id": "Unique job/report identity",
-    "--seed": "Seed for corpus or factor generation",
-    "--count": "Number of generated corpus or factor cases",
-    "--format": "Output format: json",
-}
-
+CLI = ROOT / "xprobe.py"
 
 def run(args, **kwargs):
     return run_cli(CLI, *args, timeout=30, env=build_env({"COLUMNS": "160"}), **kwargs)
@@ -51,48 +25,22 @@ def error_json(proc):
     return payload
 
 
-def test_help_documents_every_flag_and_exit_3():
+def test_help_documents_standalone_modes():
     proc = run(["--help"])
     assert proc.returncode == 0
     assert proc.stderr == ""
-    for flag, snippet in FLAG_HELP.items():
-        assert flag in proc.stdout, flag
-        assert snippet in proc.stdout, flag
-    assert "3  truncated JUnit report" in proc.stdout
-    assert "argparse usage (2)" in proc.stdout
-    # --root is both a positional and an option; the option help must be present.
-    assert "overrides the positional root" in proc.stdout
+    for flag in ("--search", "--junit", "--annotate-junit", "--scan-config",
+                 "--env-report", "--corpus", "--factor-cases", "--format"):
+        assert flag in proc.stdout
+    assert "3 partial" in proc.stdout
 
 
-def test_usage_errors_are_exit_2_json_and_not_truncation():
-    missing_mode = run([])
-    assert missing_mode.returncode == 2
-    payload = error_json(missing_mode)
-    assert payload["code"] == "usage" and payload["error"] == "usage"
-    assert "pattern" in payload["message"]
-
-    unknown = run(["--not-a-real-flag"])
-    assert unknown.returncode == 2
-    unknown_payload = error_json(unknown)
-    assert unknown_payload["code"] == "usage"
-    assert "--not-a-real-flag" in unknown_payload["message"]
-
-    bad_type = run(["--max-matches", "many", "--junit", "report.xml"])
-    assert bad_type.returncode == 2
-    assert error_json(bad_type)["code"] == "usage"
-
-
-def test_invalid_regex_json_does_not_echo_the_pattern(tmp_path):
-    target = tmp_path / "notes.txt"
-    target.write_text("hit\n", encoding="utf-8")
-    proc = run(["secret-pattern-[", str(target), "--regex"])
-    assert proc.returncode == 2
-    payload = error_json(proc)
-    assert payload["code"] == "regex"
-    # 3.12 and earlier spell this re.error; 3.13+ spell it re.PatternError.
-    assert payload["error"] in {"error", "PatternError"}
-    assert "message" not in payload
-    assert "secret-pattern" not in proc.stderr
+def test_junit_usage_errors_are_exit_2():
+    for args in (["--not-a-real-flag"], ["--max-matches", "many", "--junit", "report.xml"]):
+        proc = run(args)
+        assert proc.returncode == 2
+        assert proc.stdout == ""
+        assert "usage:" in proc.stderr
 
 
 def test_missing_and_malformed_junit_json_hides_path_and_body(tmp_path):
@@ -166,11 +114,11 @@ def test_case_limit_truncation_exits_3_with_partial_report(tmp_path):
     }
 
 
-def test_search_truncation_stays_exit_0(tmp_path):
+def test_search_truncation_keeps_report_and_exits_2(tmp_path):
     (tmp_path / "a.txt").write_text("hit\n", encoding="utf-8")
     (tmp_path / "b.txt").write_text("hit\n", encoding="utf-8")
-    proc = run(["hit", str(tmp_path), "--max-matches", "1"])
-    assert proc.returncode == 0
+    proc = run(["--search", "hit", "--root", str(tmp_path), "--max-matches", "1"])
+    assert proc.returncode == 2
     assert proc.stderr == ""
     report = json.loads(proc.stdout)
     assert report["truncated"] is True
@@ -216,10 +164,10 @@ def test_real_pytest_junit_import_and_case_limit(tmp_path):
     assert "sentinel-secret" not in limited.stdout + limited.stderr
     assert json.loads(limited.stderr)["code"] == "truncated"
 
-    mixed = run(["pattern", "--junit", str(report_path)])
+    mixed = run(["--search", "pattern", "--junit", str(report_path)])
     assert mixed.returncode == 2
-    mixed_payload = error_json(mixed)
-    assert mixed_payload["code"] == "usage"
+    assert mixed.stdout == ""
+    assert "not allowed with argument" in mixed.stderr
     assert "sentinel-secret" not in mixed.stderr
 
 
@@ -253,3 +201,19 @@ def test_collector_does_not_hide_invalid_or_truncated_reports(tmp_path, source, 
         imported = json.loads(result.stdout)
         assert imported['truncated'] is False and result.stderr == ''
         assert all(row['context']['commit_sha'] is None for row in imported['cases'])
+
+
+def test_standalone_reports_preserve_filters_and_hide_env_values(tmp_path):
+    (tmp_path / "note.txt").write_text("TODO\n", encoding="utf-8")
+    (tmp_path / "skip.json").write_text("TODO\n", encoding="utf-8")
+    proc = run(["--search", "todo", "--ignore-case", "--include", "*.txt",
+                "--root", str(tmp_path), "--format", "jsonl"])
+    assert proc.returncode == 0, proc.stderr
+    assert len(proc.stdout.splitlines()) == 1
+    assert [row["path"] for row in json.loads(proc.stdout)["matches"]] == ["note.txt"]
+
+    env = build_env({"TOKEN": "sentinel-sensitive-example"})
+    proc = run_cli(CLI, "--env-report", "--format", "text", timeout=20, env=env)
+    assert proc.returncode == 0, proc.stderr
+    assert '"key": "TOKEN"' in proc.stdout
+    assert "sentinel-sensitive-example" not in proc.stdout + proc.stderr

@@ -152,7 +152,7 @@ class IntegrationTests(unittest.TestCase):
             path = Path(tmp) / "a"
             path.write_text("hit")
             def run(pattern, *extra):
-                return run_cli(ROOT / "scripts/xprobe_cli.py", pattern, path, *extra, cwd=tmp, timeout=20)
+                return run_cli(ROOT / "xprobe.py", "--search", pattern, "--root", path, *extra, cwd=tmp, timeout=20)
             hit = run("hit")
             self.assertEqual(hit.returncode, 0, hit.stderr)
             self.assertEqual(json.loads(hit.stdout)["matches"][0]["path"], "a")
@@ -160,10 +160,8 @@ class IntegrationTests(unittest.TestCase):
             invalid = run("[", "--regex")
             self.assertEqual(invalid.returncode, 2)
             self.assertEqual(invalid.stdout, "")
-            failure = json.loads(invalid.stderr)
-            self.assertEqual(failure["code"], "regex")
-            self.assertFalse(failure["ok"])
-            self.assertNotIn("[", failure.get("message", ""))
+            self.assertIn(invalid.stderr.strip(), {"error", "PatternError"})
+            self.assertNotIn("[", invalid.stderr)
 
 
 # ──── text reading: readable_text, mojibake restoration, decode_text ────

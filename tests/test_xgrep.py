@@ -99,30 +99,28 @@ def test_search_files_and_cli(tmp_path, capsys):
 
 def test_cli_factor_cases(tmp_path, capsys):
     import json
-    from scripts import xprobe_cli
 
     # Test default --factor-cases run
-    assert xprobe_cli.main(["--factor-cases"]) == 0
+    assert xprobe.main(["--factor-cases"]) == 0
     out = capsys.readouterr().out
     data = json.loads(out)
     assert data["schema"] == "xprobe.factor-generation.v1"
     assert len(data["cases"]) == 20
 
     # Test custom seed, count, and json format
-    assert xprobe_cli.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "json"]) == 0
+    assert xprobe.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "json"]) == 0
     out = capsys.readouterr().out
     data = json.loads(out)
     assert len(data["cases"]) == 5
 
     # Test jsonl format
-    assert xprobe_cli.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "jsonl"]) == 0
+    assert xprobe.main(["--factor-cases", "--seed", "7", "--count", "5", "--format", "jsonl"]) == 0
     out = capsys.readouterr().out
     data = json.loads(out)
     assert len(data["cases"]) == 5
 
-    # Test error when passing search pattern with --factor-cases
+    # Search and factor generation are mutually exclusive.
     with pytest.raises(SystemExit) as raised:
-        xprobe_cli.main(["pattern", "--factor-cases"])
+        xprobe.main(["--search", "pattern", "--factor-cases"])
     assert raised.value.code == 2
-    failure = json.loads(capsys.readouterr().err)
-    assert failure["ok"] is False and failure["code"] == "usage" and failure["exit"] == 2
+    assert "not allowed with argument" in capsys.readouterr().err

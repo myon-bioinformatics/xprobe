@@ -24,7 +24,7 @@ with source/run identities, original diagnostics and explicit unobserved cases.
 
 ## Design
 
-The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs. The advanced CLI remains in `scripts/xprobe_cli.py`.
+The canonical artifact is `xprobe.py`: copy it to `vendor/xprobe.py` without pip or supporting modules. Like `markdown` and `ascii_artist`, the artifact provides functions, `__all__`, and `__version__`; import performs no I/O. A thin guarded main delegates to existing APIs.
 
 Python runtime target: 3.11–3.15. Tests use the `dev` dependency group in `pyproject.toml`; runtime uses the standard library only.
 
@@ -69,7 +69,7 @@ python xprobe.py --search 'TODO|FIXME' --root . --regex
 
 Search via `xprobe.py` never imports or executes discovered project code. The exit codes are 0 for a match, 1 for no matches, and 2 for usage errors, read errors, or an incomplete search. Use `--help` to see the standalone commands.
 
-JUnit import prints ASCII-safe JSON. Exit 0 means a complete import even if the tests failed; exit 2 means invalid input or an unreadable/oversized file (no report); exit 3 means the case limit was reached (partial report on stdout and a `truncated` diagnostic on stderr). `--annotate-junit` is a separate mode for GitHub Actions annotations. The older `scripts/xprobe_cli.py` remains available with its original arguments and search exit-code contract.
+JUnit import prints ASCII-safe JSON. Exit 0 means a complete import even if the tests failed; exit 2 means invalid input or an unreadable/oversized file (no report); exit 3 means the case limit was reached (partial report on stdout and a `truncated` diagnostic on stderr). `--annotate-junit` is a separate mode for GitHub Actions annotations.
 
 ## Tests
 
@@ -109,9 +109,9 @@ assert xprobe.corpus_from_json(encoded, jsonl=True) == fixtures
 ```
 
 ```sh
-python scripts/xprobe_cli.py --scan-config --root . --include '*.yaml'
-python scripts/xprobe_cli.py --env-report
-python scripts/xprobe_cli.py --corpus --category git --seed 7 --count 20 --format jsonl
+python xprobe.py --scan-config --root . --include '*.yaml'
+python xprobe.py --env-report
+python xprobe.py --corpus --category git --seed 7 --count 20 --format jsonl
 uv run pytest --junitxml=pytest-results.xml
 python xprobe.py --junit pytest-results.xml
 ```

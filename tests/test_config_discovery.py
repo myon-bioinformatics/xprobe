@@ -7,7 +7,7 @@ import xprobe
 from vendor.cli_args import Command, pytest_command, run_cli, run_command
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'scripts' / 'xprobe_cli.py'
+CLI = ROOT / 'xprobe.py'
 
 
 @pytest.mark.parametrize('text,category,key', [

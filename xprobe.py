@@ -2735,6 +2735,15 @@ def _junit_cli(path, *, max_bytes, max_cases, repository, commit_sha, report_id)
     return 0
 
 
+def _print_cli_report(report, format):
+    if format == "text":
+        for key, value in report.items():
+            print(key + ": " + json.dumps(value, ensure_ascii=True, sort_keys=True))
+    else:
+        print(json.dumps(report, ensure_ascii=True, sort_keys=True,
+                         indent=None if format == "jsonl" else 2))
+
+
 def main(argv=None):
     """Thin standalone entry point over the existing discovery/search APIs."""
     import argparse
@@ -2761,6 +2770,15 @@ def main(argv=None):
     parser.add_argument("--normalize", metavar="STEPS", default="",
                         help="Comma list of " + ",".join(NORMALIZE_STEPS) + "; coordinates stay original")
     parser.add_argument("--brief", action="store_true", help="One 'path:line:column: match' line per match")
+    modes.add_argument("--scan-config", action="store_true", help="Discover configuration keys under --root")
+    modes.add_argument("--env-report", action="store_true", help="Report recognized environment names without values")
+    modes.add_argument("--factor-cases", action="store_true", help="Emit seeded factor-generation cases")
+    parser.add_argument("--ignore-case", action="store_true", help="Search without case sensitivity")
+    parser.add_argument("--category", help="Corpus category filter, such as git or json")
+    parser.add_argument("--seed", type=int, default=0, help="Seed for corpus or factor generation")
+    parser.add_argument("--count", type=int, help="Number of generated corpus or factor cases")
+    parser.add_argument("--format", choices=("json", "jsonl", "text"), default="json",
+                        help="Output format for search, configuration, environment or factor reports")
     modes.add_argument("--corpus", action="store_true", help="Show existing explained regression inputs")
     modes.add_argument("--junit", metavar="FILE",
                        help="Read JUnit failure identities as JSON; 0 complete, 2 invalid, 3 partial")
@@ -2961,8 +2979,17 @@ def main(argv=None):
                 return 2
             print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
             return 0
+        if args.env_report:
+            _print_cli_report({"environment": inspect_environment(os.environ)}, args.format)
+            return 0
+        if args.factor_cases:
+            _print_cli_report(generate_factor_cases(seed=args.seed,
+                                                    count=20 if args.count is None else args.count), args.format)
+            return 0
         if args.corpus:
-            print(corpus_to_json(known_bad_cases()), end="")
+            cases = (known_bad_cases(args.category) if args.count is None else
+                     generate_cases(seed=args.seed, count=args.count, category=args.category))
+            print(corpus_to_json(cases, jsonl=args.format == "jsonl"), end="")
             return 0
         if args.presets:
             for name, item in pattern_presets().items():
@@ -2979,7 +3006,10 @@ def main(argv=None):
                 part = search_files(root, args.search, regex=args.regex, preset=args.preset,
                                     normalize=[s for s in args.normalize.split(",") if s],
                                     max_bytes=args.max_bytes,
-                                    max_matches=remaining, exclude_dirs=_DEFAULT_EXCLUDE)
+                                    max_matches=remaining, ignore_case=args.ignore_case,
+                                    include_hidden=args.include_hidden,
+                                    include=args.include if args.include is not None else ("*",),
+                                    exclude_dirs=_DEFAULT_EXCLUDE + tuple(args.exclude_dir or ()))
                 for key in ("matches", "skipped", "errors"):
                     for row in part[key]:
                         if len(roots) > 1:
@@ -2991,9 +3021,14 @@ def main(argv=None):
                     report.setdefault("decodings", []).append(row)
                 report["truncated"] = report["truncated"] or part["truncated"]
         else:
+            options = {}
+            if args.exclude_dir:
+                options["exclude_dirs"] = _DEFAULT_EXCLUDE + tuple(args.exclude_dir)
+            if args.include is not None:
+                options["include"] = args.include
             report = scan_config(roots[0], max_bytes=args.max_bytes,
-                                 max_findings=args.max_matches)
-    except (OSError, ValueError, LookupError, RuntimeError, SyntaxError) as error:
+                                 max_findings=args.max_matches, **options)
+    except (OSError, ValueError, LookupError, RuntimeError, SyntaxError, re.error) as error:
         print(type(error).__name__, file=sys.stderr)
         return 2
     if args.brief and searching:
@@ -3009,7 +3044,7 @@ def main(argv=None):
         if report["truncated"]:
             print("truncated: raise --max-matches")
     else:
-        print(json.dumps(report, ensure_ascii=True, sort_keys=True, indent=2))
+        _print_cli_report(report, args.format)
     if report["errors"] or report["truncated"] or report["skipped"]:
         return 2
     return (0 if report["matches"] else 1) if searching else 0

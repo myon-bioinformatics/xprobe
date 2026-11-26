@@ -68,7 +68,7 @@ Do not treat 3 as an argparse usage error. This repository's CI publishes
 Checked on 2026-10-23: this repository is the only workflow that runs the
 importer. `yourself` and `nvd_nist_known_vulns` document search commands and do
 not check this status. No downstream repository asserts exit 2 for a truncated
-JUnit import. The legacy `scripts/xprobe_cli.py` entry point shares the same JUnit import implementation.
+JUnit import.
 
 Do not invent replay inputs from JUnit. To reproduce a failure, record the
 original input explicitly in a separate explained case, and keep its expected
