@@ -73,6 +73,10 @@ JUnit import prints ASCII-safe JSON. Exit 0 means a complete import even if the 
 
 ## Tests
 
+[Formal coverage checks](docs/formal-verification.md) pair Lean proofs of
+selected-pair coverage and marginal masks with observations of the real greedy
+selector. This does not claim optimal coverage or detection of consumer defects.
+
 ```sh
 uv run pytest --cov=xprobe --cov-branch --cov-report=term-missing --cov-fail-under=90
 ```
