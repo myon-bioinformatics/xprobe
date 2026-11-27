@@ -178,10 +178,6 @@
           "type": "links",
           "items": [
             {
-              "label": "📦 リポジトリ",
-              "href": "https://github.com/myon-bioinformatics/xprobe"
-            },
-            {
               "label": "📖 README",
               "href": "https://github.com/myon-bioinformatics/xprobe#readme"
             },
