@@ -20,7 +20,7 @@
       "id": "guide",
       "tabs": [
         {
-          "label": "🧩 機能一覧",
+          "label": "🧩 使い方",
           "blocks": [
             {
               "type": "section",
@@ -47,7 +47,7 @@
                   "blocks": [
                     {
                       "type": "output",
-                      "text": "$ python xprobe.py --search __version__ --root xprobe.py --brief\nxprobe.py:10:1: '__version__'"
+                      "text": "python xprobe.py --search __version__ --root xprobe.py --brief"
                     }
                   ]
                 },
@@ -58,7 +58,7 @@
                   "blocks": [
                     {
                       "type": "output",
-                      "text": "$ python xprobe.py --presets\ngit-sha: full lowercase Git commit SHA\nsha256: SHA-256 hex digest\niso-timestamp: ISO 8601 date-time\nurl: scheme://... URL\npython-frame: Python traceback frame line\n…"
+                      "text": "python xprobe.py --presets"
                     }
                   ]
                 },
@@ -69,19 +69,20 @@
                   "blocks": [
                     {
                       "type": "output",
-                      "text": "$ python xprobe.py --symbols xprobe.py --symbol-pattern 'run_*'\n{\n  \"path\": \"xprobe.py\",\n  \"symbols\": [\n    {\n      \"kind\": \"function\",\n      \"line\": 748,\n      \"name\": \"run_cases\",\n      \"qualname\": \"run_cases\"\n…"
+                      "text": "python xprobe.py --symbols xprobe.py --symbol-pattern 'run_*'"
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "type": "section",
-              "title": "🐍 Python から呼ぶ",
-              "blocks": [
+                },
                 {
-                  "type": "output",
-                  "text": "python xprobe.py --help   # オプション一覧"
+                  "type": "card",
+                  "title": "🧪 JUnit XML",
+                  "text": "手元にある JUnit XML を読み、失敗・エラーのテスト名を JSON に出します。pytest は読み取りには不要です。",
+                  "blocks": [
+                    {
+                      "type": "output",
+                      "text": "python -S xprobe.py --junit pytest-results.xml"
+                    }
+                  ]
                 }
               ]
             }
@@ -135,7 +136,7 @@
                 },
                 {
                   "label": "⚡ uv",
-                  "intro": "uv があれば Python の版を気にせず動きます。",
+                  "intro": "uv で Python 3.11 以上を選んで実行します。",
                   "runbook": {
                     "key": "xprobe/uv",
                     "steps": [
@@ -148,23 +149,13 @@
                       {
                         "id": "help",
                         "title": "❓ ヘルプ",
-                        "command": "uv run --no-project python xprobe.py --help",
+                        "command": "uv run --no-project --python \">=3.11\" python -S xprobe.py --help",
                         "run": true
                       }
                     ]
                   }
                 }
               ]
-            }
-          ]
-        },
-        {
-          "label": "🎞 GIF デモ",
-          "blocks": [
-            {
-              "type": "text",
-              "text": "🎞 まだ GIF はありません。ブラウザテストや実行の様子を GIF にしたら、ここに並びます。",
-              "muted": true
             }
           ]
         }
