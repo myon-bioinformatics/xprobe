@@ -1,10 +1,27 @@
 """Real pytest processes: native outcomes, evidence, and unchanged exit status."""
+import importlib.util
+import sys
 import json, os, shutil, xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
 import xprobe
-from vendor.cli_args import build_env, pytest_command, run_command
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+_cli_args = load_vendored("xprobe_cli_args", "vendor/cli_args.py")
+build_env = _cli_args.build_env
+pytest_command = _cli_args.pytest_command
+run_command = _cli_args.run_command
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -5,14 +5,27 @@ stdlib fallback launcher that a copied xprobe.py uses when vendor/njs_launch.py 
 """
 from __future__ import annotations
 
+import importlib.util
 import ast, datetime, errno, io, json, os, shutil, subprocess, sys, threading
 from pathlib import Path; from typing import NamedTuple, Union
 
 import pytest
 
 import xprobe
-from vendor import fleet_check as fleet
-from vendor.cli_args import run_cli
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).resolve().parents[1] / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+fleet = load_vendored("xprobe_fleet_check", "vendor/fleet_check.py")
+run_cli = load_vendored("xprobe_cli_args", "vendor/cli_args.py").run_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "tests" / "js" / "node_modules"
