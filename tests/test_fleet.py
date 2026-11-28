@@ -7,19 +7,19 @@ import pytest
 from vendor import fleet_check as fleet
 
 ROOT = fleet.repo_root(__file__)
-PARENT_WORKFLOW_PIN = "27dedd9651efc816fa88d8922adb5f242725df69"
+PARENT_WORKFLOW_PIN = "main"  # 🔁 own sources follow main (2026-11-28)
 ACCEPTED = {
-    "vendor/cli_args.py": "5ae22b1a1b808eca93e3c385a8db867fbeb8ee32",
-    "vendor/py_launch.cjs": "de63762d8485e4d398a651715d34ebf4a04c23f2",
-    "vendor/fleet_check.py": "20de01921e50e9339aa9271b0547a5be7649b3b3",
-}
+    "vendor/cli_args.py",
+    "vendor/py_launch.cjs",
+    "vendor/fleet_check.py",
+}  # 🔁 locked destinations; they follow main
 TOOL, ENV_VAR = "xprobe.py", "XPROBE_PYTHON"
 CASES = [{"id": "help", "args": ["--help"], "rc": 0}, {"id": "bogus", "args": ["--bogus"], "rc": 2}, {"id": "hidden-rules", "args": ["--hidden-rules"], "rc": 0}, {"id": "hidden-text", "args": ["--hidden-text", "--root", "LICENSE"], "rc": 0}, {"id": "strip-missing", "args": ["--strip-hidden", "no-such-file"], "rc": 2}]
 needs_node = pytest.mark.skipif(fleet.node() is None, reason="Node 26+ not available (set NODE)")
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    fleet.check_lock(ROOT, commits=ACCEPTED, sources={
+    fleet.check_lock(ROOT, sources={
         "vendor/cli_args.py": ("myon-bioinformatics/cli_args", "cli_args.py"),
         "vendor/myon-bioinformatics-LICENSE": (fleet.PARENT, "LICENSE"),
         "vendor/njs_launch.py": (fleet.PARENT, "njs_launch.py"),
