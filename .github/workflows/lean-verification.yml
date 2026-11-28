@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   pair-coverage:
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-lean-verify.yml@27c46411c0a07d9b4d0f1ad5751ed1bb9e869b5c
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-lean-verify.yml@27dedd9651efc816fa88d8922adb5f242725df69
     with:
       project-directory: formal
       proof: Coverage.lean
