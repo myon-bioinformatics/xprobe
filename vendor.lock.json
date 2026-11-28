@@ -3,8 +3,8 @@
   "files": [
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "1eda992aa6fa31a902e2c06428e53ab17e8fe3c1",
-      "commit": "1eda992aa6fa31a902e2c06428e53ab17e8fe3c1",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "LICENSE",
       "destination": "vendor/myon-bioinformatics-LICENSE",
       "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
@@ -12,8 +12,8 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "0d20801e2e372a72426ce85cee7ac04d701e71b5",
-      "commit": "0d20801e2e372a72426ce85cee7ac04d701e71b5",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "njs_launch.py",
       "destination": "vendor/njs_launch.py",
       "blob_sha": "79521fdd4d77f4a0ae91ca4a1791f4ad46a0d574",
@@ -21,8 +21,8 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "de63762d8485e4d398a651715d34ebf4a04c23f2",
-      "commit": "de63762d8485e4d398a651715d34ebf4a04c23f2",
+      "ref": "main",
+      "commit": "27dedd9651efc816fa88d8922adb5f242725df69",
       "source": "py_launch.cjs",
       "destination": "vendor/py_launch.cjs",
       "blob_sha": "caf5ef6d42bd572e9cfde84ee570e3036edc4726",
@@ -30,7 +30,7 @@
     },
     {
       "repository": "myon-bioinformatics/myon-bioinformatics",
-      "ref": "eee8c096fc753465a5d5a26264e64c12e555638f",
+      "ref": "main",
       "commit": "eee8c096fc753465a5d5a26264e64c12e555638f",
       "source": "fleet_check.py",
       "destination": "vendor/fleet_check.py",
@@ -39,12 +39,12 @@
     },
     {
       "repository": "myon-bioinformatics/cli_args",
-      "ref": "5ae22b1a1b808eca93e3c385a8db867fbeb8ee32",
-      "commit": "5ae22b1a1b808eca93e3c385a8db867fbeb8ee32",
+      "ref": "main",
+      "commit": "7c3a780643d8fe098dfb76ac9fbbb3984c1db9e3",
       "source": "cli_args.py",
       "destination": "vendor/cli_args.py",
-      "blob_sha": "2016baa6f1f347840ac8dff7ca59e7bdaf565475",
-      "sha256": "360a048d5e2764da52277be4992ad3e5399d25fd236ceed19f8efe611674b4b5"
+      "blob_sha": "9f93ed31499c16d03c867beb9284b6fc3170d31b",
+      "sha256": "f3753bdba3546d92b79f7b5af96a7cfb6a33d8ba42e8ef47ca1089d9650e964b"
     }
   ]
 }
